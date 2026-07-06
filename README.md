@@ -74,9 +74,9 @@ The repository is equipped with an automated GitHub Actions workflow (`.github/w
 
 GLB_FACTORY is not a generic, raw polygon modeler; it is a specialized, rapid-prototype pipeline crafted to make character creation instantaneous. Here is how it outperforms Blender:
 
-1. **One-Click Procedural Chaos Mutation Engine** 🌀:
+1. **One-Click Procedural Chaos Mutation Lab V2** 🌀:
    - *In Blender*: To make a new model, you must manually rescale parent hierarchies, repaint texture maps, change material parameters, and re-equip armature slots.
-   - *In GLB_FACTORY*: Click **Chaos Mutation** to instantly spin up endless unique characters with harmonious retro palettes, proportional scaling mutations, hairstyles, and accessories in microseconds.
+   - *In GLB_FACTORY*: Tap **Mutate Skeletal DNA Now** to instantly spin up endless unique characters with harmonious retro palettes, proportional scaling mutations, hairstyles, and accessories in microseconds. Adjust the **Chaos Regulator Slider** (from Balanced Retro up to Glitch Mayhem) or engage the **Chrono-Loop (Auto-Rave screensaver)** to cycle generations automatically! Check genomic status on the real-time **DNA Decoder readout** (featuring ranks from COMMON to the ultimate flashing CHAOTIC-DIVINE).
 
 2. **Real-Time Client-Side UV Mapping & Texturing** 🎨:
    - *In Blender*: Creating a realistic or retro head from a flat portrait requires tedious seam placement, UV unwrapping, color matching, and hand-painting.
