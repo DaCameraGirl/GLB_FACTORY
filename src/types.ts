@@ -66,6 +66,7 @@ export interface AvatarConfig {
   keyLightColor?: string;
   cameraFov?: number;
   cameraPreset?: "front" | "side" | "top" | "isometric";
+  twoDStyleEffect?: "none" | "crt" | "blueprint" | "gameboy" | "cyberpunk" | "sketch";
 }
 
 export interface DetectionResult {

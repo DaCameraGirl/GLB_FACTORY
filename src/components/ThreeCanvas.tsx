@@ -179,6 +179,59 @@ export default function ThreeCanvas({
         if (scene) {
           scene.background = new THREE.Color("#0c0919");
         }
+      } else if (config.twoDStyleEffect === "blueprint") {
+        if (dirLight) {
+          dirLight.color.setHex(0xffffff);
+          dirLight.position.set(2, 5, 3);
+          dirLight.intensity = 1.3;
+        }
+        if (ambientLight) {
+          ambientLight.color.setHex(0xffffff);
+          ambientLight.intensity = 1.0;
+        }
+        if (scene) {
+          scene.background = new THREE.Color("#0f35a0"); // rich blueprint blue
+        }
+      } else if (config.twoDStyleEffect === "gameboy") {
+        if (dirLight) {
+          dirLight.color.setHex(0xeefed1);
+          dirLight.position.set(2, 5, 3);
+          dirLight.intensity = 0.9;
+        }
+        if (ambientLight) {
+          ambientLight.color.setHex(0x8b956d);
+          ambientLight.intensity = 0.7;
+        }
+        if (scene) {
+          scene.background = new THREE.Color("#8b956d"); // olive-green LCD
+        }
+      } else if (config.twoDStyleEffect === "cyberpunk") {
+        if (dirLight) {
+          dirLight.color.setHex(0xff007f); // neon hot pink
+          dirLight.position.x = Math.sin(elapsedTime * 2.0) * 3.5;
+          dirLight.position.z = Math.cos(elapsedTime * 2.0) * 3.5;
+          dirLight.intensity = 1.6;
+        }
+        if (ambientLight) {
+          ambientLight.color.setHex(0x00f0ff); // electric cyan
+          ambientLight.intensity = 0.8;
+        }
+        if (scene) {
+          scene.background = new THREE.Color("#030308"); // deep cyberspace dark
+        }
+      } else if (config.twoDStyleEffect === "sketch") {
+        if (dirLight) {
+          dirLight.color.setHex(0xffffff);
+          dirLight.position.set(4, 8, 2);
+          dirLight.intensity = 1.6;
+        }
+        if (ambientLight) {
+          ambientLight.color.setHex(0xeaeaea);
+          ambientLight.intensity = 1.1;
+        }
+        if (scene) {
+          scene.background = new THREE.Color("#fbf9f4"); // sketchbook background
+        }
       } else {
         if (dirLight) {
           dirLight.color.setStyle(config.keyLightColor || "#ffffff");
@@ -374,7 +427,8 @@ export default function ThreeCanvas({
     config.keyLightColor,
     config.cameraFov,
     config.cameraPreset,
-    config.discoMode
+    config.discoMode,
+    config.twoDStyleEffect
   ]);
 
   // Re-build Avatar whenever the 3D representation or texture canvas changes
@@ -399,10 +453,110 @@ export default function ThreeCanvas({
   return (
     <div
       ref={containerRef}
-      className="w-full h-full min-h-[350px] md:min-h-[500px] rounded-none overflow-hidden relative border-2 border-[#141414] bg-[#CCCCCC]"
+      className={`w-full h-full min-h-[350px] md:min-h-[500px] rounded-none overflow-hidden relative border-2 border-[#141414] transition-all duration-300 ${
+        config.twoDStyleEffect === "gameboy"
+          ? "bg-[#8b956d] contrast-[1.1] saturate-[0.9]"
+          : config.twoDStyleEffect === "blueprint"
+          ? "bg-[#0f35a0]"
+          : config.twoDStyleEffect === "sketch"
+          ? "bg-[#fbf9f4] grayscale contrast-[1.8] brightness-[1.05]"
+          : "bg-[#CCCCCC]"
+      }`}
       id="3d-preview-canvas-container"
-      style={{ backgroundImage: "radial-gradient(#aaa 1px, transparent 1px)", backgroundSize: "20px 20px" }}
+      style={{ backgroundImage: config.twoDStyleEffect === "blueprint" ? "none" : "radial-gradient(#aaa 1px, transparent 1px)", backgroundSize: "20px 20px" }}
     >
+      {/* 2D Overlay Effects */}
+      {config.twoDStyleEffect === "crt" && (
+        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+          {/* Repeating Scanlines */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.15)_50%)] bg-[length:100%_4px] mix-blend-overlay" />
+          {/* CRT Glare Vignette */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_55%,rgba(0,0,0,0.4)_100%)] mix-blend-multiply" />
+          {/* Bezel frame shadow */}
+          <div className="absolute inset-0 border-[10px] border-black/15 shadow-[inset_0_0_40px_rgba(0,0,0,0.5)]" />
+          {/* Indicator */}
+          <div className="absolute top-3 right-3 text-red-500 font-mono text-[9px] font-bold flex items-center gap-1 animate-pulse">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+            <span>LIVE CRT_NTSC</span>
+          </div>
+        </div>
+      )}
+
+      {config.twoDStyleEffect === "blueprint" && (
+        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden border-2 border-white/20">
+          {/* Fine architectural blueprint grid */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] bg-[length:20px_20px]" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] bg-[length:100px_100px] border-t border-l border-white/10" />
+          {/* Schematic metadata texts */}
+          <div className="absolute bottom-12 right-4 text-white/50 font-mono text-[8px] text-right leading-relaxed select-none">
+            <div>ASSEMBLY: VOXEL_RIG_X90</div>
+            <div>MESH TYPE: RETRO BLOCKY</div>
+            <div>GLB TRANS_COORDS: Z-UP</div>
+          </div>
+          <div className="absolute top-12 left-4 text-white/40 font-mono text-[8px] leading-relaxed select-none">
+            <div>DRAFT_ENGIN v3.5</div>
+            <div>TOLERANCE: +/-0.015m</div>
+            <div>BOUNDS: [1.2m, 0.8m, 1.8m]</div>
+          </div>
+          <div className="absolute top-3 right-3 text-white/70 font-mono text-[9px] font-bold uppercase tracking-wider">
+            PLAN_SHEET // #001
+          </div>
+        </div>
+      )}
+
+      {config.twoDStyleEffect === "gameboy" && (
+        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+          {/* Heavy LCD pixel dither block matrix */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.07)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.07)_1px,transparent_1px)] bg-[length:3px_3px]" />
+          {/* Greenish vignette shading */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_60%,rgba(45,55,30,0.35)_100%)] mix-blend-multiply" />
+          {/* Corner highlights */}
+          <div className="absolute top-3 right-3 text-[#303810]/70 font-mono text-[8px] font-bold">
+            BATTERY ●●●
+          </div>
+        </div>
+      )}
+
+      {config.twoDStyleEffect === "cyberpunk" && (
+        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+          {/* Cyan/Magenta retro-future neon grids */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(0,240,255,0.02)_50%,rgba(255,0,127,0.02)_50%)] bg-[length:100%_8px]" />
+          {/* Center Target HUD overlay */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border border-cyan-500/20 rounded-full flex items-center justify-center">
+            <div className="w-2 h-2 bg-pink-500/60 rounded-full animate-ping" />
+            <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-cyan-500/10 -translate-x-1/2 h-full" />
+            <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-cyan-500/10 -translate-y-1/2 w-full" />
+          </div>
+          {/* Cybernetic HUD Frame corners */}
+          <div className="absolute top-4 left-4 w-4 h-4 border-t-2 border-l-2 border-cyan-400" />
+          <div className="absolute top-4 right-4 w-4 h-4 border-t-2 border-r-2 border-cyan-400" />
+          <div className="absolute bottom-16 left-4 w-4 h-4 border-b-2 border-l-2 border-cyan-400" />
+          <div className="absolute bottom-16 right-4 w-4 h-4 border-b-2 border-r-2 border-cyan-400" />
+          {/* Sci-fi live coordinates */}
+          <div className="absolute top-12 right-4 text-pink-500 font-mono text-[8px] text-right leading-relaxed select-none">
+            <div>STANCE: COMPILING_MESH</div>
+            <div>SYS_TEMP: 32.5°C (OK)</div>
+            <div>CYBER_SHIELD: 100%</div>
+          </div>
+          <div className="absolute top-12 left-4 text-cyan-400 font-mono text-[8px] leading-relaxed select-none">
+            <div>LOC_X: [0.00]</div>
+            <div>LOC_Y: [1.35]</div>
+            <div>ALIGN: POSITIVE_SKEW</div>
+          </div>
+        </div>
+      )}
+
+      {config.twoDStyleEffect === "sketch" && (
+        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden opacity-75">
+          {/* Shaded vignette charcoal pencil frame */}
+          <div className="absolute inset-0 border-[16px] border-[#edeae2]/95" />
+          <div className="absolute inset-0 bg-[#f4f1ea]/10" />
+          <div className="absolute bottom-12 left-4 text-[#333333]/60 font-serif italic text-[8.5px] select-none">
+            * Pencil and Charcoal Shading Outline Projection
+          </div>
+        </div>
+      )}
+
       {/* Floating viewport details */}
       <div className="absolute top-3 left-3 bg-[#141414] border border-[#141414] text-[10px] px-2.5 py-1.5 rounded-none text-[#E4E3E0] font-mono select-none z-10 font-bold uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(20,20,20,0.15)] leading-tight">
         VIEWPORT: PERSPECTIVE_3D<br/>
