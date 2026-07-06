@@ -175,6 +175,54 @@ export default function App() {
     }
   };
 
+  // Helper for static/client-side fallback face and color analysis
+  const analyzeColorsClientSide = (img: HTMLImageElement): { skin_tone: string; hair_color: string; clothing_color: string; gender_style: HairStyle } => {
+    try {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        return { skin_tone: "#e5a65d", hair_color: "#211510", clothing_color: "#1e3a8a", gender_style: "short" };
+      }
+      canvas.width = 100;
+      canvas.height = 100;
+      ctx.drawImage(img, 0, 0, 100, 100);
+
+      const rgbToHex = (r: number, g: number, b: number) => {
+        return "#" + [r, g, b].map(x => {
+          const hex = Math.max(0, Math.min(255, x)).toString(16);
+          return hex.length === 1 ? "0" + hex : hex;
+        }).join("");
+      };
+
+      // Sample Skin: Center of the image (50, 50)
+      const skinPixel = ctx.getImageData(50, 50, 1, 1).data;
+      const skin_tone = rgbToHex(skinPixel[0], skinPixel[1], skinPixel[2]);
+
+      // Sample Hair: Upper part of the image (50, 20)
+      const hairPixel = ctx.getImageData(50, 20, 1, 1).data;
+      const hair_color = rgbToHex(hairPixel[0], hairPixel[1], hairPixel[2]);
+
+      // Sample Clothing: Bottom part of the image (50, 85)
+      const clothingPixel = ctx.getImageData(50, 85, 1, 1).data;
+      const clothing_color = rgbToHex(clothingPixel[0], clothingPixel[1], clothingPixel[2]);
+
+      return {
+        skin_tone,
+        hair_color,
+        clothing_color,
+        gender_style: "short",
+      };
+    } catch (e) {
+      console.warn("Could not read image pixels client-side, defaulting to standard colors.", e);
+      return {
+        skin_tone: "#e5a65d",
+        hair_color: "#211510",
+        clothing_color: "#1e3a8a",
+        gender_style: "short",
+      };
+    }
+  };
+
   // 5. Trigger Face Detection API using server-side Gemini 3.5 Flash
   const handleBuildAvatar = async () => {
     if (!sourceImage) {
@@ -235,8 +283,47 @@ export default function App() {
         addLog(`Avatar mesh created and rendered. Ready to export!`, "success");
       }, 1000);
     } catch (err: any) {
-      setIsProcessing(false);
-      addLog(`API Error: ${err.message}`, "error");
+      addLog(`Backend analysis unavailable (${err.message}).`, "warning");
+      addLog("Switching to offline Client-Side Face Analysis Fallback...", "info");
+
+      try {
+        if (!imageRef.current) {
+          throw new Error("Source image element not loaded.");
+        }
+
+        // Run client-side color pixel analysis
+        const result = analyzeColorsClientSide(imageRef.current);
+
+        addLog("Local color sampler analysis complete!", "success");
+        addLog(`Extracted local features - Skin: ${result.skin_tone}, Hair: ${result.hair_color}, Clothes: ${result.clothing_color}`, "info");
+
+        // Default crop box (centered)
+        const localBox: [number, number, number, number] = [20, 20, 80, 80];
+        setFaceBox(localBox);
+        setConfig((prev) => ({
+          ...prev,
+          skinColor: result.skin_tone,
+          hairColor: result.hair_color,
+          clothingColor: result.clothing_color,
+          hairStyle: result.gender_style,
+          cropX: 0,
+          cropY: 0,
+          cropScale: 1.0,
+        }));
+
+        setCurrentStep("mesh");
+        addLog("Constructing 3D avatar meshes...", "info");
+
+        setTimeout(() => {
+          setCurrentStep("glb");
+          setIsSuccess(true);
+          setIsProcessing(false);
+          addLog(`Avatar mesh created and rendered via local fallback. Ready to export!`, "success");
+        }, 1000);
+      } catch (localErr: any) {
+        setIsProcessing(false);
+        addLog(`Local analysis failed: ${localErr.message}`, "error");
+      }
     }
   };
 
@@ -321,7 +408,7 @@ export default function App() {
               Photo-to-GLB-Auto
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse inline-block"></span>
             </h1>
-            <p className="font-mono text-[9px] opacity-70">v0.8.4-BETA // LOCALHOST:8080</p>
+            <p className="font-mono text-[9px] opacity-70">v1.0.0-RELEASE // {typeof window !== "undefined" ? window.location.hostname.toUpperCase() : "LOCALHOST"}</p>
           </div>
         </div>
 
