@@ -291,6 +291,131 @@ export function playSynthSound(type: "zap" | "coin" | "jump" | "boom" | "arp" | 
 }
 
 export default function App() {
+  // Spooky Halloween music states & references
+  const spookyAudioContextRef = useRef<AudioContext | null>(null);
+  const spookySequenceIdRef = useRef<number | null>(null);
+  const [spookyMusicPlaying, setSpookyMusicPlaying] = useState(false);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (spookySequenceIdRef.current) {
+        clearTimeout(spookySequenceIdRef.current);
+      }
+      if (spookyAudioContextRef.current) {
+        try {
+          spookyAudioContextRef.current.close();
+        } catch (e) {}
+      }
+    };
+  }, []);
+
+  const playSpookyNote = (ctx: AudioContext, freq: number, time: number, duration: number, type: OscillatorType = "sine") => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, time);
+    
+    // High-pitched theremin vibrato
+    if (type === "sine" && freq > 400) {
+      const lfo = ctx.createOscillator();
+      const lfoGain = ctx.createGain();
+      lfo.frequency.value = 5.5; // Vibrato rate
+      lfoGain.gain.value = 8.0; // Vibrato depth
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+      lfo.start(time);
+      lfo.stop(time + duration);
+    }
+
+    gain.gain.setValueAtTime(0.0, time);
+    gain.gain.linearRampToValueAtTime(type === "sawtooth" ? 0.015 : 0.045, time + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    
+    osc.start(time);
+    osc.stop(time + duration);
+  };
+
+  const handleToggleSpookyMusic = () => {
+    if (spookyMusicPlaying) {
+      if (spookySequenceIdRef.current) {
+        clearTimeout(spookySequenceIdRef.current);
+        spookySequenceIdRef.current = null;
+      }
+      if (spookyAudioContextRef.current) {
+        try {
+          spookyAudioContextRef.current.close();
+        } catch (e) {}
+        spookyAudioContextRef.current = null;
+      }
+      setSpookyMusicPlaying(false);
+    } else {
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        spookyAudioContextRef.current = ctx;
+        setSpookyMusicPlaying(true);
+        
+        // Classic eerie melodic sequence (John Carpenter styled 5/4 meter theme arpeggio)
+        const notesBar1 = [554.37, 739.99, 739.99, 554.37, 739.99, 739.99, 554.37, 739.99, 587.33, 739.99]; // F# minor style
+        const notesBar2 = [493.88, 659.25, 659.25, 493.88, 659.25, 659.25, 493.88, 659.25, 523.25, 659.25]; // E minor spooky style
+        const notesBar3 = [466.16, 622.25, 622.25, 466.16, 622.25, 622.25, 466.16, 622.25, 493.88, 622.25]; // D# dim style
+        
+        let noteIndex = 0;
+        const noteInterval = 0.16; // 160ms per note
+        const totalNotesPerBar = 10;
+        
+        const playNextSpookyNote = () => {
+          if (!spookyAudioContextRef.current) return;
+          const currentCtx = spookyAudioContextRef.current;
+          const time = currentCtx.currentTime;
+          
+          const bar = Math.floor(noteIndex / totalNotesPerBar);
+          const indexInBar = noteIndex % totalNotesPerBar;
+          
+          let noteFreq = 0;
+          let bassFreq = 0;
+          
+          if (bar % 3 === 0) {
+            noteFreq = notesBar1[indexInBar];
+            bassFreq = 92.50; // F#2
+          } else if (bar % 3 === 1) {
+            noteFreq = notesBar2[indexInBar];
+            bassFreq = 82.41; // E2
+          } else {
+            noteFreq = notesBar3[indexInBar];
+            bassFreq = 77.78; // D#2
+          }
+          
+          // Play melody
+          playSpookyNote(currentCtx, noteFreq, time, 0.25, "sine");
+          
+          // High chime overlay
+          if (indexInBar === 0) {
+            playSpookyNote(currentCtx, noteFreq * 2, time, 0.7, "triangle");
+          }
+          
+          // Low creepy bass drone
+          if (indexInBar === 0 || indexInBar === 5) {
+            playSpookyNote(currentCtx, bassFreq, time, 0.75, "sawtooth");
+          }
+          
+          noteIndex++;
+          spookySequenceIdRef.current = window.setTimeout(playNextSpookyNote, noteInterval * 1000);
+        };
+        
+        playNextSpookyNote();
+      } catch (err) {
+        console.warn("Blocked starting spooky theme player:", err);
+      }
+    }
+  };
+
   // 1. App State
   const [characterName, setCharacterName] = useState("Chase");
   const [sourceImage, setSourceImage] = useState<string | null>(null);
@@ -321,6 +446,7 @@ export default function App() {
     hairStyle: "short",
     bodyType: "normal",
     headShape: "organic-smooth",
+    detailLevel: "medium",
     featherEdges: true,
     featherRadius: 85,
     cropX: 0,
@@ -1163,6 +1289,7 @@ export default function App() {
       hairStyle: "short",
       bodyType: "normal",
       headShape: "organic-smooth",
+      detailLevel: "medium",
       featherEdges: true,
       featherRadius: 85,
       cropX: 0,
@@ -1333,13 +1460,28 @@ export default function App() {
         </div>
 
         {/* Quick Stats/Indicators */}
-        <div className="flex items-center gap-6 font-mono text-[10px] uppercase tracking-tighter text-white">
-          <div className="flex gap-3">
+        <div className="flex flex-wrap items-center gap-4 sm:gap-6 font-mono text-[10px] uppercase tracking-tighter text-white">
+          {/* Spooky Halloween Theme Music Button */}
+          <button
+            onClick={handleToggleSpookyMusic}
+            className={`px-3 py-1.5 border-2 rounded-none font-bold uppercase tracking-wider text-[9px] flex items-center gap-2 transition-all duration-300 ${
+              spookyMusicPlaying
+                ? "bg-orange-500 text-black border-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.5)]"
+                : "bg-transparent text-white/80 border-white/20 hover:border-orange-500 hover:text-orange-400"
+            }`}
+            title="Listen to spooky high-pitch retro arpeggios & sub-bass drones"
+            id="spooky-halloween-music-toggle"
+          >
+            <span className={`inline-block ${spookyMusicPlaying ? "animate-spin" : ""}`}>🎃</span>
+            <span>{spookyMusicPlaying ? "SPOOKY THEME: ON 👻" : "PLAY SPOOKY MUSIC 🦇"}</span>
+          </button>
+
+          <div className="flex gap-3 opacity-80">
             <span>CPU: 42%</span>
             <span>MEM: 1.2GB</span>
             <span>GPU: THREE.JS</span>
           </div>
-          <div className="border-l border-[#E4E3E0]/20 pl-4 opacity-75">
+          <div className="border-l border-[#E4E3E0]/20 pl-4 opacity-75 hidden md:block">
             ENGINE // GEMINI_3.5_FLASH
           </div>
         </div>

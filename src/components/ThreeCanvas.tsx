@@ -27,27 +27,61 @@ export default function ThreeCanvas({
   const avatarGroupRef = useRef<THREE.Group | null>(null);
   const animationFrameIdRef = useRef<number | null>(null);
 
+  const gridHelperRef = useRef<THREE.GridHelper | null>(null);
+  const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
+  const dirLightRef = useRef<THREE.DirectionalLight | null>(null);
+
   // Animation and interaction state
   const [animationMode, setAnimationMode] = useState<"idle" | "walk" | "dance" | "zombie" | "spin" | "ninja" | "custom">("idle");
   const mouseRef = useRef(new THREE.Vector2(0, 0));
   const isMouseOverRef = useRef(false);
 
+  // Synchronize configuration changes via stable refs for frame-rate interpolation
+  const configRef = useRef(config);
+  const autoRotateRef = useRef(autoRotate);
+  const animationModeRef = useRef(animationMode);
+  const bounceTimeRef = useRef(bounceTime);
+
+  useEffect(() => {
+    configRef.current = config;
+  }, [config]);
+
+  useEffect(() => {
+    autoRotateRef.current = autoRotate;
+  }, [autoRotate]);
+
+  useEffect(() => {
+    animationModeRef.current = animationMode;
+  }, [animationMode]);
+
+  useEffect(() => {
+    bounceTimeRef.current = bounceTime;
+  }, [bounceTime]);
+
+  // Sync animation mode if parent sets config.animationMode
+  useEffect(() => {
+    if (config.animationMode) {
+      setAnimationMode(config.animationMode);
+    }
+  }, [config.animationMode]);
+
+  // 1. Core Scene, Camera, WebGLRenderer, Controls initialization (ONCE on mount)
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // 1. Create Scene
+    // Create Scene
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#CCCCCC"); // Concrete gray background
+    scene.background = new THREE.Color("#CCCCCC");
     sceneRef.current = scene;
 
-    // Add grid/floor helper
-    if (config.showGrid !== false) {
-      const gridHelper = new THREE.GridHelper(10, 20, "#141414", "#888888");
-      gridHelper.position.y = -0.01; // Slightly below ground level to avoid z-fighting
-      scene.add(gridHelper);
-    }
+    // Add grid helper
+    const gridHelper = new THREE.GridHelper(10, 20, "#141414", "#888888");
+    gridHelper.position.y = -0.01;
+    gridHelper.visible = configRef.current.showGrid !== false;
+    scene.add(gridHelper);
+    gridHelperRef.current = gridHelper;
 
-    // Subtle ground shadow-receiver circle
+    // Ground shadow receiver
     const shadowGeo = new THREE.RingGeometry(0, 2.5, 32);
     const shadowMat = new THREE.MeshBasicMaterial({
       color: 0x141414,
@@ -60,16 +94,16 @@ export default function ThreeCanvas({
     shadowMesh.position.y = 0.001;
     scene.add(shadowMesh);
 
-    // 2. Create Camera with dynamic FOV (field of view)
-    const fov = config.cameraFov !== undefined ? config.cameraFov : 45;
+    // Create Camera
+    const fov = configRef.current.cameraFov !== undefined ? configRef.current.cameraFov : 45;
     const camera = new THREE.PerspectiveCamera(
       fov,
       containerRef.current.clientWidth / containerRef.current.clientHeight,
       0.1,
       100
     );
-    // Position camera to look at the character beautifully according to Blender Preset angles
-    const cameraPreset = config.cameraPreset || "front";
+    
+    const cameraPreset = configRef.current.cameraPreset || "front";
     if (cameraPreset === "side") {
       camera.position.set(4.5, 1.5, 0);
     } else if (cameraPreset === "top") {
@@ -77,31 +111,30 @@ export default function ThreeCanvas({
     } else if (cameraPreset === "isometric") {
       camera.position.set(3.5, 3.5, 3.5);
     } else {
-      // "front" preset
       camera.position.set(0, 1.8, 4.5);
     }
     cameraRef.current = camera;
 
-    // 3. Create WebGLRenderer
+    // Create WebGLRenderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    
-    // Clear previous children
+
     containerRef.current.innerHTML = "";
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // 4. Lights with dynamic slider controllers
-    const ambientIntensity = config.ambientIntensity !== undefined ? config.ambientIntensity : 0.75;
+    // Ambient light
+    const ambientIntensity = configRef.current.ambientIntensity !== undefined ? configRef.current.ambientIntensity : 0.75;
     const ambientLight = new THREE.AmbientLight(0xffffff, ambientIntensity);
     scene.add(ambientLight);
+    ambientLightRef.current = ambientLight;
 
-    // Main spotlight casting beautiful soft shadows
-    const keyLightColor = config.keyLightColor || "#ffffff";
-    const keyLightIntensity = config.keyLightIntensity !== undefined ? config.keyLightIntensity : 0.85;
+    // Directional key light
+    const keyLightColor = configRef.current.keyLightColor || "#ffffff";
+    const keyLightIntensity = configRef.current.keyLightIntensity !== undefined ? configRef.current.keyLightIntensity : 0.85;
     const dirLight = new THREE.DirectionalLight(new THREE.Color(keyLightColor), keyLightIntensity);
     dirLight.position.set(3, 6, 4);
     dirLight.castShadow = true;
@@ -109,23 +142,24 @@ export default function ThreeCanvas({
     dirLight.shadow.mapSize.height = 1024;
     dirLight.shadow.bias = -0.001;
     scene.add(dirLight);
+    dirLightRef.current = dirLight;
 
-    // Rim light/Backlight to give depth
+    // Rim Light
     const rimLight = new THREE.DirectionalLight(0xffffff, 0.35);
     rimLight.position.set(-3, 3, -4);
     scene.add(rimLight);
 
-    // 5. Controls
+    // Orbit Controls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.maxPolarAngle = Math.PI / 2 + 0.1; // Don't orbit below ground
+    controls.maxPolarAngle = Math.PI / 2 + 0.1;
     controls.minDistance = 2.0;
     controls.maxDistance = 10.0;
-    controls.target.set(0, 1.3, 0); // focus on character center
+    controls.target.set(0, 1.3, 0);
     controlsRef.current = controls;
 
-    // 6. Resize Observer
+    // Resize Observer
     const resizeObserver = new ResizeObserver((entries) => {
       if (!entries || entries.length === 0) return;
       const { width, height } = entries[0].contentRect;
@@ -137,11 +171,10 @@ export default function ThreeCanvas({
     });
     resizeObserver.observe(containerRef.current);
 
-    // 7. Mouse move listeners for Head look-at
+    // Mouse listeners for interactive look-at
     const handleMouseMove = (event: MouseEvent) => {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
-      // Calculate normalized mouse coordinates (-1 to +1)
       const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
       mouseRef.current.set(x, y);
@@ -161,42 +194,47 @@ export default function ThreeCanvas({
     dom.addEventListener("mouseenter", handleMouseEnter);
     dom.addEventListener("mouseleave", handleMouseLeave);
 
-    // 8. Render/Animation loop
-    let clock = new THREE.Clock();
-    // Track physics bounce trigger - if bounceTime changes, this effect restarts, initializing this to 0 (since clock starts at 0)
-    const lastBounceTriggerTime = bounceTime > 0 ? 0 : -999;
+    // Render loop
+    const clock = new THREE.Clock();
 
     const animate = () => {
+      const activeConfig = configRef.current;
+      const activeAutoRotate = autoRotateRef.current;
+      const activeAnimMode = animationModeRef.current;
+      const activeBounceTime = bounceTimeRef.current;
+
       const elapsedTime = clock.getElapsedTime();
 
-      // Soft-body physics bounce calculation
-      const bounceElapsed = elapsedTime - lastBounceTriggerTime;
+      // Bounce/squish dynamic soft-body calculations
       let bounceY = 0;
       let squishY = 1.0;
       let squishXZ = 1.0;
 
-      if (bounceElapsed >= 0 && bounceElapsed < 1.2) {
-        if (bounceElapsed < 0.9) {
-          const progress = bounceElapsed / 0.9;
-          bounceY = Math.sin(progress * Math.PI) * 1.2;
-          squishY = 1.2 - Math.sin(progress * Math.PI) * 0.15;
-          squishXZ = 1.0 / squishY;
-        } else {
-          const landingProgress = (bounceElapsed - 0.9) / 0.3;
-          const decay = Math.exp(-landingProgress * 3.0);
-          const squishFreq = Math.sin(landingProgress * Math.PI * 3.0);
-          squishY = 1.0 - decay * 0.25 * squishFreq;
-          squishXZ = 1.0 / squishY;
-        }
-      }
-
       if (avatarGroupRef.current) {
+        if (activeBounceTime > 0) {
+          const bounceAge = (Date.now() - activeBounceTime) / 1000;
+          if (bounceAge >= 0 && bounceAge < 1.2) {
+            if (bounceAge < 0.9) {
+              const progress = bounceAge / 0.9;
+              bounceY = Math.sin(progress * Math.PI) * 1.2;
+              squishY = 1.2 - Math.sin(progress * Math.PI) * 0.15;
+              squishXZ = 1.0 / squishY;
+            } else {
+              const landingProgress = (bounceAge - 0.9) / 0.3;
+              const decay = Math.exp(-landingProgress * 3.0);
+              const squishFreq = Math.sin(landingProgress * Math.PI * 3.0);
+              squishY = 1.0 - decay * 0.25 * squishFreq;
+              squishXZ = 1.0 / squishY;
+            }
+          }
+        }
+
         avatarGroupRef.current.position.y = bounceY;
         avatarGroupRef.current.scale.set(squishXZ, squishY, squishXZ);
       }
 
-      // Implement Disco lights Mode if active
-      if (config.discoMode) {
+      // Live presets lighting & shader overrides (cheap color HSL settings)
+      if (activeConfig.discoMode) {
         if (dirLight) {
           dirLight.color.setHSL((elapsedTime * 0.45) % 1.0, 1.0, 0.55);
           dirLight.position.x = Math.sin(elapsedTime * 3.0) * 4.5;
@@ -204,13 +242,11 @@ export default function ThreeCanvas({
           dirLight.intensity = 1.8;
         }
         if (ambientLight) {
-          ambientLight.color.setHex(0x180b2d); // deep neon background ambient
+          ambientLight.color.setHex(0x180b2d);
           ambientLight.intensity = 0.3;
         }
-        if (scene) {
-          scene.background = new THREE.Color("#0c0919");
-        }
-      } else if (config.twoDStyleEffect === "blueprint") {
+        scene.background = new THREE.Color("#0c0919");
+      } else if (activeConfig.twoDStyleEffect === "blueprint") {
         if (dirLight) {
           dirLight.color.setHex(0xffffff);
           dirLight.position.set(2, 5, 3);
@@ -220,10 +256,8 @@ export default function ThreeCanvas({
           ambientLight.color.setHex(0xffffff);
           ambientLight.intensity = 1.0;
         }
-        if (scene) {
-          scene.background = new THREE.Color("#0f35a0"); // rich blueprint blue
-        }
-      } else if (config.twoDStyleEffect === "gameboy") {
+        scene.background = new THREE.Color("#0f35a0");
+      } else if (activeConfig.twoDStyleEffect === "gameboy") {
         if (dirLight) {
           dirLight.color.setHex(0xeefed1);
           dirLight.position.set(2, 5, 3);
@@ -233,24 +267,20 @@ export default function ThreeCanvas({
           ambientLight.color.setHex(0x8b956d);
           ambientLight.intensity = 0.7;
         }
-        if (scene) {
-          scene.background = new THREE.Color("#8b956d"); // olive-green LCD
-        }
-      } else if (config.twoDStyleEffect === "cyberpunk") {
+        scene.background = new THREE.Color("#8b956d");
+      } else if (activeConfig.twoDStyleEffect === "cyberpunk") {
         if (dirLight) {
-          dirLight.color.setHex(0xff007f); // neon hot pink
+          dirLight.color.setHex(0xff007f);
           dirLight.position.x = Math.sin(elapsedTime * 2.0) * 3.5;
           dirLight.position.z = Math.cos(elapsedTime * 2.0) * 3.5;
           dirLight.intensity = 1.6;
         }
         if (ambientLight) {
-          ambientLight.color.setHex(0x00f0ff); // electric cyan
+          ambientLight.color.setHex(0x00f0ff);
           ambientLight.intensity = 0.8;
         }
-        if (scene) {
-          scene.background = new THREE.Color("#030308"); // deep cyberspace dark
-        }
-      } else if (config.twoDStyleEffect === "sketch") {
+        scene.background = new THREE.Color("#030308");
+      } else if (activeConfig.twoDStyleEffect === "sketch") {
         if (dirLight) {
           dirLight.color.setHex(0xffffff);
           dirLight.position.set(4, 8, 2);
@@ -260,24 +290,21 @@ export default function ThreeCanvas({
           ambientLight.color.setHex(0xeaeaea);
           ambientLight.intensity = 1.1;
         }
-        if (scene) {
-          scene.background = new THREE.Color("#fbf9f4"); // sketchbook background
-        }
+        scene.background = new THREE.Color("#fbf9f4");
       } else {
         if (dirLight) {
-          dirLight.color.setStyle(config.keyLightColor || "#ffffff");
+          dirLight.color.setStyle(activeConfig.keyLightColor || "#ffffff");
           dirLight.position.set(3, 6, 4);
-          dirLight.intensity = config.keyLightIntensity !== undefined ? config.keyLightIntensity : 0.85;
+          dirLight.intensity = activeConfig.keyLightIntensity !== undefined ? activeConfig.keyLightIntensity : 0.85;
         }
         if (ambientLight) {
           ambientLight.color.setHex(0xffffff);
-          ambientLight.intensity = config.ambientIntensity !== undefined ? config.ambientIntensity : 0.75;
+          ambientLight.intensity = activeConfig.ambientIntensity !== undefined ? activeConfig.ambientIntensity : 0.75;
         }
-        if (scene) {
-          scene.background = new THREE.Color("#CCCCCC");
-        }
+        scene.background = new THREE.Color("#CCCCCC");
       }
 
+      // Rig joints active animations
       if (avatarGroupRef.current) {
         const torso = avatarGroupRef.current.getObjectByName("torso") as THREE.Object3D;
         const head = avatarGroupRef.current.getObjectByName("head") as THREE.Object3D;
@@ -286,39 +313,37 @@ export default function ThreeCanvas({
         const leftLeg = avatarGroupRef.current.getObjectByName("left-leg") as THREE.Object3D;
         const rightLeg = avatarGroupRef.current.getObjectByName("right-leg") as THREE.Object3D;
 
-        const baseHeight = config.bodyType === "chibi" ? 0.8 : config.bodyType === "tall" ? 1.6 : 1.35;
+        const baseHeight = activeConfig.bodyType === "chibi" ? 0.8 : activeConfig.bodyType === "tall" ? 1.6 : 1.35;
 
-        if (animationMode === "custom") {
-          // Manual armature direct control sliders (superior to Blender's tedious rotation armature menus!)
+        if (activeAnimMode === "custom") {
           if (head) {
-            const headYaw = ((config.poseHeadYaw !== undefined ? config.poseHeadYaw : 0) * Math.PI) / 180;
-            const headPitch = ((config.poseHeadPitch !== undefined ? config.poseHeadPitch : 0) * Math.PI) / 180;
+            const headYaw = ((activeConfig.poseHeadYaw !== undefined ? activeConfig.poseHeadYaw : 0) * Math.PI) / 180;
+            const headPitch = ((activeConfig.poseHeadPitch !== undefined ? activeConfig.poseHeadPitch : 0) * Math.PI) / 180;
             head.rotation.set(headPitch, headYaw, 0);
           }
           if (leftArm) {
-            const rotX = ((config.poseLeftArmRotationX !== undefined ? config.poseLeftArmRotationX : 0) * Math.PI) / 180;
-            const rotZ = ((config.poseLeftArmRotationZ !== undefined ? config.poseLeftArmRotationZ : -5) * Math.PI) / 180;
+            const rotX = ((activeConfig.poseLeftArmRotationX !== undefined ? activeConfig.poseLeftArmRotationX : 0) * Math.PI) / 180;
+            const rotZ = ((activeConfig.poseLeftArmRotationZ !== undefined ? activeConfig.poseLeftArmRotationZ : -5) * Math.PI) / 180;
             leftArm.rotation.set(rotX, 0, rotZ);
           }
           if (rightArm) {
-            const rotX = ((config.poseRightArmRotationX !== undefined ? config.poseRightArmRotationX : 0) * Math.PI) / 180;
-            const rotZ = ((config.poseRightArmRotationZ !== undefined ? config.poseRightArmRotationZ : 5) * Math.PI) / 180;
+            const rotX = ((activeConfig.poseRightArmRotationX !== undefined ? activeConfig.poseRightArmRotationX : 0) * Math.PI) / 180;
+            const rotZ = ((activeConfig.poseRightArmRotationZ !== undefined ? activeConfig.poseRightArmRotationZ : 5) * Math.PI) / 180;
             rightArm.rotation.set(rotX, 0, rotZ);
           }
           if (leftLeg) {
-            const rotX = ((config.poseLeftLegRotationX !== undefined ? config.poseLeftLegRotationX : 0) * Math.PI) / 180;
+            const rotX = ((activeConfig.poseLeftLegRotationX !== undefined ? activeConfig.poseLeftLegRotationX : 0) * Math.PI) / 180;
             leftLeg.rotation.set(rotX, 0, 0);
           }
           if (rightLeg) {
-            const rotX = ((config.poseRightLegRotationX !== undefined ? config.poseRightLegRotationX : 0) * Math.PI) / 180;
+            const rotX = ((activeConfig.poseRightLegRotationX !== undefined ? activeConfig.poseRightLegRotationX : 0) * Math.PI) / 180;
             rightLeg.rotation.set(rotX, 0, 0);
           }
           if (torso) {
             torso.position.y = baseHeight;
             torso.rotation.set(0, 0, 0);
           }
-        } else if (animationMode === "walk") {
-          // Beautiful active walking loop
+        } else if (activeAnimMode === "walk") {
           const speed = 7.8;
           const angle = 0.45;
           const swing = Math.sin(elapsedTime * speed) * angle;
@@ -332,12 +357,10 @@ export default function ThreeCanvas({
             torso.position.y = baseHeight + Math.abs(Math.sin(elapsedTime * speed)) * 0.05 - 0.025;
             torso.rotation.set(0, Math.sin(elapsedTime * speed * 0.5) * 0.05, 0);
           }
-
           if (head) {
             head.rotation.set(Math.sin(elapsedTime * speed) * 0.03, 0, Math.cos(elapsedTime * speed * 0.5) * 0.025);
           }
-        } else if (animationMode === "dance") {
-          // Exaggerated Voxel Jig Dance
+        } else if (activeAnimMode === "dance") {
           const speed = 9.2;
           const bounce = Math.sin(elapsedTime * speed * 2) * 0.08;
           const swayX = Math.sin(elapsedTime * speed) * 0.5;
@@ -351,12 +374,10 @@ export default function ThreeCanvas({
             torso.position.y = baseHeight + bounce;
             torso.rotation.set(Math.sin(elapsedTime * speed) * 0.06, Math.cos(elapsedTime * speed * 0.5) * 0.2, Math.sin(elapsedTime * speed) * 0.12);
           }
-
           if (head) {
             head.rotation.set(Math.cos(elapsedTime * speed * 2) * 0.08, Math.sin(elapsedTime * speed) * 0.15, Math.sin(elapsedTime * speed) * 0.08);
           }
-        } else if (animationMode === "zombie") {
-          // Slow zombie stagger
+        } else if (activeAnimMode === "zombie") {
           const speed = 2.4;
           const slowSway = Math.sin(elapsedTime * speed);
 
@@ -369,12 +390,10 @@ export default function ThreeCanvas({
             torso.position.y = baseHeight + Math.sin(elapsedTime * speed * 2) * 0.015 - 0.04;
             torso.rotation.set(0.18, 0.05 * Math.sin(elapsedTime * speed), 0.03 * Math.cos(elapsedTime * speed));
           }
-
           if (head) {
             head.rotation.set(0.12, -0.1, 0.15);
           }
-        } else if (animationMode === "spin") {
-          // Crazy whirlwind helicopter spin
+        } else if (activeAnimMode === "spin") {
           if (leftLeg) leftLeg.rotation.set(0.08, 0, -0.08);
           if (rightLeg) rightLeg.rotation.set(0.08, 0, 0.08);
           if (leftArm) leftArm.rotation.set(0, 0, -Math.PI / 1.6);
@@ -382,14 +401,12 @@ export default function ThreeCanvas({
 
           if (torso) {
             torso.position.y = baseHeight + Math.sin(elapsedTime * 15) * 0.06;
-            torso.rotation.set(0, elapsedTime * 10, 0); // ROTATING CONSTANTLY
+            torso.rotation.set(0, elapsedTime * 10, 0);
           }
-
           if (head) {
             head.rotation.set(-0.1, 0, 0);
           }
-        } else if (animationMode === "ninja") {
-          // Aerodynamic running stance
+        } else if (activeAnimMode === "ninja") {
           const speed = 14.5;
           const runSwing = Math.sin(elapsedTime * speed) * 0.7;
 
@@ -402,30 +419,26 @@ export default function ThreeCanvas({
             torso.position.y = baseHeight - 0.16 + Math.abs(Math.sin(elapsedTime * speed)) * 0.09;
             torso.rotation.set(0.48, Math.sin(elapsedTime * speed * 0.5) * 0.08, 0);
           }
-
           if (head) {
             head.rotation.set(-0.28, 0, 0);
           }
         } else {
-          // Premium breathing Idle loop
+          // Idle breathing
           if (torso) {
             torso.position.y = baseHeight + Math.sin(elapsedTime * 1.5) * 0.025;
             torso.rotation.set(0, 0, 0);
           }
-
           if (leftLeg) leftLeg.rotation.set(0, 0, 0);
           if (rightLeg) rightLeg.rotation.set(0, 0, 0);
 
           if (head) {
             if (isMouseOverRef.current) {
-              // Interactive look-at target matching the mouse position
               const targetX = Math.max(-0.25, Math.min(0.25, mouseRef.current.y * 0.4));
               const targetY = Math.max(-0.45, Math.min(0.45, mouseRef.current.x * 0.5));
               head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, targetX, 0.12);
               head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, targetY, 0.12);
               head.rotation.z = THREE.MathUtils.lerp(head.rotation.z, 0, 0.12);
             } else {
-              // Continuous ambient head sway
               head.rotation.z = Math.sin(elapsedTime * 0.7) * 0.02;
               head.rotation.x = Math.sin(elapsedTime * 1.1) * 0.022;
               head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, 0, 0.1);
@@ -443,7 +456,7 @@ export default function ThreeCanvas({
       }
 
       if (controlsRef.current) {
-        if (autoRotate && animationMode !== "walk" && animationMode !== "spin") {
+        if (activeAutoRotate && activeAnimMode !== "walk" && activeAnimMode !== "spin") {
           controlsRef.current.autoRotate = true;
           controlsRef.current.autoRotateSpeed = 2.0;
         } else {
@@ -458,9 +471,9 @@ export default function ThreeCanvas({
 
       animationFrameIdRef.current = requestAnimationFrame(animate);
     };
+
     animate();
 
-    // Cleanups
     return () => {
       if (animationFrameIdRef.current) {
         cancelAnimationFrame(animationFrameIdRef.current);
@@ -477,30 +490,45 @@ export default function ThreeCanvas({
         rendererRef.current.dispose();
       }
     };
-  }, [
-    autoRotate,
-    animationMode,
-    bounceTime,
-    config.bodyType,
-    config.showGrid,
-    config.ambientIntensity,
-    config.keyLightIntensity,
-    config.keyLightColor,
-    config.cameraFov,
-    config.cameraPreset,
-    config.discoMode,
-    config.twoDStyleEffect,
-    config.poseHeadYaw,
-    config.poseHeadPitch,
-    config.poseLeftArmRotationX,
-    config.poseLeftArmRotationZ,
-    config.poseRightArmRotationX,
-    config.poseRightArmRotationZ,
-    config.poseLeftLegRotationX,
-    config.poseRightLegRotationX
-  ]);
+  }, []); // Mounts exactly once!
 
-  // Re-build Avatar whenever the 3D representation or texture canvas changes
+  // 2. Separate dynamic effect to update camera preset and FOV dynamically without recreating context
+  useEffect(() => {
+    const camera = cameraRef.current;
+    if (camera) {
+      camera.fov = config.cameraFov !== undefined ? config.cameraFov : 45;
+      camera.updateProjectionMatrix();
+
+      const cameraPreset = config.cameraPreset || "front";
+      if (cameraPreset === "side") {
+        camera.position.set(4.5, 1.5, 0);
+      } else if (cameraPreset === "top") {
+        camera.position.set(0, 5.0, 0.1);
+      } else if (cameraPreset === "isometric") {
+        camera.position.set(3.5, 3.5, 3.5);
+      } else {
+        camera.position.set(0, 1.8, 4.5);
+      }
+      if (controlsRef.current) {
+        controlsRef.current.update();
+      }
+    }
+  }, [config.cameraFov, config.cameraPreset]);
+
+  // 3. Separate dynamic effect to update grid visibility
+  useEffect(() => {
+    if (gridHelperRef.current) {
+      gridHelperRef.current.visible = config.showGrid !== false;
+    }
+  }, [config.showGrid]);
+
+  // 4. Stable callback ref for onSceneReady
+  const onSceneReadyRef = useRef(onSceneReady);
+  useEffect(() => {
+    onSceneReadyRef.current = onSceneReady;
+  }, [onSceneReady]);
+
+  // 5. Re-build Avatar ONLY when layout, geometry, or appearance configurations change
   useEffect(() => {
     if (!sceneRef.current) return;
 
@@ -514,10 +542,52 @@ export default function ThreeCanvas({
     sceneRef.current.add(avatarGroup);
     avatarGroupRef.current = avatarGroup;
 
-    if (onSceneReady) {
-      onSceneReady(avatarGroup);
+    if (onSceneReadyRef.current) {
+      onSceneReadyRef.current(avatarGroup);
     }
-  }, [config, faceCanvas, onSceneReady]);
+  }, [
+    config.skinColor,
+    config.hairColor,
+    config.clothingColor,
+    config.pantsColor,
+    config.shoesColor,
+    config.hairStyle,
+    config.bodyType,
+    config.headShape,
+    config.accessories,
+    config.clothingStyle,
+    config.expression,
+    config.morphSlender,
+    config.morphBulk,
+    config.detailLevel,
+    config.materialRoughness,
+    config.materialMetalness,
+    config.wireframeMode,
+    config.materialEmissive,
+    config.materialEmissiveIntensity,
+    config.headScaleX,
+    config.headScaleY,
+    config.headScaleZ,
+    config.headRotateX,
+    config.headRotateY,
+    config.headRotateZ,
+    config.headTranslateX,
+    config.headTranslateY,
+    config.headTranslateZ,
+    config.torsoScaleX,
+    config.torsoScaleY,
+    config.torsoScaleZ,
+    config.torsoTranslateX,
+    config.torsoTranslateY,
+    config.torsoTranslateZ,
+    config.armScaleX,
+    config.armScaleY,
+    config.armScaleZ,
+    config.legScaleX,
+    config.legScaleY,
+    config.legScaleZ,
+    faceCanvas,
+  ]);
 
   return (
     <div

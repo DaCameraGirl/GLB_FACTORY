@@ -6,18 +6,41 @@ import { AvatarConfig, HairStyle, BodyType, HeadShape } from "../types";
 // ==========================================
 const geometryCache = new Map<string, THREE.BufferGeometry>();
 
-function getSphereGeometry(radius: number, widthSeg: number, heightSeg: number, ...args: any[]): THREE.SphereGeometry {
-  const key = `sphere_${radius}_${widthSeg}_${heightSeg}_${args.join("_")}`;
+// Helper to calculate segments for detail levels (LOD)
+function seg(detail: "low" | "medium" | "high" | number = "medium"): number {
+  if (typeof detail === "number") return detail;
+  if (detail === "low") return 12;
+  if (detail === "high") return 32;
+  return 20;
+}
+
+function getSphereGeometry(
+  radius: number,
+  detailLevel: "low" | "medium" | "high" | number,
+  heightSeg?: "low" | "medium" | "high" | number,
+  ...args: any[]
+): THREE.SphereGeometry {
+  const resolvedWidthSeg = seg(detailLevel);
+  const resolvedHeightSeg = heightSeg !== undefined ? seg(heightSeg) : resolvedWidthSeg;
+  
+  const key = `sphere_${radius}_${resolvedWidthSeg}_${resolvedHeightSeg}_${args.join("_")}`;
   if (!geometryCache.has(key)) {
-    geometryCache.set(key, new THREE.SphereGeometry(radius, widthSeg, heightSeg, ...args));
+    geometryCache.set(key, new THREE.SphereGeometry(radius, resolvedWidthSeg, resolvedHeightSeg, ...args));
   }
   return geometryCache.get(key) as THREE.SphereGeometry;
 }
 
-function getCylinderGeometry(radiusTop: number, radiusBottom: number, height: number, radSeg: number, ...args: any[]): THREE.CylinderGeometry {
-  const key = `cylinder_${radiusTop}_${radiusBottom}_${height}_${radSeg}_${args.join("_")}`;
+function getCylinderGeometry(
+  radiusTop: number,
+  radiusBottom: number,
+  height: number,
+  detailLevel: "low" | "medium" | "high" | number,
+  ...args: any[]
+): THREE.CylinderGeometry {
+  const resolvedRadSeg = seg(detailLevel);
+  const key = `cylinder_${radiusTop}_${radiusBottom}_${height}_${resolvedRadSeg}_${args.join("_")}`;
   if (!geometryCache.has(key)) {
-    geometryCache.set(key, new THREE.CylinderGeometry(radiusTop, radiusBottom, height, radSeg, ...args));
+    geometryCache.set(key, new THREE.CylinderGeometry(radiusTop, radiusBottom, height, resolvedRadSeg, ...args));
   }
   return geometryCache.get(key) as THREE.CylinderGeometry;
 }
@@ -28,13 +51,6 @@ function getBoxGeometry(width: number, height: number, depth: number): THREE.Box
     geometryCache.set(key, new THREE.BoxGeometry(width, height, depth));
   }
   return geometryCache.get(key) as THREE.BoxGeometry;
-}
-
-// Helper to calculate segments for detail levels (LOD)
-function seg(detail: "low" | "medium" | "high" = "medium") {
-  if (detail === "low") return 12;
-  if (detail === "high") return 32;
-  return 20;
 }
 
 // ==========================================
@@ -569,6 +585,56 @@ export function buildAvatar(
 
     (head as THREE.Mesh).morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
   }
+
+  // ==========================================
+  // ADD NOSE, EARS, AND CHIN MESHES (LOD & BOUNDING BOX COMPLIANT)
+  // ==========================================
+  const isOrganicHead = config.headShape === "organic-smooth" || config.headShape === "rounded-cube";
+  const skullRadiusVal = isOrganicHead 
+    ? actualHeadSize * (config.headShape === "rounded-cube" ? 0.52 : 0.48)
+    : actualHeadSize * 0.5;
+
+  // 1. Nose
+  const noseGeo = isOrganicHead
+    ? getSphereGeometry(0.06 * headSize, radialSeg, radialSeg)
+    : getBoxGeometry(0.12 * headSize, 0.12 * headSize, 0.12 * headSize);
+  const nose = new THREE.Mesh(noseGeo, skinMaterial);
+  nose.name = "nose";
+  nose.position.set(0, -0.05 * headSize, skullRadiusVal);
+  nose.castShadow = true;
+  head.add(nose);
+
+  // 2. Ears
+  const ears = new THREE.Group();
+  ears.name = "ears";
+  
+  const earGeo = isOrganicHead
+    ? getSphereGeometry(0.07 * headSize, radialSeg, radialSeg)
+    : getBoxGeometry(0.12 * headSize, 0.18 * headSize, 0.08 * headSize);
+    
+  const leftEar = new THREE.Mesh(earGeo, skinMaterial);
+  leftEar.name = "left-ear";
+  leftEar.position.set(-skullRadiusVal - (isOrganicHead ? 0.02 : 0.04) * headSize, 0, 0);
+  leftEar.castShadow = true;
+  ears.add(leftEar);
+
+  const rightEar = new THREE.Mesh(earGeo, skinMaterial);
+  rightEar.name = "right-ear";
+  rightEar.position.set(skullRadiusVal + (isOrganicHead ? 0.02 : 0.04) * headSize, 0, 0);
+  rightEar.castShadow = true;
+  ears.add(rightEar);
+  
+  head.add(ears);
+
+  // 3. Chin
+  const chinGeo = isOrganicHead
+    ? getSphereGeometry(0.11 * headSize, radialSeg, radialSeg)
+    : getBoxGeometry(0.24 * headSize, 0.12 * headSize, 0.18 * headSize);
+  const chin = new THREE.Mesh(chinGeo, skinMaterial);
+  chin.name = "chin";
+  chin.position.set(0, -skullRadiusVal * 0.8, skullRadiusVal * 0.35);
+  chin.castShadow = true;
+  head.add(chin);
 
   // ==========================================
   // 3. HAIR STYLE (WITH COLLISION CLAMP INORGANICS)
@@ -1137,6 +1203,112 @@ export function buildAvatar(
       }
     }
   });
+
+  // ==========================================
+  // COMPUTE KEY BOUNDING BOXES & PREVENT INTERSECTION AT EXTREME CONFIGURATIONS
+  // ==========================================
+  group.updateMatrixWorld(true);
+
+  let skullMesh: THREE.Object3D | null = null;
+  let hairGroupObj: THREE.Object3D | null = null;
+  let noseMesh: THREE.Object3D | null = null;
+  let earsObj: THREE.Object3D | null = null;
+  let chinMesh: THREE.Object3D | null = null;
+
+  group.traverse((child) => {
+    if (child.name === "skull" || (child.name === "head" && child instanceof THREE.Mesh)) {
+      skullMesh = child;
+    } else if (child.name === "hairGroup") {
+      hairGroupObj = child;
+    } else if (child.name === "nose") {
+      noseMesh = child;
+    } else if (child.name === "ears") {
+      earsObj = child;
+    } else if (child.name === "chin") {
+      chinMesh = child;
+    }
+  });
+
+  const skullBox = new THREE.Box3();
+  const hairBox = new THREE.Box3();
+  const noseBox = new THREE.Box3();
+  const earsBox = new THREE.Box3();
+  const chinBox = new THREE.Box3();
+
+  const updateKeyBoxes = () => {
+    group.updateMatrixWorld(true);
+    if (skullMesh) skullBox.setFromObject(skullMesh);
+    if (hairGroupObj) hairBox.setFromObject(hairGroupObj);
+    if (noseMesh) noseBox.setFromObject(noseMesh);
+    if (earsObj) earsBox.setFromObject(earsObj);
+    if (chinMesh) chinBox.setFromObject(chinMesh);
+  };
+
+  updateKeyBoxes();
+
+  // Intersection Prevention Logic (Collision Clamping for Extreme Configurations)
+  let adjusted = false;
+
+  // A. Ears vs Ears Collision (Happens if the head width scale X is tiny or squashed)
+  if (earsObj) {
+    const leftEarMesh = earsObj.getObjectByName("left-ear");
+    const rightEarMesh = earsObj.getObjectByName("right-ear");
+    if (leftEarMesh && rightEarMesh) {
+      const leftEarBox = new THREE.Box3().setFromObject(leftEarMesh);
+      const rightEarBox = new THREE.Box3().setFromObject(rightEarMesh);
+      if (leftEarBox.intersectsBox(rightEarBox)) {
+        const overlapX = leftEarBox.max.x - rightEarBox.min.x;
+        if (overlapX > 0) {
+          leftEarMesh.position.x -= (overlapX / 2) + 0.02 * headSize;
+          rightEarMesh.position.x += (overlapX / 2) + 0.02 * headSize;
+          adjusted = true;
+        }
+      }
+    }
+  }
+
+  // B. Nose vs Skull Collision (Swallowed nose due to extreme skull width/depth squashing)
+  if (noseMesh && skullMesh) {
+    if (noseBox.max.z < skullBox.max.z + 0.01 * headSize) {
+      const pushDistance = (skullBox.max.z - noseBox.max.z) + 0.03 * headSize;
+      noseMesh.position.z += pushDistance;
+      adjusted = true;
+    }
+  }
+
+  // C. Chin vs Skull Collision (Swallowed chin due to extreme squashing or scaling)
+  if (chinMesh && skullMesh) {
+    if (chinBox.max.z < skullBox.max.z * 0.4) {
+      chinMesh.position.z += 0.06 * headSize;
+      chinMesh.position.y -= 0.03 * headSize;
+      adjusted = true;
+    }
+  }
+
+  // D. Hair vs Nose Collision (Fringe/hair swallowing the nose)
+  if (hairGroupObj && noseMesh) {
+    const tempHairBox = new THREE.Box3().setFromObject(hairGroupObj);
+    const tempNoseBox = new THREE.Box3().setFromObject(noseMesh);
+    if (tempHairBox.intersectsBox(tempNoseBox)) {
+      hairGroupObj.position.y += 0.04 * headSize;
+      hairGroupObj.position.z -= 0.03 * headSize;
+      adjusted = true;
+    }
+  }
+
+  // Re-update bounding boxes if adjustments were made
+  if (adjusted) {
+    updateKeyBoxes();
+  }
+
+  // Attach final precomputed key bounding boxes to userData for downstream verification / diagnostics
+  group.userData.boundingBoxes = {
+    skull: skullBox,
+    hairGroup: hairBox,
+    nose: noseBox,
+    ears: earsBox,
+    chin: chinBox
+  };
 
   return group;
 }
