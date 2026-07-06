@@ -13,6 +13,13 @@ import {
   RotateCcw,
   Undo2,
   CheckCircle,
+  Volume2,
+  Play,
+  Trophy,
+  Cpu,
+  Gamepad2,
+  Flame,
+  ListFilter,
 } from "lucide-react";
 import { AvatarConfig, DetectionResult, LogEntry, HairStyle, BodyType, HeadShape } from "./types";
 import ThreeCanvas from "./components/ThreeCanvas";
@@ -20,6 +27,268 @@ import StudioLogs from "./components/StudioLogs";
 import { prepareFaceTexture } from "./utils/texturePreparer";
 import { exportToGLB } from "./utils/glbExporter";
 import * as THREE from "three";
+
+// ==========================================
+// 🌟 PREMIUM ENTERPRISE HERO GALLERY PRESETS
+// ==========================================
+interface PresetHero {
+  name: string;
+  emoji: string;
+  badge: string;
+  config: Partial<AvatarConfig>;
+}
+
+const PRESET_HEROES: PresetHero[] = [
+  {
+    name: "Nexus Zero",
+    emoji: "🥷",
+    badge: "CYBERPUNK NINJA",
+    config: {
+      skinColor: "#2d3748",
+      hairColor: "#000000",
+      clothingColor: "#0f172a",
+      pantsColor: "#000000",
+      shoesColor: "#10b981",
+      hairStyle: "none",
+      bodyType: "athletic",
+      headShape: "cube",
+      accessories: ["halo"],
+      materialRoughness: 0.2,
+      materialMetalness: 0.8,
+      materialEmissive: "#00f0ff",
+      materialEmissiveIntensity: 1.5,
+      twoDStyleEffect: "cyberpunk",
+    }
+  },
+  {
+    name: "Gemini Spellcaster",
+    emoji: "🧙‍♂️",
+    badge: "GEMINI WIZARD",
+    config: {
+      skinColor: "#ffd59a",
+      hairColor: "#eaeaea",
+      clothingColor: "#1d4ed8",
+      pantsColor: "#0f172a",
+      shoesColor: "#000000",
+      hairStyle: "long",
+      bodyType: "tall",
+      headShape: "organic-smooth",
+      accessories: ["wizard-hat", "glasses"],
+      materialRoughness: 0.8,
+      materialMetalness: 0.0,
+      materialEmissive: "#3b82f6",
+      materialEmissiveIntensity: 0.8,
+      twoDStyleEffect: "blueprint",
+    }
+  },
+  {
+    name: "Princess Voxia",
+    emoji: "👑",
+    badge: "ROYAL MECHA",
+    config: {
+      skinColor: "#f3cbc0",
+      hairColor: "#b45309",
+      clothingColor: "#db2777",
+      pantsColor: "#9d174d",
+      shoesColor: "#ffffff",
+      hairStyle: "ponytail",
+      bodyType: "normal",
+      headShape: "rounded-cube",
+      accessories: ["crown"],
+      materialRoughness: 0.1,
+      materialMetalness: 0.95,
+      materialEmissive: "#ff007f",
+      materialEmissiveIntensity: 0.5,
+      twoDStyleEffect: "crt",
+    }
+  },
+  {
+    name: "NekoChibi Gamer",
+    emoji: "🐾",
+    badge: "CHIBI STREAMER",
+    config: {
+      skinColor: "#ffeedd",
+      hairColor: "#db2777",
+      clothingColor: "#111827",
+      pantsColor: "#374151",
+      shoesColor: "#ffffff",
+      hairStyle: "long",
+      bodyType: "chibi",
+      headShape: "organic-smooth",
+      accessories: ["cat-ears", "headphones"],
+      materialRoughness: 0.6,
+      materialMetalness: 0.1,
+      materialEmissive: "#db2777",
+      materialEmissiveIntensity: 0.4,
+      twoDStyleEffect: "none",
+    }
+  },
+  {
+    name: "The Golden Android",
+    emoji: "🤖",
+    badge: "ENTERPRISE SPEC",
+    config: {
+      skinColor: "#f59e0b",
+      hairColor: "#000000",
+      clothingColor: "#1e293b",
+      pantsColor: "#0f172a",
+      shoesColor: "#f59e0b",
+      hairStyle: "none",
+      bodyType: "athletic",
+      headShape: "rounded-cube",
+      accessories: ["halo"],
+      materialRoughness: 0.05,
+      materialMetalness: 0.98,
+      materialEmissive: "#f59e0b",
+      materialEmissiveIntensity: 1.2,
+      twoDStyleEffect: "none",
+    }
+  }
+];
+
+const COLOR_PALETTES = [
+  {
+    name: "PICO-8",
+    skin: "#ffccaa",
+    hair: "#5f574f",
+    clothing: "#ff004d",
+    pants: "#29adff",
+    shoes: "#ffa300"
+  },
+  {
+    name: "Cyber Neon",
+    skin: "#00f0ff",
+    hair: "#ff007f",
+    clothing: "#120e2e",
+    pants: "#000000",
+    shoes: "#00f0ff"
+  },
+  {
+    name: "Minty Pastel",
+    skin: "#ffeedd",
+    hair: "#a7f3d0",
+    clothing: "#f472b6",
+    pants: "#818cf8",
+    shoes: "#ffffff"
+  },
+  {
+    name: "Mecha Gold",
+    skin: "#ffd27d",
+    hair: "#2b1d0c",
+    clothing: "#b45309",
+    pants: "#7c2d12",
+    shoes: "#f59e0b"
+  },
+  {
+    name: "Monochrome Steel",
+    skin: "#d1d5db",
+    hair: "#1f2937",
+    clothing: "#4b5563",
+    pants: "#111827",
+    shoes: "#9ca3af"
+  }
+];
+
+// ==========================================
+// 🔊 RETRO WEB AUDIO SYNTHESIZER SOUND ENGINE
+// ==========================================
+export function playSynthSound(type: "zap" | "coin" | "jump" | "boom" | "arp" | "disco") {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    
+    if (type === "zap") {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    } else if (type === "coin") {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.08); // E5
+      osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.16); // G5
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } else if (type === "jump") {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(150, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.25);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.25);
+    } else if (type === "boom") {
+      const bufferSize = ctx.sampleRate * 0.4;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noiseNode = ctx.createBufferSource();
+      noiseNode.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(800, ctx.currentTime);
+      filter.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.4);
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      noiseNode.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      noiseNode.start();
+      noiseNode.stop(ctx.currentTime + 0.4);
+    } else if (type === "arp") {
+      const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+      notes.forEach((freq, index) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + index * 0.08);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime + index * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + index * 0.08 + 0.15);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + index * 0.08);
+        osc.stop(ctx.currentTime + index * 0.08 + 0.15);
+      });
+    } else if (type === "disco") {
+      const notes = [392.00, 440.00, 493.88, 587.33, 493.88, 587.33, 659.25];
+      notes.forEach((freq, index) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = index % 2 === 0 ? "sawtooth" : "square";
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + index * 0.1);
+        gain.gain.setValueAtTime(0.06, ctx.currentTime + index * 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + index * 0.1 + 0.12);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + index * 0.1);
+        osc.stop(ctx.currentTime + index * 0.1 + 0.12);
+      });
+    }
+  } catch (err) {
+    console.warn("Audio Context block or error:", err);
+  }
+}
 
 export default function App() {
   // 1. App State
@@ -485,6 +754,23 @@ export default function App() {
     });
     setEditorTab("parts");
     addLog("Customizer configurations and workspace tabs reset to defaults.", "info");
+    playSynthSound("jump");
+  };
+
+  // Load preset character template
+  const handleLoadPreset = (hero: PresetHero) => {
+    setCharacterName(hero.name);
+    setConfig((prev) => ({
+      ...prev,
+      ...hero.config,
+      name: hero.name,
+    }));
+    setFaceBox(null);
+    setFaceCanvas(null);
+    setIsSuccess(true);
+    setCurrentStep("ready");
+    addLog(`[GALLERY] Loaded premium character blueprint: ${hero.name.toUpperCase()}`, "success");
+    playSynthSound("arp");
   };
 
   // Interactive 3D Step-by-Step Guide Stages Definition
@@ -646,6 +932,50 @@ export default function App() {
             <span className="font-bold tracking-wider">EXPORT</span>
           </div>
         </div>
+
+        {/* ==========================================
+            🌟 PREMIUM ENTERPRISE HERO GALLERY (PRESETS)
+           ========================================== */}
+        <section className="bg-white/40 border-2 border-[#141414] p-4 space-y-3 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#141414]/15 pb-2 gap-2">
+            <h2 className="font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-amber-500" />
+              <span>PREMIUM ENTERPRISE CHARACTERS & BLUEPRINTS</span>
+            </h2>
+            <div className="flex items-center gap-2">
+              <span className="text-[8px] font-mono bg-emerald-500 text-[#141414] px-1.5 py-0.5 font-bold uppercase">5 RIG PRESETS LOADED</span>
+              <span className="text-[8px] font-mono bg-[#141414] text-white px-1.5 py-0.5 font-bold uppercase">v1.0-RELEASE</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {PRESET_HEROES.map((hero) => {
+              const isSelected = characterName === hero.name;
+              return (
+                <button
+                  type="button"
+                  key={hero.name}
+                  onClick={() => handleLoadPreset(hero)}
+                  className={`border-2 p-3 text-left transition-all relative overflow-hidden flex flex-col justify-between group rounded-none select-none ${
+                    isSelected
+                      ? "bg-[#141414] text-[#E4E3E0] border-[#141414] shadow-[1px_1px_0px_0px_#141414]"
+                      : "bg-white/60 text-[#141414] border-[#141414] hover:bg-white shadow-[3px_3px_0px_0px_#141414] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#141414]"
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="text-2xl filter drop-shadow-[1px_1px_0px_rgba(0,0,0,0.15)] group-hover:scale-110 transition-transform duration-200">{hero.emoji}</span>
+                    {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>}
+                  </div>
+                  <div className="mt-4 space-y-0.5">
+                    <div className="text-[10px] font-extrabold font-mono tracking-wide uppercase truncate">{hero.name}</div>
+                    <div className={`text-[8px] font-mono uppercase tracking-widest ${isSelected ? "text-amber-400 font-bold" : "text-[#141414]/60"}`}>
+                      {hero.badge}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* LEFT PANEL: CONFIGURATION AND INPUTS (LG: 5 cols) */}
@@ -1355,6 +1685,42 @@ export default function App() {
                   </div>
                 </div>
               </div>
+
+              {/* Retro Color Palette Scheme Repainter */}
+              <div className="space-y-3 border-t border-[#141414]/10 pt-3">
+                <div className="flex items-center gap-1.5">
+                  <ListFilter className="w-3.5 h-3.5 text-[#141414]/75" />
+                  <label className="font-mono text-[10px] uppercase font-bold text-[#141414]/85">INSTANT RETRO PALETTES</label>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  {COLOR_PALETTES.map((palette) => (
+                    <button
+                      type="button"
+                      key={palette.name}
+                      onClick={() => {
+                        setConfig((prev) => ({
+                          ...prev,
+                          skinColor: palette.skin,
+                          hairColor: palette.hair,
+                          clothingColor: palette.clothing,
+                          pantsColor: palette.pants,
+                          shoesColor: palette.shoes,
+                        }));
+                        addLog(`[PALETTE] Repainted character model with '${palette.name}' signature scheme.`, "info");
+                        playSynthSound("coin");
+                      }}
+                      className="border-2 border-[#141414] bg-white/70 hover:bg-white p-1.5 text-[9px] font-mono font-bold text-center tracking-tight shadow-[2px_2px_0px_0px_#141414] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#141414] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer"
+                    >
+                      <div className="truncate mb-1">{palette.name}</div>
+                      <div className="flex items-center justify-center -space-x-1">
+                        <span className="w-2.5 h-2.5 border border-black/10 inline-block" style={{ backgroundColor: palette.skin }} />
+                        <span className="w-2.5 h-2.5 border border-black/10 inline-block" style={{ backgroundColor: palette.hair }} />
+                        <span className="w-2.5 h-2.5 border border-black/10 inline-block" style={{ backgroundColor: palette.clothing }} />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
                 </div>
               )}
 
@@ -1718,8 +2084,10 @@ export default function App() {
                             setConfig((prev) => ({ ...prev, discoMode: val }));
                             if (val) {
                               addLog("🕺 DISCO PARTY MODE ENGAGED! Lights cycle colors and orbit. Show us those voxel moves!", "success");
+                              playSynthSound("disco");
                             } else {
                               addLog("Disco mode disengaged. Ambient workstation lighting restored.", "info");
+                              playSynthSound("zap");
                             }
                           }}
                           className="accent-[#e11d48]"
@@ -1831,6 +2199,190 @@ export default function App() {
                   <Download className="w-4 h-4" />
                   <span>Download Texture</span>
                 </button>
+              </div>
+            </section>
+
+            {/* ==========================================
+                🔊 RETRO AUDIO SYNTHESIS SOUNDBOARD
+               ========================================== */}
+            <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]" id="audio-soundboard-panel">
+              <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#D4D3D0] flex items-center justify-between">
+                <h2 className="font-serif text-[11px] italic text-[#141414]/80 uppercase font-bold tracking-wider flex items-center gap-2">
+                  <Gamepad2 className="w-3.5 h-3.5 text-[#141414]/80" />
+                  <span>05 // Retro Audio Synth & Soundboard</span>
+                </h2>
+                <div className="flex items-center gap-1.5 text-[8px] font-mono bg-[#141414] text-white px-2 py-0.5 uppercase font-bold tracking-widest">
+                  <Volume2 className="w-2.5 h-2.5 text-emerald-400" />
+                  <span>synth: active</span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="font-mono text-[9px] text-[#141414]/75 uppercase leading-relaxed">
+                  Real-time 8-Bit frequency generator using Web Audio oscillators. Click to trigger sound design presets or listen to active rigging event feedback!
+                </p>
+
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => playSynthSound("zap")}
+                    className="border-2 border-[#141414] bg-white/60 hover:bg-white text-[9px] font-mono font-bold py-2 px-1 text-center shadow-[2px_2px_0px_0px_#141414] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#141414] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer rounded-none"
+                  >
+                    ⚡ LASER ZAP
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => playSynthSound("coin")}
+                    className="border-2 border-[#141414] bg-white/60 hover:bg-white text-[9px] font-mono font-bold py-2 px-1 text-center shadow-[2px_2px_0px_0px_#141414] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#141414] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer rounded-none"
+                  >
+                    🪙 COIN UP
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => playSynthSound("jump")}
+                    className="border-2 border-[#141414] bg-white/60 hover:bg-white text-[9px] font-mono font-bold py-2 px-1 text-center shadow-[2px_2px_0px_0px_#141414] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#141414] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer rounded-none"
+                  >
+                    🦘 RIG JUMP
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => playSynthSound("boom")}
+                    className="border-2 border-[#141414] bg-white/60 hover:bg-white text-[9px] font-mono font-bold py-2 px-1 text-center shadow-[2px_2px_0px_0px_#141414] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#141414] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer rounded-none"
+                  >
+                    💥 EXPLOSION
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => playSynthSound("arp")}
+                    className="border-2 border-[#141414] bg-white/60 hover:bg-white text-[9px] font-mono font-bold py-2 px-1 text-center shadow-[2px_2px_0px_0px_#141414] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#141414] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer rounded-none"
+                  >
+                    🎵 ARPEGGIO
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => playSynthSound("disco")}
+                    className="border-2 border-[#141414] bg-pink-100 hover:bg-pink-50 text-[9px] font-mono font-bold py-2 px-1 text-center text-pink-700 border-pink-700 shadow-[2px_2px_0px_0px_#e11d48] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#e11d48] active:translate-y-[2px] active:shadow-none transition-all cursor-pointer rounded-none"
+                  >
+                    🕺 DISCO JIG
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            {/* ==========================================
+                📊 ENTERPRISE RIG TELEMETRY & SYSTEM ANALYTICS
+               ========================================== */}
+            <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]" id="telemetry-panel">
+              <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#D4D3D0] flex items-center justify-between">
+                <h2 className="font-serif text-[11px] italic text-[#141414]/80 uppercase font-bold tracking-wider flex items-center gap-2">
+                  <Cpu className="w-3.5 h-3.5" />
+                  <span>06 // Enterprise Rig Telemetry</span>
+                </h2>
+                <div className="font-mono text-[8px] bg-emerald-500 text-[#141414] px-2 py-0.5 uppercase font-bold tracking-widest animate-pulse">
+                  SYSTEM STATUS: OPTIMAL
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-[10px] font-mono leading-relaxed">
+                {/* Visual metric 1: Voxel Resolution */}
+                <div className="space-y-1 bg-white/50 border border-[#141414]/10 p-2 shadow-[1px_1px_0px_0px_rgba(20,20,20,0.05)]">
+                  <div className="flex justify-between font-bold">
+                    <span>VOXEL RIG RESOLUTION</span>
+                    <span className="text-emerald-600">
+                      {config.detailLevel === "high" ? "18,450 VX" : config.detailLevel === "low" ? "1,340 VX" : "5,120 VX"}
+                    </span>
+                  </div>
+                  <div className="h-2 w-full bg-[#141414]/10 border border-[#141414]">
+                    <div
+                      className="h-full bg-[#141414] transition-all duration-300"
+                      style={{ width: config.detailLevel === "high" ? "100%" : config.detailLevel === "low" ? "25%" : "60%" }}
+                    />
+                  </div>
+                  <span className="text-[8.5px] text-[#141414]/65 block leading-tight">
+                    {config.detailLevel === "high" ? "Hero Poly mesh (perfect for cinematic exports)" : config.detailLevel === "low" ? "Highly compact mobile optimized skeletal structure" : "Standard gaming engine compatible grid mapping"}
+                  </span>
+                </div>
+
+                {/* Visual metric 2: Rigging Integrity */}
+                {(() => {
+                  const isExtreme = (config.headScaleX || 1.0) > 1.35 || (config.torsoScaleX || 1.0) > 1.35 || (config.headScaleX || 1.0) < 0.65;
+                  const balance = isExtreme ? 72 : 100;
+                  return (
+                    <div className="space-y-1 bg-white/50 border border-[#141414]/10 p-2 shadow-[1px_1px_0px_0px_rgba(20,20,20,0.05)]">
+                      <div className="flex justify-between font-bold">
+                        <span>RIGGING INTEGRITY</span>
+                        <span className={balance < 100 ? "text-amber-600 animate-pulse font-extrabold" : "text-emerald-600"}>
+                          {balance}% {balance < 100 ? "⚠️ SKEWED" : "✓ PASS"}
+                        </span>
+                      </div>
+                      <div className="h-2 w-full bg-[#141414]/10 border border-[#141414]">
+                        <div
+                          className={`h-full transition-all duration-300 ${balance < 100 ? "bg-amber-500" : "bg-emerald-500"}`}
+                          style={{ width: `${balance}%` }}
+                        />
+                      </div>
+                      <span className="text-[8.5px] text-[#141414]/65 block leading-tight">
+                        {balance < 100 ? "Warning: Extreme scaling may cause block joints to clip during animations." : "Proportions are highly stable for real-time physics simulation."}
+                      </span>
+                    </div>
+                  );
+                })()}
+
+                {/* Visual metric 3: Magic/Emissive Spell Potential */}
+                <div className="space-y-1 bg-white/50 border border-[#141414]/10 p-2 shadow-[1px_1px_0px_0px_rgba(20,20,20,0.05)]">
+                  {(() => {
+                    const power = Math.round(((config.materialMetalness || 0) * 40) + ((config.materialEmissiveIntensity || 0) * 30) + (config.accessories?.length || 0) * 10);
+                    return (
+                      <>
+                        <div className="flex justify-between font-bold">
+                          <span>EMISSIVE SPELLCASTING LEVEL</span>
+                          <span className="text-pink-600 font-extrabold">{power}W (MAX_CHRG)</span>
+                        </div>
+                        <div className="h-2 w-full bg-[#141414]/10 border border-[#141414]">
+                          <div
+                            className="h-full bg-pink-500 transition-all duration-300"
+                            style={{ width: `${Math.min(100, Math.max(10, power))}%` }}
+                          />
+                        </div>
+                        <span className="text-[8.5px] text-[#141414]/65 block leading-tight">
+                          Calculated from metallic reflection indices, active emissive halo factors, and spellcaster accessories.
+                        </span>
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* Visual metric 4: Retro Aesthetics Charm */}
+                <div className="space-y-1 bg-white/50 border border-[#141414]/10 p-2 shadow-[1px_1px_0px_0px_rgba(20,20,20,0.05)]">
+                  {(() => {
+                    const filter = config.twoDStyleEffect || "none";
+                    const score = filter === "gameboy" ? 98 : filter === "cyberpunk" ? 95 : filter === "crt" ? 92 : filter === "blueprint" ? 88 : filter === "sketch" ? 85 : 12;
+                    return (
+                      <>
+                        <div className="flex justify-between font-bold">
+                          <span>RETRO ESTHETIC COMPOSITOR</span>
+                          <span className="text-blue-600">{score}% CHARM</span>
+                        </div>
+                        <div className="h-2 w-full bg-[#141414]/10 border border-[#141414]">
+                          <div
+                            className="h-full bg-blue-500 transition-all duration-300"
+                            style={{ width: `${score}%` }}
+                          />
+                        </div>
+                        <span className="text-[8.5px] text-[#141414]/65 block leading-tight">
+                          Effect: <span className="font-mono text-blue-700 font-bold uppercase">{filter === "none" ? "Clean Render" : filter}</span>. Real-time viewport overlays active.
+                        </span>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* Extra funny enterprise details footer */}
+              <div className="border-t border-[#141414]/10 pt-3 flex flex-wrap justify-between text-[8px] font-mono text-[#141414]/60">
+                <div>ENGINE LATENCY: 14ms (EDGE CONTAINER)</div>
+                <div>DISCO_RHYTHM: {config.discoMode ? "142 BPM (STROBE)" : "0 BPM (STEADY)"}</div>
+                <div>EXPORTER VER: CJS-BUNDLED v1.1</div>
               </div>
             </section>
 
