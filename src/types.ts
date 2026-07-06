@@ -18,11 +18,13 @@ export interface AvatarConfig {
   cropY: number; // percentage offset
   cropScale: number; // magnification
   detailLevel?: "low" | "medium" | "high";
-  accessories?: ("glasses" | "backpack" | "headphones")[];
+  accessories?: ("glasses" | "backpack" | "headphones" | "halo" | "crown" | "cat-ears" | "wizard-hat")[];
   clothingStyle?: "tshirt" | "hoodie" | "armor" | "dress";
   expression?: "neutral" | "happy" | "angry" | "sad" | "surprised";
   morphSlender?: number; // 0 to 1
   morphBulk?: number; // 0 to 1
+  animationMode?: "idle" | "walk" | "dance" | "zombie" | "spin" | "ninja";
+  discoMode?: boolean;
 
   // Material parameters (Blender style overrides)
   materialRoughness?: number; // 0 to 1

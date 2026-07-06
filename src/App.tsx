@@ -1235,7 +1235,7 @@ export default function App() {
                       }}
                       className="accent-[#141414]"
                     />
-                    <span>Headphones</span>
+                    <span>Phones</span>
                   </label>
 
                   {/* Backpack */}
@@ -1251,6 +1251,66 @@ export default function App() {
                       className="accent-[#141414]"
                     />
                     <span>Backpack</span>
+                  </label>
+
+                  {/* Halo */}
+                  <label className="flex items-center gap-1.5 cursor-pointer bg-white/50 border-2 border-[#141414] px-2 py-1.5 text-xs font-mono select-none shadow-[1px_1px_0px_0px_#141414] hover:bg-white transition-all duration-200">
+                    <input
+                      type="checkbox"
+                      checked={config.accessories?.includes("halo") || false}
+                      onChange={(e) => {
+                        const cur = config.accessories || [];
+                        const next = e.target.checked ? [...cur, "halo" as const] : cur.filter((x) => x !== "halo");
+                        setConfig((prev) => ({ ...prev, accessories: next }));
+                      }}
+                      className="accent-[#141414]"
+                    />
+                    <span className="text-[#b45309] font-bold">★ Halo</span>
+                  </label>
+
+                  {/* Crown */}
+                  <label className="flex items-center gap-1.5 cursor-pointer bg-white/50 border-2 border-[#141414] px-2 py-1.5 text-xs font-mono select-none shadow-[1px_1px_0px_0px_#141414] hover:bg-white transition-all duration-200">
+                    <input
+                      type="checkbox"
+                      checked={config.accessories?.includes("crown") || false}
+                      onChange={(e) => {
+                        const cur = config.accessories || [];
+                        const next = e.target.checked ? [...cur, "crown" as const] : cur.filter((x) => x !== "crown");
+                        setConfig((prev) => ({ ...prev, accessories: next }));
+                      }}
+                      className="accent-[#141414]"
+                    />
+                    <span className="text-[#c2410c] font-bold">♛ Crown</span>
+                  </label>
+
+                  {/* Cat Ears */}
+                  <label className="flex items-center gap-1.5 cursor-pointer bg-white/50 border-2 border-[#141414] px-2 py-1.5 text-xs font-mono select-none shadow-[1px_1px_0px_0px_#141414] hover:bg-white transition-all duration-200">
+                    <input
+                      type="checkbox"
+                      checked={config.accessories?.includes("cat-ears") || false}
+                      onChange={(e) => {
+                        const cur = config.accessories || [];
+                        const next = e.target.checked ? [...cur, "cat-ears" as const] : cur.filter((x) => x !== "cat-ears");
+                        setConfig((prev) => ({ ...prev, accessories: next }));
+                      }}
+                      className="accent-[#141414]"
+                    />
+                    <span className="text-[#db2777]">🐾 Ears</span>
+                  </label>
+
+                  {/* Wizard Hat */}
+                  <label className="flex items-center gap-1.5 cursor-pointer bg-white/50 border-2 border-[#141414] px-2 py-1.5 text-xs font-mono select-none shadow-[1px_1px_0px_0px_#141414] hover:bg-white transition-all duration-200 col-span-3">
+                    <input
+                      type="checkbox"
+                      checked={config.accessories?.includes("wizard-hat") || false}
+                      onChange={(e) => {
+                        const cur = config.accessories || [];
+                        const next = e.target.checked ? [...cur, "wizard-hat" as const] : cur.filter((x) => x !== "wizard-hat");
+                        setConfig((prev) => ({ ...prev, accessories: next }));
+                      }}
+                      className="accent-[#141414]"
+                    />
+                    <span className="text-[#1d4ed8] font-bold">🧙 Wizard Spellcaster Hat</span>
                   </label>
                 </div>
               </div>
@@ -1635,15 +1695,37 @@ export default function App() {
 
                   <div className="space-y-2 border-t border-[#141414]/10 pt-3">
                     <label className="font-mono text-[10px] uppercase font-bold text-[#141414]/85 block">03 // RENDER VIEWPORT DECORATIONS</label>
-                    <label className="flex items-center gap-2 cursor-pointer bg-white/50 border-2 border-[#141414] p-2 text-[10px] hover:bg-white select-none shadow-[2px_2px_0px_0px_#141414] transition-all">
-                      <input
-                        type="checkbox"
-                        checked={config.showGrid !== false}
-                        onChange={(e) => setConfig((prev) => ({ ...prev, showGrid: e.target.checked }))}
-                        className="accent-[#141414]"
-                      />
-                      <span className="font-bold">SHOW GROUND COORDINATE GRID HELPER</span>
-                    </label>
+                    <div className="grid grid-cols-1 gap-2">
+                      <label className="flex items-center gap-2 cursor-pointer bg-white/50 border-2 border-[#141414] p-2 text-[10px] hover:bg-white select-none shadow-[2px_2px_0px_0px_#141414] transition-all">
+                        <input
+                          type="checkbox"
+                          checked={config.showGrid !== false}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, showGrid: e.target.checked }))}
+                          className="accent-[#141414]"
+                        />
+                        <span className="font-bold">SHOW GROUND COORDINATE GRID HELPER</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer bg-[#ffe4e6]/60 border-2 border-[#e11d48] p-2 text-[10px] hover:bg-[#ffe4e6] select-none shadow-[2px_2px_0px_0px_#e11d48] transition-all">
+                        <input
+                          type="checkbox"
+                          checked={!!config.discoMode}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            setConfig((prev) => ({ ...prev, discoMode: val }));
+                            if (val) {
+                              addLog("🕺 DISCO PARTY MODE ENGAGED! Lights cycle colors and orbit. Show us those voxel moves!", "success");
+                            } else {
+                              addLog("Disco mode disengaged. Ambient workstation lighting restored.", "info");
+                            }
+                          }}
+                          className="accent-[#e11d48]"
+                        />
+                        <span className="font-bold text-[#e11d48] uppercase tracking-wider flex items-center gap-1.5">
+                          <span>🕺 ACTIVE DISCO PARTY MODE (COLOR STROBES!)</span>
+                        </span>
+                      </label>
+                    </div>
                   </div>
                 </div>
               )}

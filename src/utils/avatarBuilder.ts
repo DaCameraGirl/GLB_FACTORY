@@ -821,6 +821,126 @@ export function buildAvatar(
     torso.add(backpack);
   }
 
+  if (accessories.includes("halo")) {
+    const halo = new THREE.Group();
+    halo.name = "halo";
+    const haloMat = new THREE.MeshStandardMaterial({
+      color: 0xfff3a1,
+      roughness: 0.1,
+      metalness: 0.1,
+      emissive: new THREE.Color(0xfff3a1),
+      emissiveIntensity: 1.5,
+      name: "halo-material"
+    });
+    const ringGeo = new THREE.TorusGeometry(actualHeadSize * 0.42, 0.05, 8, 32);
+    const ringMesh = new THREE.Mesh(ringGeo, haloMat);
+    ringMesh.rotation.x = Math.PI / 2;
+    ringMesh.position.set(0, actualHeadSize * 0.72, 0);
+    halo.add(ringMesh);
+    head.add(halo);
+  }
+
+  if (accessories.includes("crown")) {
+    const crown = new THREE.Group();
+    crown.name = "crown";
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xffd700,
+      roughness: 0.15,
+      metalness: 0.9,
+      name: "crown-gold"
+    });
+    const gemRed = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.2, metalness: 0.8, emissive: new THREE.Color(0xef4444), emissiveIntensity: 0.3 });
+    const gemBlue = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.2, metalness: 0.8, emissive: new THREE.Color(0x3b82f6), emissiveIntensity: 0.3 });
+
+    const baseGeo = getCylinderGeometry(actualHeadSize * 0.44, actualHeadSize * 0.44, 0.15, 16);
+    const baseMesh = new THREE.Mesh(baseGeo, goldMat);
+    baseMesh.position.set(0, actualHeadSize * 0.52, 0);
+    baseMesh.castShadow = true;
+    crown.add(baseMesh);
+
+    const peakGeo = getBoxGeometry(0.12, 0.16, 0.12);
+    for (let i = 0; i < 4; i++) {
+      const peak = new THREE.Mesh(peakGeo, goldMat);
+      const angle = (i * Math.PI) / 2;
+      const radius = actualHeadSize * 0.42;
+      peak.position.set(Math.cos(angle) * radius, actualHeadSize * 0.62, Math.sin(angle) * radius);
+      peak.rotation.y = -angle;
+      peak.castShadow = true;
+      crown.add(peak);
+
+      const gemGeo = getBoxGeometry(0.06, 0.06, 0.06);
+      const gem = new THREE.Mesh(gemGeo, i % 2 === 0 ? gemRed : gemBlue);
+      gem.position.set(Math.cos(angle) * (radius + 0.03), actualHeadSize * 0.62, Math.sin(angle) * (radius + 0.03));
+      gem.rotation.y = -angle;
+      crown.add(gem);
+    }
+    head.add(crown);
+  }
+
+  if (accessories.includes("cat-ears")) {
+    const ears = new THREE.Group();
+    ears.name = "cat-ears";
+    const outerMat = hairMaterial;
+    const innerMat = new THREE.MeshStandardMaterial({ color: 0xfda4af, roughness: 0.6, name: "ear-inner" });
+
+    const earWidth = 0.16;
+    const earHeight = 0.18;
+    const earDepth = 0.16;
+
+    const leftEarOuter = new THREE.Mesh(getBoxGeometry(earWidth, earHeight, earDepth), outerMat);
+    leftEarOuter.position.set(-actualHeadSize * 0.36, actualHeadSize * 0.52, 0);
+    leftEarOuter.rotation.z = Math.PI / 10;
+    leftEarOuter.castShadow = true;
+    ears.add(leftEarOuter);
+
+    const leftEarInner = new THREE.Mesh(getBoxGeometry(earWidth * 0.7, earHeight * 0.7, 0.04), innerMat);
+    leftEarInner.position.set(-actualHeadSize * 0.36, actualHeadSize * 0.52, earDepth * 0.4);
+    leftEarInner.rotation.z = Math.PI / 10;
+    ears.add(leftEarInner);
+
+    const rightEarOuter = new THREE.Mesh(getBoxGeometry(earWidth, earHeight, earDepth), outerMat);
+    rightEarOuter.position.set(actualHeadSize * 0.36, actualHeadSize * 0.52, 0);
+    rightEarOuter.rotation.z = -Math.PI / 10;
+    rightEarOuter.castShadow = true;
+    ears.add(rightEarOuter);
+
+    const rightEarInner = new THREE.Mesh(getBoxGeometry(earWidth * 0.7, earHeight * 0.7, 0.04), innerMat);
+    rightEarInner.position.set(actualHeadSize * 0.36, actualHeadSize * 0.52, earDepth * 0.4);
+    rightEarInner.rotation.z = -Math.PI / 10;
+    ears.add(rightEarInner);
+
+    head.add(ears);
+  }
+
+  if (accessories.includes("wizard-hat")) {
+    const wizard = new THREE.Group();
+    wizard.name = "wizard-hat";
+    const hatMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.8, name: "wizard-felt" });
+    const goldBandMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.2, metalness: 0.8, name: "wizard-gold" });
+
+    const brimGeo = getCylinderGeometry(actualHeadSize * 0.72, actualHeadSize * 0.72, 0.05, 16);
+    const brim = new THREE.Mesh(brimGeo, hatMat);
+    brim.position.set(0, actualHeadSize * 0.48, 0);
+    brim.rotation.x = Math.PI / 32;
+    brim.castShadow = true;
+    wizard.add(brim);
+
+    const bandGeo = getCylinderGeometry(actualHeadSize * 0.46, actualHeadSize * 0.48, 0.08, 16);
+    const band = new THREE.Mesh(bandGeo, goldBandMat);
+    band.position.set(0, actualHeadSize * 0.54, -0.01);
+    band.rotation.x = Math.PI / 32;
+    wizard.add(band);
+
+    const coneGeo = getCylinderGeometry(0.02, actualHeadSize * 0.44, actualHeadSize * 0.95, 16);
+    const cone = new THREE.Mesh(coneGeo, hatMat);
+    cone.position.set(0, actualHeadSize * 0.98, -0.08);
+    cone.rotation.x = -Math.PI * 0.08;
+    cone.castShadow = true;
+    wizard.add(cone);
+
+    head.add(wizard);
+  }
+
   // ==========================================
   // 5. SKINNED MESH RIGGED LIMBS (SKELETON)
   // ==========================================

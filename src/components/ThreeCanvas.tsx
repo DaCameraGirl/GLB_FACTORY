@@ -26,7 +26,7 @@ export default function ThreeCanvas({
   const animationFrameIdRef = useRef<number | null>(null);
 
   // Animation and interaction state
-  const [animationMode, setAnimationMode] = useState<"idle" | "walk">("idle");
+  const [animationMode, setAnimationMode] = useState<"idle" | "walk" | "dance" | "zombie" | "spin" | "ninja">("idle");
   const mouseRef = useRef(new THREE.Vector2(0, 0));
   const isMouseOverRef = useRef(false);
 
@@ -155,6 +155,7 @@ export default function ThreeCanvas({
 
     const dom = renderer.domElement;
     dom.addEventListener("mousemove", handleMouseMove);
+    dom.addEventListener("mouseenter", handleMouseMove);
     dom.addEventListener("mouseenter", handleMouseEnter);
     dom.addEventListener("mouseleave", handleMouseLeave);
 
@@ -162,6 +163,36 @@ export default function ThreeCanvas({
     let clock = new THREE.Clock();
     const animate = () => {
       const elapsedTime = clock.getElapsedTime();
+
+      // Implement Disco lights Mode if active
+      if (config.discoMode) {
+        if (dirLight) {
+          dirLight.color.setHSL((elapsedTime * 0.45) % 1.0, 1.0, 0.55);
+          dirLight.position.x = Math.sin(elapsedTime * 3.0) * 4.5;
+          dirLight.position.z = Math.cos(elapsedTime * 3.0) * 4.5;
+          dirLight.intensity = 1.8;
+        }
+        if (ambientLight) {
+          ambientLight.color.setHex(0x180b2d); // deep neon background ambient
+          ambientLight.intensity = 0.3;
+        }
+        if (scene) {
+          scene.background = new THREE.Color("#0c0919");
+        }
+      } else {
+        if (dirLight) {
+          dirLight.color.setStyle(config.keyLightColor || "#ffffff");
+          dirLight.position.set(3, 6, 4);
+          dirLight.intensity = config.keyLightIntensity !== undefined ? config.keyLightIntensity : 0.85;
+        }
+        if (ambientLight) {
+          ambientLight.color.setHex(0xffffff);
+          ambientLight.intensity = config.ambientIntensity !== undefined ? config.ambientIntensity : 0.75;
+        }
+        if (scene) {
+          scene.background = new THREE.Color("#CCCCCC");
+        }
+      }
 
       if (avatarGroupRef.current) {
         const torso = avatarGroupRef.current.getObjectByName("torso") as THREE.Object3D;
@@ -171,36 +202,99 @@ export default function ThreeCanvas({
         const leftLeg = avatarGroupRef.current.getObjectByName("left-leg") as THREE.Object3D;
         const rightLeg = avatarGroupRef.current.getObjectByName("right-leg") as THREE.Object3D;
 
+        const baseHeight = config.bodyType === "chibi" ? 0.8 : config.bodyType === "tall" ? 1.6 : 1.35;
+
         if (animationMode === "walk") {
           // Beautiful active walking loop
           const speed = 7.8;
           const angle = 0.45;
           const swing = Math.sin(elapsedTime * speed) * angle;
 
-          if (leftLeg) leftLeg.rotation.x = swing;
-          if (rightLeg) rightLeg.rotation.x = -swing;
-          if (leftArm) leftArm.rotation.x = -swing * 0.8;
-          if (rightArm) rightArm.rotation.x = swing * 0.8;
+          if (leftLeg) leftLeg.rotation.set(swing, 0, 0);
+          if (rightLeg) rightLeg.rotation.set(-swing, 0, 0);
+          if (leftArm) leftArm.rotation.set(-swing * 0.8, 0, -0.05);
+          if (rightArm) rightArm.rotation.set(swing * 0.8, 0, 0.05);
 
-          // Reset lateral sways
-          if (leftArm) leftArm.rotation.z = -0.05;
-          if (rightArm) rightArm.rotation.z = 0.05;
-
-          // Bob torso up/down slightly
           if (torso) {
-            const baseHeight = config.bodyType === "chibi" ? 0.8 : config.bodyType === "tall" ? 1.6 : 1.35;
             torso.position.y = baseHeight + Math.abs(Math.sin(elapsedTime * speed)) * 0.05 - 0.025;
-            torso.rotation.y = Math.sin(elapsedTime * speed * 0.5) * 0.05; // slight pelvic hip sway
+            torso.rotation.set(0, Math.sin(elapsedTime * speed * 0.5) * 0.05, 0);
           }
 
           if (head) {
-            head.rotation.x = Math.sin(elapsedTime * speed) * 0.03;
-            head.rotation.z = Math.cos(elapsedTime * speed * 0.5) * 0.025;
-            head.rotation.y = 0;
+            head.rotation.set(Math.sin(elapsedTime * speed) * 0.03, 0, Math.cos(elapsedTime * speed * 0.5) * 0.025);
+          }
+        } else if (animationMode === "dance") {
+          // Exaggerated Voxel Jig Dance
+          const speed = 9.2;
+          const bounce = Math.sin(elapsedTime * speed * 2) * 0.08;
+          const swayX = Math.sin(elapsedTime * speed) * 0.5;
+
+          if (leftLeg) leftLeg.rotation.set(swayX, 0, 0);
+          if (rightLeg) rightLeg.rotation.set(-swayX, 0, 0);
+          if (leftArm) leftArm.rotation.set(Math.cos(elapsedTime * speed) * 0.7, 0, -0.4 + Math.sin(elapsedTime * speed) * 0.4);
+          if (rightArm) rightArm.rotation.set(-Math.cos(elapsedTime * speed) * 0.7, 0, 0.4 + Math.cos(elapsedTime * speed) * 0.4);
+
+          if (torso) {
+            torso.position.y = baseHeight + bounce;
+            torso.rotation.set(Math.sin(elapsedTime * speed) * 0.06, Math.cos(elapsedTime * speed * 0.5) * 0.2, Math.sin(elapsedTime * speed) * 0.12);
+          }
+
+          if (head) {
+            head.rotation.set(Math.cos(elapsedTime * speed * 2) * 0.08, Math.sin(elapsedTime * speed) * 0.15, Math.sin(elapsedTime * speed) * 0.08);
+          }
+        } else if (animationMode === "zombie") {
+          // Slow zombie stagger
+          const speed = 2.4;
+          const slowSway = Math.sin(elapsedTime * speed);
+
+          if (leftLeg) leftLeg.rotation.set(slowSway * 0.25, 0, 0.05);
+          if (rightLeg) rightLeg.rotation.set(-slowSway * 0.18, 0, -0.05);
+          if (leftArm) leftArm.rotation.set(-Math.PI / 2 + Math.sin(elapsedTime * speed) * 0.08, 0.1, -0.05);
+          if (rightArm) rightArm.rotation.set(-Math.PI / 2 - Math.sin(elapsedTime * speed) * 0.08, -0.1, 0.05);
+
+          if (torso) {
+            torso.position.y = baseHeight + Math.sin(elapsedTime * speed * 2) * 0.015 - 0.04;
+            torso.rotation.set(0.18, 0.05 * Math.sin(elapsedTime * speed), 0.03 * Math.cos(elapsedTime * speed));
+          }
+
+          if (head) {
+            head.rotation.set(0.12, -0.1, 0.15);
+          }
+        } else if (animationMode === "spin") {
+          // Crazy whirlwind helicopter spin
+          if (leftLeg) leftLeg.rotation.set(0.08, 0, -0.08);
+          if (rightLeg) rightLeg.rotation.set(0.08, 0, 0.08);
+          if (leftArm) leftArm.rotation.set(0, 0, -Math.PI / 1.6);
+          if (rightArm) rightArm.rotation.set(0, 0, Math.PI / 1.6);
+
+          if (torso) {
+            torso.position.y = baseHeight + Math.sin(elapsedTime * 15) * 0.06;
+            torso.rotation.set(0, elapsedTime * 10, 0); // ROTATING CONSTANTLY
+          }
+
+          if (head) {
+            head.rotation.set(-0.1, 0, 0);
+          }
+        } else if (animationMode === "ninja") {
+          // Aerodynamic running stance
+          const speed = 14.5;
+          const runSwing = Math.sin(elapsedTime * speed) * 0.7;
+
+          if (leftLeg) leftLeg.rotation.set(runSwing, 0, 0);
+          if (rightLeg) rightLeg.rotation.set(-runSwing, 0, 0);
+          if (leftArm) leftArm.rotation.set(0.85 + runSwing * 0.15, 0, -0.08);
+          if (rightArm) rightArm.rotation.set(0.85 - runSwing * 0.15, 0, 0.08);
+
+          if (torso) {
+            torso.position.y = baseHeight - 0.16 + Math.abs(Math.sin(elapsedTime * speed)) * 0.09;
+            torso.rotation.set(0.48, Math.sin(elapsedTime * speed * 0.5) * 0.08, 0);
+          }
+
+          if (head) {
+            head.rotation.set(-0.28, 0, 0);
           }
         } else {
           // Premium breathing Idle loop
-          const baseHeight = config.bodyType === "chibi" ? 0.8 : config.bodyType === "tall" ? 1.6 : 1.35;
           if (torso) {
             torso.position.y = baseHeight + Math.sin(elapsedTime * 1.5) * 0.025;
             torso.rotation.set(0, 0, 0);
@@ -236,7 +330,7 @@ export default function ThreeCanvas({
       }
 
       if (controlsRef.current) {
-        if (autoRotate && animationMode !== "walk") {
+        if (autoRotate && animationMode !== "walk" && animationMode !== "spin") {
           controlsRef.current.autoRotate = true;
           controlsRef.current.autoRotateSpeed = 2.0;
         } else {
@@ -260,6 +354,7 @@ export default function ThreeCanvas({
       }
       resizeObserver.disconnect();
       dom.removeEventListener("mousemove", handleMouseMove);
+      dom.removeEventListener("mouseenter", handleMouseMove);
       dom.removeEventListener("mouseenter", handleMouseEnter);
       dom.removeEventListener("mouseleave", handleMouseLeave);
       if (controlsRef.current) {
@@ -278,7 +373,8 @@ export default function ThreeCanvas({
     config.keyLightIntensity,
     config.keyLightColor,
     config.cameraFov,
-    config.cameraPreset
+    config.cameraPreset,
+    config.discoMode
   ]);
 
   // Re-build Avatar whenever the 3D representation or texture canvas changes
@@ -315,28 +411,21 @@ export default function ThreeCanvas({
       </div>
 
       {/* Floating Animation / Pose Controller */}
-      <div className="absolute bottom-3 left-3 bg-white/95 border-2 border-[#141414] p-1.5 rounded-none z-10 flex items-center gap-1.5 font-mono text-[10px] shadow-[3px_3px_0px_0px_rgba(20,20,20,0.25)] select-none">
-        <span className="font-bold uppercase text-[9px] px-1 text-[#141414]/70">POSE:</span>
-        <button
-          onClick={() => setAnimationMode("idle")}
-          className={`px-2.5 py-1 font-bold uppercase tracking-wider transition-all border ${
-            animationMode === "idle"
-              ? "bg-[#141414] text-white border-[#141414]"
-              : "bg-transparent text-[#141414] border-transparent hover:bg-[#141414]/10"
-          }`}
-        >
-          Idle
-        </button>
-        <button
-          onClick={() => setAnimationMode("walk")}
-          className={`px-2.5 py-1 font-bold uppercase tracking-wider transition-all border ${
-            animationMode === "walk"
-              ? "bg-[#141414] text-white border-[#141414]"
-              : "bg-transparent text-[#141414] border-transparent hover:bg-[#141414]/10"
-          }`}
-        >
-          Walk
-        </button>
+      <div className="absolute bottom-3 left-3 right-3 md:right-auto bg-white/95 border-2 border-[#141414] p-1.5 rounded-none z-10 flex flex-wrap items-center gap-1 font-mono text-[9px] shadow-[3px_3px_0px_0px_rgba(20,20,20,0.25)] select-none">
+        <span className="font-bold uppercase text-[8px] px-1 text-[#141414]/70">POSE:</span>
+        {(["idle", "walk", "dance", "zombie", "spin", "ninja"] as const).map((mode) => (
+          <button
+            key={mode}
+            onClick={() => setAnimationMode(mode)}
+            className={`px-2.5 py-1 font-bold uppercase transition-all border ${
+              animationMode === mode
+                ? "bg-[#141414] text-white border-[#141414]"
+                : "bg-transparent text-[#141414] border-transparent hover:bg-[#141414]/10"
+            }`}
+          >
+            {mode}
+          </button>
+        ))}
       </div>
     </div>
   );
