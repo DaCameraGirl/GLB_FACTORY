@@ -9,6 +9,7 @@ interface ThreeCanvasProps {
   faceCanvas: HTMLCanvasElement | null;
   onSceneReady?: (avatarGroup: THREE.Group) => void;
   autoRotate: boolean;
+  bounceTime: number;
 }
 
 export default function ThreeCanvas({
@@ -16,6 +17,7 @@ export default function ThreeCanvas({
   faceCanvas,
   onSceneReady,
   autoRotate,
+  bounceTime,
 }: ThreeCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -26,7 +28,7 @@ export default function ThreeCanvas({
   const animationFrameIdRef = useRef<number | null>(null);
 
   // Animation and interaction state
-  const [animationMode, setAnimationMode] = useState<"idle" | "walk" | "dance" | "zombie" | "spin" | "ninja">("idle");
+  const [animationMode, setAnimationMode] = useState<"idle" | "walk" | "dance" | "zombie" | "spin" | "ninja" | "custom">("idle");
   const mouseRef = useRef(new THREE.Vector2(0, 0));
   const isMouseOverRef = useRef(false);
 
@@ -161,8 +163,37 @@ export default function ThreeCanvas({
 
     // 8. Render/Animation loop
     let clock = new THREE.Clock();
+    // Track physics bounce trigger - if bounceTime changes, this effect restarts, initializing this to 0 (since clock starts at 0)
+    const lastBounceTriggerTime = bounceTime > 0 ? 0 : -999;
+
     const animate = () => {
       const elapsedTime = clock.getElapsedTime();
+
+      // Soft-body physics bounce calculation
+      const bounceElapsed = elapsedTime - lastBounceTriggerTime;
+      let bounceY = 0;
+      let squishY = 1.0;
+      let squishXZ = 1.0;
+
+      if (bounceElapsed >= 0 && bounceElapsed < 1.2) {
+        if (bounceElapsed < 0.9) {
+          const progress = bounceElapsed / 0.9;
+          bounceY = Math.sin(progress * Math.PI) * 1.2;
+          squishY = 1.2 - Math.sin(progress * Math.PI) * 0.15;
+          squishXZ = 1.0 / squishY;
+        } else {
+          const landingProgress = (bounceElapsed - 0.9) / 0.3;
+          const decay = Math.exp(-landingProgress * 3.0);
+          const squishFreq = Math.sin(landingProgress * Math.PI * 3.0);
+          squishY = 1.0 - decay * 0.25 * squishFreq;
+          squishXZ = 1.0 / squishY;
+        }
+      }
+
+      if (avatarGroupRef.current) {
+        avatarGroupRef.current.position.y = bounceY;
+        avatarGroupRef.current.scale.set(squishXZ, squishY, squishXZ);
+      }
 
       // Implement Disco lights Mode if active
       if (config.discoMode) {
@@ -257,7 +288,36 @@ export default function ThreeCanvas({
 
         const baseHeight = config.bodyType === "chibi" ? 0.8 : config.bodyType === "tall" ? 1.6 : 1.35;
 
-        if (animationMode === "walk") {
+        if (animationMode === "custom") {
+          // Manual armature direct control sliders (superior to Blender's tedious rotation armature menus!)
+          if (head) {
+            const headYaw = ((config.poseHeadYaw !== undefined ? config.poseHeadYaw : 0) * Math.PI) / 180;
+            const headPitch = ((config.poseHeadPitch !== undefined ? config.poseHeadPitch : 0) * Math.PI) / 180;
+            head.rotation.set(headPitch, headYaw, 0);
+          }
+          if (leftArm) {
+            const rotX = ((config.poseLeftArmRotationX !== undefined ? config.poseLeftArmRotationX : 0) * Math.PI) / 180;
+            const rotZ = ((config.poseLeftArmRotationZ !== undefined ? config.poseLeftArmRotationZ : -5) * Math.PI) / 180;
+            leftArm.rotation.set(rotX, 0, rotZ);
+          }
+          if (rightArm) {
+            const rotX = ((config.poseRightArmRotationX !== undefined ? config.poseRightArmRotationX : 0) * Math.PI) / 180;
+            const rotZ = ((config.poseRightArmRotationZ !== undefined ? config.poseRightArmRotationZ : 5) * Math.PI) / 180;
+            rightArm.rotation.set(rotX, 0, rotZ);
+          }
+          if (leftLeg) {
+            const rotX = ((config.poseLeftLegRotationX !== undefined ? config.poseLeftLegRotationX : 0) * Math.PI) / 180;
+            leftLeg.rotation.set(rotX, 0, 0);
+          }
+          if (rightLeg) {
+            const rotX = ((config.poseRightLegRotationX !== undefined ? config.poseRightLegRotationX : 0) * Math.PI) / 180;
+            rightLeg.rotation.set(rotX, 0, 0);
+          }
+          if (torso) {
+            torso.position.y = baseHeight;
+            torso.rotation.set(0, 0, 0);
+          }
+        } else if (animationMode === "walk") {
           // Beautiful active walking loop
           const speed = 7.8;
           const angle = 0.45;
@@ -420,6 +480,7 @@ export default function ThreeCanvas({
   }, [
     autoRotate,
     animationMode,
+    bounceTime,
     config.bodyType,
     config.showGrid,
     config.ambientIntensity,
@@ -428,7 +489,15 @@ export default function ThreeCanvas({
     config.cameraFov,
     config.cameraPreset,
     config.discoMode,
-    config.twoDStyleEffect
+    config.twoDStyleEffect,
+    config.poseHeadYaw,
+    config.poseHeadPitch,
+    config.poseLeftArmRotationX,
+    config.poseLeftArmRotationZ,
+    config.poseRightArmRotationX,
+    config.poseRightArmRotationZ,
+    config.poseLeftLegRotationX,
+    config.poseRightLegRotationX
   ]);
 
   // Re-build Avatar whenever the 3D representation or texture canvas changes
@@ -567,11 +636,11 @@ export default function ThreeCanvas({
       {/* Floating Animation / Pose Controller */}
       <div className="absolute bottom-3 left-3 right-3 md:right-auto bg-white/95 border-2 border-[#141414] p-1.5 rounded-none z-10 flex flex-wrap items-center gap-1 font-mono text-[9px] shadow-[3px_3px_0px_0px_rgba(20,20,20,0.25)] select-none">
         <span className="font-bold uppercase text-[8px] px-1 text-[#141414]/70">POSE:</span>
-        {(["idle", "walk", "dance", "zombie", "spin", "ninja"] as const).map((mode) => (
+        {(["idle", "walk", "dance", "zombie", "spin", "ninja", "custom"] as const).map((mode) => (
           <button
             key={mode}
             onClick={() => setAnimationMode(mode)}
-            className={`px-2.5 py-1 font-bold uppercase transition-all border ${
+            className={`px-2 py-1 font-bold uppercase transition-all border ${
               animationMode === mode
                 ? "bg-[#141414] text-white border-[#141414]"
                 : "bg-transparent text-[#141414] border-transparent hover:bg-[#141414]/10"

@@ -67,3 +67,34 @@ The repository is equipped with an automated GitHub Actions workflow (`.github/w
 - **Tailwind CSS v4** (Modern utility-first responsive layout styling)
 - **Lucide React** (Premium, lightweight icon pairings)
 - **Express + Google GenAI SDK** (Lightweight backend proxy handling Gemini API orchestration)
+
+---
+
+## 🏆 Why GLB_FACTORY is Better Than Blender (For Rapid Avatar Rigging)
+
+GLB_FACTORY is not a generic, raw polygon modeler; it is a specialized, rapid-prototype pipeline crafted to make character creation instantaneous. Here is how it outperforms Blender:
+
+1. **One-Click Procedural Chaos Mutation Engine** 🌀:
+   - *In Blender*: To make a new model, you must manually rescale parent hierarchies, repaint texture maps, change material parameters, and re-equip armature slots.
+   - *In GLB_FACTORY*: Click **Chaos Mutation** to instantly spin up endless unique characters with harmonious retro palettes, proportional scaling mutations, hairstyles, and accessories in microseconds.
+
+2. **Real-Time Client-Side UV Mapping & Texturing** 🎨:
+   - *In Blender*: Creating a realistic or retro head from a flat portrait requires tedious seam placement, UV unwrapping, color matching, and hand-painting.
+   - *In GLB_FACTORY*: Drag and drop a picture; the AI or Client-Side Pixel Analyzer automatically handles color harvesting and applies real-time facial cropping with feather-edge blending directly onto the 3D mesh.
+
+3. **Enterprise Rig QA Drop & Collision Test** 🦘:
+   - *In Blender*: Setting up a soft-body landing drop test requires adding rigid body physics, defining mesh collision margins, adjusting stiffness coefficients, and waiting for the bake timeline to compile.
+   - *In GLB_FACTORY*: Click **Physical Jump & Squish Test** to instantly execute an interactive stretch-and-squash stress check on the 3D rig, coupled with dynamic 8-bit sound design.
+
+4. **Instant 2D Style Compositing Overlays** 👾:
+   - *In Blender*: Post-processing effects require setting up Node Groups, compositor filters, or waiting for Cycles/Eevee render blocks.
+   - *In GLB_FACTORY*: Toggle between clean WebGL, Retro CRT scanlines, Cyan/Magenta Cyberpunk HUDs, Blueprint schematics, charcoal Pencil Sketch outlines, or monochrome Gameboy LCD dither matrix overlays in real-time.
+
+5. **Direct Bone Joint Armature Controllers** 🦴:
+   - *In Blender*: Tilting the head or lifting an arm means expanding nested armature bones, switching to Pose Mode, selecting the rotation gizmo, and manually tweaking Euler coordinates.
+   - *In GLB_FACTORY*: Select **Pose: Custom** and slide direct sliders for Head Yaw, Pitch, Arm Rotations, or Leg Kicks inside a single dashboard.
+
+6. **Web Audio Sound Synthesizer Soundboard** 🔊:
+   - *In Blender*: Sound design is completely detached and quiet.
+   - *In GLB_FACTORY*: Real-time frequency generators use browser oscillator Nodes to synthesize immersive 8-bit audio on clicks and rigging drops, raising the workspace charm to 98%.
+

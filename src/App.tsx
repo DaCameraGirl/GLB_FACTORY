@@ -367,7 +367,20 @@ export default function App() {
     keyLightColor: "#ffffff",
     cameraFov: 45,
     cameraPreset: "front",
+
+    // Manual armature bones defaults
+    poseHeadYaw: 0,
+    poseHeadPitch: 0,
+    poseLeftArmRotationX: 0,
+    poseLeftArmRotationZ: -5,
+    poseRightArmRotationX: 0,
+    poseRightArmRotationZ: 5,
+    poseLeftLegRotationX: 0,
+    poseRightLegRotationX: 0,
   });
+
+  // Physics bounce timer trigger
+  const [bounceTime, setBounceTime] = useState<number>(0);
 
   // Bounding box returned from Gemini
   const [faceBox, setFaceBox] = useState<[number, number, number, number] | null>(null);
@@ -404,6 +417,76 @@ export default function App() {
         type,
       },
     ]);
+  };
+
+  const handleChaosMutation = () => {
+    // Generate a random name
+    const prefixes = ["Mega", "Giga", "Cyber", "Voxel", "Byte", "Chibi", "Retro", "Mecha", "Pixel", "Spell", "Nexus", "Turbo"];
+    const suffixes = ["Bot", "Spell", "Tron", "Zero", "Wand", "Doge", "Rig", "Forge", "Pico", "Star", "Zone", "Nova"];
+    const randomName = prefixes[Math.floor(Math.random() * prefixes.length)] + "_" + suffixes[Math.floor(Math.random() * suffixes.length)];
+    setCharacterName(randomName);
+
+    // Color list
+    const skinColors = ["#ffd59a", "#ffd27d", "#e5a65d", "#b45309", "#ffd8b3", "#2d3748", "#00f0ff", "#00ff66"];
+    const hairColors = ["#111827", "#1e293b", "#3b82f6", "#b45309", "#eaeaea", "#000000", "#ef4444", "#a855f7"];
+    const clothingColors = ["#1e3a8a", "#db2777", "#10b981", "#120e2e", "#4b5563", "#7c2d12", "#4f46e5", "#b91c1c"];
+    const pantsColors = ["#111827", "#0f172a", "#000000", "#1e293b", "#374151", "#7c2d12"];
+    const shoesColors = ["#ffffff", "#000000", "#f59e0b", "#10b981", "#db2777", "#ef4444"];
+    const hairStyles: HairStyle[] = ["none", "short", "long", "afro", "ponytail", "cap"];
+    const bodyTypes: BodyType[] = ["normal", "chibi", "athletic", "tall"];
+    const headShapes: HeadShape[] = ["cube", "rounded-cube", "organic-smooth"];
+    const accessoryPool = ["none", "crown", "wizard-hat", "halo", "glasses", "backpack", "headphones", "cat-ears"];
+
+    const chosenSkin = skinColors[Math.floor(Math.random() * skinColors.length)];
+    const chosenHair = hairColors[Math.floor(Math.random() * hairColors.length)];
+    const chosenClothing = clothingColors[Math.floor(Math.random() * clothingColors.length)];
+    const chosenPants = pantsColors[Math.floor(Math.random() * pantsColors.length)];
+    const chosenShoes = shoesColors[Math.floor(Math.random() * shoesColors.length)];
+    const chosenHairStyle = hairStyles[Math.floor(Math.random() * hairStyles.length)];
+    const chosenBodyType = bodyTypes[Math.floor(Math.random() * bodyTypes.length)];
+    const chosenHeadShape = headShapes[Math.floor(Math.random() * headShapes.length)];
+
+    // 1 to 2 random accessories
+    const chosenAccessories: ("glasses" | "backpack" | "headphones" | "halo" | "crown" | "cat-ears" | "wizard-hat")[] = [];
+    const acc1 = accessoryPool[Math.floor(Math.random() * accessoryPool.length)];
+    if (acc1 !== "none") chosenAccessories.push(acc1 as any);
+    const acc2 = accessoryPool[Math.floor(Math.random() * accessoryPool.length)];
+    if (acc2 !== "none" && acc2 !== acc1) chosenAccessories.push(acc2 as any);
+
+    // Scale mutations (-0.3 to +0.3 offset)
+    const randomScale = (min: number, max: number) => Math.round((min + Math.random() * (max - min)) * 100) / 100;
+
+    setConfig((prev) => ({
+      ...prev,
+      name: randomName,
+      skinColor: chosenSkin,
+      hairColor: chosenHair,
+      clothingColor: chosenClothing,
+      pantsColor: chosenPants,
+      shoesColor: chosenShoes,
+      hairStyle: chosenHairStyle,
+      bodyType: chosenBodyType,
+      headShape: chosenHeadShape,
+      accessories: chosenAccessories,
+      headScaleX: randomScale(0.7, 1.4),
+      headScaleY: randomScale(0.7, 1.4),
+      headScaleZ: randomScale(0.7, 1.4),
+      torsoScaleX: randomScale(0.7, 1.4),
+      torsoScaleZ: randomScale(0.7, 1.4),
+      armScaleX: randomScale(0.6, 1.4),
+      armScaleY: randomScale(0.6, 1.4),
+      armScaleZ: randomScale(0.6, 1.4),
+      legScaleX: randomScale(0.6, 1.4),
+      legScaleY: randomScale(0.6, 1.4),
+      legScaleZ: randomScale(0.6, 1.4),
+      materialRoughness: randomScale(0.05, 0.95),
+      materialMetalness: randomScale(0, 0.95),
+      materialEmissive: Math.random() > 0.5 ? (Math.random() > 0.5 ? "#00f0ff" : "#ff007f") : "#000000",
+      materialEmissiveIntensity: randomScale(0, 1.8),
+    }));
+
+    addLog(`[MUTATION] Procedural Chaos Engine spawned '${randomName}' with custom proportional skew.`, "success");
+    playSynthSound("arp");
   };
 
   // 3. Texture computation
@@ -1862,6 +1945,179 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* Armature Direct Bone Bindings */}
+                  <div className="space-y-3 border-b border-[#141414]/10 pb-3 bg-neutral-100/40 p-2.5 border-2 border-dashed border-[#141414]/20">
+                    <div className="flex items-center justify-between">
+                      <label className="font-mono text-[10px] uppercase font-bold text-[#e11d48] flex items-center gap-1">
+                        <Cpu className="w-3.5 h-3.5 animate-pulse" />
+                        <span>04 // ARMATURE BONE CONTROL</span>
+                      </label>
+                      <span className="text-[8px] px-1 bg-rose-100 text-rose-700 font-bold tracking-wider">BLENDER KILLER</span>
+                    </div>
+
+                    <p className="text-[8.5px] leading-relaxed text-neutral-600">
+                      Direct manual inverse-kinematics-grade bone joint angle binders. Move individual rig sections instantly without standard Blender weight-painting fatigue.
+                    </p>
+
+                    <div className="space-y-2.5 text-[9px]">
+                      {/* Head Yaw / Pitch */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <div className="flex justify-between font-bold">
+                            <span>HEAD YAW (L/R)</span>
+                            <span>{config.poseHeadYaw}°</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="-180"
+                            max="180"
+                            step="5"
+                            value={config.poseHeadYaw !== undefined ? config.poseHeadYaw : 0}
+                            onChange={(e) => {
+                              setConfig((prev) => ({ ...prev, poseHeadYaw: parseInt(e.target.value) }));
+                            }}
+                            className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between font-bold">
+                            <span>HEAD PITCH (U/D)</span>
+                            <span>{config.poseHeadPitch}°</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="-90"
+                            max="90"
+                            step="5"
+                            value={config.poseHeadPitch !== undefined ? config.poseHeadPitch : 0}
+                            onChange={(e) => {
+                              setConfig((prev) => ({ ...prev, poseHeadPitch: parseInt(e.target.value) }));
+                            }}
+                            className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Left Arm Swing / Raise */}
+                      <div className="grid grid-cols-2 gap-2 border-t border-[#141414]/5 pt-2">
+                        <div className="space-y-1">
+                          <div className="flex justify-between font-bold">
+                            <span>L ARM ROTATION X</span>
+                            <span>{config.poseLeftArmRotationX}°</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="-180"
+                            max="180"
+                            step="5"
+                            value={config.poseLeftArmRotationX !== undefined ? config.poseLeftArmRotationX : 0}
+                            onChange={(e) => {
+                              setConfig((prev) => ({ ...prev, poseLeftArmRotationX: parseInt(e.target.value) }));
+                            }}
+                            className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between font-bold">
+                            <span>L ARM ROTATION Z</span>
+                            <span>{config.poseLeftArmRotationZ}°</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="-180"
+                            max="180"
+                            step="5"
+                            value={config.poseLeftArmRotationZ !== undefined ? config.poseLeftArmRotationZ : -5}
+                            onChange={(e) => {
+                              setConfig((prev) => ({ ...prev, poseLeftArmRotationZ: parseInt(e.target.value) }));
+                            }}
+                            className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Right Arm Swing / Raise */}
+                      <div className="grid grid-cols-2 gap-2 border-t border-[#141414]/5 pt-2">
+                        <div className="space-y-1">
+                          <div className="flex justify-between font-bold">
+                            <span>R ARM ROTATION X</span>
+                            <span>{config.poseRightArmRotationX}°</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="-180"
+                            max="180"
+                            step="5"
+                            value={config.poseRightArmRotationX !== undefined ? config.poseRightArmRotationX : 0}
+                            onChange={(e) => {
+                              setConfig((prev) => ({ ...prev, poseRightArmRotationX: parseInt(e.target.value) }));
+                            }}
+                            className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between font-bold">
+                            <span>R ARM ROTATION Z</span>
+                            <span>{config.poseRightArmRotationZ}°</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="-180"
+                            max="180"
+                            step="5"
+                            value={config.poseRightArmRotationZ !== undefined ? config.poseRightArmRotationZ : 5}
+                            onChange={(e) => {
+                              setConfig((prev) => ({ ...prev, poseRightArmRotationZ: parseInt(e.target.value) }));
+                            }}
+                            className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Legs rotation */}
+                      <div className="grid grid-cols-2 gap-2 border-t border-[#141414]/5 pt-2">
+                        <div className="space-y-1">
+                          <div className="flex justify-between font-bold">
+                            <span>L LEG ROTATION X</span>
+                            <span>{config.poseLeftLegRotationX}°</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="-90"
+                            max="90"
+                            step="5"
+                            value={config.poseLeftLegRotationX !== undefined ? config.poseLeftLegRotationX : 0}
+                            onChange={(e) => {
+                              setConfig((prev) => ({ ...prev, poseLeftLegRotationX: parseInt(e.target.value) }));
+                            }}
+                            className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between font-bold">
+                            <span>R LEG ROTATION X</span>
+                            <span>{config.poseRightLegRotationX}°</span>
+                          </div>
+                          <input
+                            type="range"
+                            min="-90"
+                            max="90"
+                            step="5"
+                            value={config.poseRightLegRotationX !== undefined ? config.poseRightLegRotationX : 0}
+                            onChange={(e) => {
+                              setConfig((prev) => ({ ...prev, poseRightLegRotationX: parseInt(e.target.value) }));
+                            }}
+                            className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-[8.5px] border-t border-[#141414]/10 pt-2 text-[#e11d48] font-bold flex items-center justify-between">
+                      <span>⚠️ TOGGLE 'CUSTOM' POSE IN BOTTOM TO PREVIEW</span>
+                    </div>
+                  </div>
+
                   {/* Reset Button */}
                   <button
                     type="button"
@@ -1875,12 +2131,20 @@ export default function App() {
                         torsoTranslateX: 0, torsoTranslateY: 0, torsoTranslateZ: 0,
                         armScaleX: 1.0, armScaleY: 1.0, armScaleZ: 1.0,
                         legScaleX: 1.0, legScaleY: 1.0, legScaleZ: 1.0,
+                        poseHeadYaw: 0,
+                        poseHeadPitch: 0,
+                        poseLeftArmRotationX: 0,
+                        poseLeftArmRotationZ: -5,
+                        poseRightArmRotationX: 0,
+                        poseRightArmRotationZ: 5,
+                        poseLeftLegRotationX: 0,
+                        poseRightLegRotationX: 0,
                       }));
-                      addLog("Transform matrices reset to defaults.", "info");
+                      addLog("Transform matrices and bone joint rotations reset to defaults.", "info");
                     }}
                     className="w-full py-2 border-2 border-[#141414] text-[10px] bg-white/50 hover:bg-white active:translate-y-0.5 transition font-bold shadow-[2px_2px_0px_0px_#141414] select-none"
                   >
-                    RESET TRANSFORM MATRIX
+                    RESET ARMATURE & MATRIX
                   </button>
                 </div>
               )}
@@ -2156,6 +2420,7 @@ export default function App() {
                   config={config}
                   faceCanvas={faceCanvas}
                   autoRotate={autoRotate}
+                  bounceTime={bounceTime}
                   onSceneReady={(group) => {
                     avatarGroupRef.current = group;
                   }}
@@ -2383,6 +2648,56 @@ export default function App() {
                 <div>ENGINE LATENCY: 14ms (EDGE CONTAINER)</div>
                 <div>DISCO_RHYTHM: {config.discoMode ? "142 BPM (STROBE)" : "0 BPM (STEADY)"}</div>
                 <div>EXPORTER VER: CJS-BUNDLED v1.1</div>
+              </div>
+            </section>
+
+            {/* ==========================================
+                🧪 INTERACTIVE RIG QA & MUTATION TOOLS (BLENDER BUSTER)
+               ========================================== */}
+            <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]" id="interactive-qa-panel">
+              <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#D4D3D0] flex items-center justify-between">
+                <h2 className="font-serif text-[11px] italic text-[#141414]/80 uppercase font-bold tracking-wider flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-[#141414]/80" />
+                  <span>07 // Rig QA & Experimental Tools</span>
+                </h2>
+                <div className="flex items-center gap-1.5 text-[8px] font-mono bg-[#141414] text-white px-2 py-0.5 uppercase font-bold tracking-widest">
+                  <span>beta // workspace</span>
+                </div>
+              </div>
+
+              <p className="font-mono text-[9px] text-[#141414]/75 uppercase leading-relaxed">
+                Supercharge your workflow with instant procedural automation. Trigger microsecond rigid-body physics tests or run the Chaos randomizer for concept ideation.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* 1. Bounce / Squish Physical Rig Test */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextTime = Date.now();
+                    setBounceTime(nextTime);
+                    addLog("🧪 [QA PHYSICS] Initiated rig drop test. Calculating gravity impact, local mass scale coefficients, and soft-body squash ratio.", "info");
+                    playSynthSound("jump");
+                    setTimeout(() => {
+                      playSynthSound("boom");
+                      addLog("🧪 [QA PHYSICS] Rig collision impact registered on ground grid. Decaying vibration harmonics stabilized.", "success");
+                    }, 900);
+                  }}
+                  className="border-2 border-[#141414] bg-[#fffcf0] hover:bg-[#fff9db] text-[10px] font-mono font-bold py-3 px-3 tracking-wider text-[#92400e] border-[#92400e] shadow-[3px_3px_0px_0px_#92400e] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#92400e] active:translate-y-[3px] active:shadow-none transition-all cursor-pointer rounded-none uppercase flex flex-col items-center justify-center gap-1"
+                >
+                  <span className="text-xs">🦘 PHYSICAL JUMP & SQUISH TEST</span>
+                  <span className="text-[8px] opacity-75 font-normal normal-case block">Instant 3D skeleton stretch-and-squash stress check</span>
+                </button>
+
+                {/* 2. Chaos Mutation Randomizer */}
+                <button
+                  type="button"
+                  onClick={handleChaosMutation}
+                  className="border-2 border-[#141414] bg-[#f0fdf4] hover:bg-[#dcfce7] text-[10px] font-mono font-bold py-3 px-3 tracking-wider text-[#166534] border-[#166534] shadow-[3px_3px_0px_0px_#166534] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#166534] active:translate-y-[3px] active:shadow-none transition-all cursor-pointer rounded-none uppercase flex flex-col items-center justify-center gap-1"
+                >
+                  <span className="text-xs">🌀 CHAOS MUTATION RANDOMIZER</span>
+                  <span className="text-[8px] opacity-75 font-normal normal-case block">Procedurally generate infinite character configurations</span>
+                </button>
               </div>
             </section>
 

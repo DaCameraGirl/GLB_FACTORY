@@ -67,6 +67,16 @@ export interface AvatarConfig {
   cameraFov?: number;
   cameraPreset?: "front" | "side" | "top" | "isometric";
   twoDStyleEffect?: "none" | "crt" | "blueprint" | "gameboy" | "cyberpunk" | "sketch";
+
+  // Manual Armature Bones Posing (Blender-killing armature controllers)
+  poseHeadYaw?: number; // degrees -180 to 180
+  poseHeadPitch?: number; // degrees -90 to 90
+  poseLeftArmRotationX?: number; // degrees -180 to 180
+  poseLeftArmRotationZ?: number; // degrees -180 to 180
+  poseRightArmRotationX?: number; // degrees -180 to 180
+  poseRightArmRotationZ?: number; // degrees -180 to 180
+  poseLeftLegRotationX?: number; // degrees -90 to 90
+  poseRightLegRotationX?: number; // degrees -90 to 90
 }
 
 export interface DetectionResult {
