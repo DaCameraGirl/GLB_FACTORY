@@ -39,9 +39,11 @@ export default function ThreeCanvas({
     sceneRef.current = scene;
 
     // Add grid/floor helper
-    const gridHelper = new THREE.GridHelper(10, 20, "#141414", "#888888");
-    gridHelper.position.y = -0.01; // Slightly below ground level to avoid z-fighting
-    scene.add(gridHelper);
+    if (config.showGrid !== false) {
+      const gridHelper = new THREE.GridHelper(10, 20, "#141414", "#888888");
+      gridHelper.position.y = -0.01; // Slightly below ground level to avoid z-fighting
+      scene.add(gridHelper);
+    }
 
     // Subtle ground shadow-receiver circle
     const shadowGeo = new THREE.RingGeometry(0, 2.5, 32);
@@ -56,15 +58,26 @@ export default function ThreeCanvas({
     shadowMesh.position.y = 0.001;
     scene.add(shadowMesh);
 
-    // 2. Create Camera
+    // 2. Create Camera with dynamic FOV (field of view)
+    const fov = config.cameraFov !== undefined ? config.cameraFov : 45;
     const camera = new THREE.PerspectiveCamera(
-      45,
+      fov,
       containerRef.current.clientWidth / containerRef.current.clientHeight,
       0.1,
       100
     );
-    // Position camera to look at the character beautifully
-    camera.position.set(0, 2.0, 4.5);
+    // Position camera to look at the character beautifully according to Blender Preset angles
+    const cameraPreset = config.cameraPreset || "front";
+    if (cameraPreset === "side") {
+      camera.position.set(4.5, 1.5, 0);
+    } else if (cameraPreset === "top") {
+      camera.position.set(0, 5.0, 0.1);
+    } else if (cameraPreset === "isometric") {
+      camera.position.set(3.5, 3.5, 3.5);
+    } else {
+      // "front" preset
+      camera.position.set(0, 1.8, 4.5);
+    }
     cameraRef.current = camera;
 
     // 3. Create WebGLRenderer
@@ -79,12 +92,15 @@ export default function ThreeCanvas({
     containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // 4. Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+    // 4. Lights with dynamic slider controllers
+    const ambientIntensity = config.ambientIntensity !== undefined ? config.ambientIntensity : 0.75;
+    const ambientLight = new THREE.AmbientLight(0xffffff, ambientIntensity);
     scene.add(ambientLight);
 
     // Main spotlight casting beautiful soft shadows
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+    const keyLightColor = config.keyLightColor || "#ffffff";
+    const keyLightIntensity = config.keyLightIntensity !== undefined ? config.keyLightIntensity : 0.85;
+    const dirLight = new THREE.DirectionalLight(new THREE.Color(keyLightColor), keyLightIntensity);
     dirLight.position.set(3, 6, 4);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
@@ -93,7 +109,7 @@ export default function ThreeCanvas({
     scene.add(dirLight);
 
     // Rim light/Backlight to give depth
-    const rimLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.35);
     rimLight.position.set(-3, 3, -4);
     scene.add(rimLight);
 
@@ -253,7 +269,17 @@ export default function ThreeCanvas({
         rendererRef.current.dispose();
       }
     };
-  }, [autoRotate, animationMode, config.bodyType]);
+  }, [
+    autoRotate,
+    animationMode,
+    config.bodyType,
+    config.showGrid,
+    config.ambientIntensity,
+    config.keyLightIntensity,
+    config.keyLightColor,
+    config.cameraFov,
+    config.cameraPreset
+  ]);
 
   // Re-build Avatar whenever the 3D representation or texture canvas changes
   useEffect(() => {

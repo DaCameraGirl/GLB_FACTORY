@@ -23,6 +23,47 @@ export interface AvatarConfig {
   expression?: "neutral" | "happy" | "angry" | "sad" | "surprised";
   morphSlender?: number; // 0 to 1
   morphBulk?: number; // 0 to 1
+
+  // Material parameters (Blender style overrides)
+  materialRoughness?: number; // 0 to 1
+  materialMetalness?: number; // 0 to 1
+  wireframeMode?: boolean;
+  materialEmissive?: string;
+  materialEmissiveIntensity?: number;
+
+  // Manual transform offsets (X, Y, Z sliders)
+  headScaleX?: number;
+  headScaleY?: number;
+  headScaleZ?: number;
+  headRotateX?: number; // radians
+  headRotateY?: number; // radians
+  headRotateZ?: number; // radians
+  headTranslateX?: number;
+  headTranslateY?: number;
+  headTranslateZ?: number;
+
+  torsoScaleX?: number;
+  torsoScaleY?: number;
+  torsoScaleZ?: number;
+  torsoTranslateX?: number;
+  torsoTranslateY?: number;
+  torsoTranslateZ?: number;
+
+  armScaleX?: number;
+  armScaleY?: number;
+  armScaleZ?: number;
+
+  legScaleX?: number;
+  legScaleY?: number;
+  legScaleZ?: number;
+
+  // Lighting & Viewport helpers (Blender Render Workspace)
+  showGrid?: boolean;
+  ambientIntensity?: number;
+  keyLightIntensity?: number;
+  keyLightColor?: string;
+  cameraFov?: number;
+  cameraPreset?: "front" | "side" | "top" | "isometric";
 }
 
 export interface DetectionResult {

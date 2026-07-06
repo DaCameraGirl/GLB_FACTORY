@@ -276,39 +276,45 @@ export function buildAvatar(
 
   const radialSeg = seg(config.detailLevel);
 
+  // Helper to dynamically inject Blender-style material adjustments
+  const getMatParams = (baseRoughness: number, baseMetalness: number) => {
+    return {
+      roughness: config.materialRoughness !== undefined ? config.materialRoughness : baseRoughness,
+      metalness: config.materialMetalness !== undefined ? config.materialMetalness : baseMetalness,
+      wireframe: !!config.wireframeMode,
+      emissive: new THREE.Color(config.materialEmissive || "#000000"),
+      emissiveIntensity: config.materialEmissiveIntensity !== undefined ? config.materialEmissiveIntensity : 0,
+    };
+  };
+
   // Materials
   const skinMaterial = new THREE.MeshStandardMaterial({
     color: new THREE.Color(config.skinColor),
-    roughness: 0.85,
-    metalness: 0.05,
+    ...getMatParams(0.85, 0.05),
     name: "skin"
   });
 
   const hairMaterial = new THREE.MeshStandardMaterial({
     color: new THREE.Color(config.hairColor),
-    roughness: 0.9,
-    metalness: 0.05,
+    ...getMatParams(0.9, 0.05),
     name: "hair"
   });
 
   const clothingMaterial = new THREE.MeshStandardMaterial({
     color: new THREE.Color(config.clothingColor),
-    roughness: 0.7,
-    metalness: 0.08,
+    ...getMatParams(0.7, 0.08),
     name: "clothing"
   });
 
   const pantsMaterial = new THREE.MeshStandardMaterial({
     color: new THREE.Color(config.pantsColor),
-    roughness: 0.85,
-    metalness: 0.05,
+    ...getMatParams(0.85, 0.05),
     name: "pants"
   });
 
   const shoesMaterial = new THREE.MeshStandardMaterial({
     color: new THREE.Color(config.shoesColor),
-    roughness: 0.6,
-    metalness: 0.15,
+    ...getMatParams(0.6, 0.15),
     name: "shoes"
   });
 
@@ -353,8 +359,7 @@ export function buildAvatar(
 
   faceMaterial = new THREE.MeshStandardMaterial({
     map: faceTexture,
-    roughness: 0.75,
-    metalness: 0.05,
+    ...getMatParams(0.75, 0.05),
     name: "face"
   });
 
@@ -958,6 +963,44 @@ export function buildAvatar(
   rightLeg.name = "right-leg";
   rightLeg.position.set(torsoWidth / 4, -torsoHeight / 2, 0);
   torso.add(rightLeg);
+
+  // ==========================================
+  // MANUAL BLENDER-STYLE PART TRANSFORMS
+  // ==========================================
+  if (torso) {
+    torso.scale.x *= config.torsoScaleX !== undefined ? config.torsoScaleX : 1.0;
+    torso.scale.y *= config.torsoScaleY !== undefined ? config.torsoScaleY : 1.0;
+    torso.scale.z *= config.torsoScaleZ !== undefined ? config.torsoScaleZ : 1.0;
+    torso.position.x += config.torsoTranslateX !== undefined ? config.torsoTranslateX : 0.0;
+    torso.position.y += config.torsoTranslateY !== undefined ? config.torsoTranslateY : 0.0;
+    torso.position.z += config.torsoTranslateZ !== undefined ? config.torsoTranslateZ : 0.0;
+  }
+
+  if (head) {
+    head.scale.x *= config.headScaleX !== undefined ? config.headScaleX : 1.0;
+    head.scale.y *= config.headScaleY !== undefined ? config.headScaleY : 1.0;
+    head.scale.z *= config.headScaleZ !== undefined ? config.headScaleZ : 1.0;
+    head.position.x += config.headTranslateX !== undefined ? config.headTranslateX : 0.0;
+    head.position.y += config.headTranslateY !== undefined ? config.headTranslateY : 0.0;
+    head.position.z += config.headTranslateZ !== undefined ? config.headTranslateZ : 0.0;
+
+    // Rotation offsets
+    head.rotation.x += config.headRotateX !== undefined ? config.headRotateX : 0.0;
+    head.rotation.y += config.headRotateY !== undefined ? config.headRotateY : 0.0;
+    head.rotation.z += config.headRotateZ !== undefined ? config.headRotateZ : 0.0;
+  }
+
+  const armScaleX = config.armScaleX !== undefined ? config.armScaleX : 1.0;
+  const armScaleY = config.armScaleY !== undefined ? config.armScaleY : 1.0;
+  const armScaleZ = config.armScaleZ !== undefined ? config.armScaleZ : 1.0;
+  if (leftArm) leftArm.scale.set(armScaleX, armScaleY, armScaleZ);
+  if (rightArm) rightArm.scale.set(armScaleX, armScaleY, armScaleZ);
+
+  const legScaleX = config.legScaleX !== undefined ? config.legScaleX : 1.0;
+  const legScaleY = config.legScaleY !== undefined ? config.legScaleY : 1.0;
+  const legScaleZ = config.legScaleZ !== undefined ? config.legScaleZ : 1.0;
+  if (leftLeg) leftLeg.scale.set(legScaleX, legScaleY, legScaleZ);
+  if (rightLeg) rightLeg.scale.set(legScaleX, legScaleY, legScaleZ);
 
   // ==========================================
   // FINAL TRANSFORMS & COMPUTE BOUNDING BOXES

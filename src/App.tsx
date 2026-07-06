@@ -32,6 +32,12 @@ export default function App() {
   // Pipeline steps status
   const [currentStep, setCurrentStep] = useState<"upload" | "texture" | "mesh" | "glb" | "ready">("upload");
 
+  // Blender-style Workspace active tab
+  const [editorTab, setEditorTab] = useState<"parts" | "transforms" | "materials" | "scene">("parts");
+
+  // Interactive 3D Step-by-Step Directives guide stage
+  const [guideStage, setGuideStage] = useState<number>(0);
+
   // Avatar Configuration
   const [config, setConfig] = useState<AvatarConfig>({
     name: "Chase",
@@ -48,6 +54,47 @@ export default function App() {
     cropX: 0,
     cropY: 0,
     cropScale: 1.0,
+
+    // Material default parameters
+    materialRoughness: 0.8,
+    materialMetalness: 0.05,
+    wireframeMode: false,
+    materialEmissive: "#000000",
+    materialEmissiveIntensity: 0.0,
+
+    // Transform default parameters (relative modifications)
+    headScaleX: 1.0,
+    headScaleY: 1.0,
+    headScaleZ: 1.0,
+    headRotateX: 0.0,
+    headRotateY: 0.0,
+    headRotateZ: 0.0,
+    headTranslateX: 0.0,
+    headTranslateY: 0.0,
+    headTranslateZ: 0.0,
+
+    torsoScaleX: 1.0,
+    torsoScaleY: 1.0,
+    torsoScaleZ: 1.0,
+    torsoTranslateX: 0.0,
+    torsoTranslateY: 0.0,
+    torsoTranslateZ: 0.0,
+
+    armScaleX: 1.0,
+    armScaleY: 1.0,
+    armScaleZ: 1.0,
+
+    legScaleX: 1.0,
+    legScaleY: 1.0,
+    legScaleZ: 1.0,
+
+    // Scene & Viewport defaults
+    showGrid: true,
+    ambientIntensity: 0.75,
+    keyLightIntensity: 0.85,
+    keyLightColor: "#ffffff",
+    cameraFov: 45,
+    cameraPreset: "front",
   });
 
   // Bounding box returned from Gemini
@@ -391,9 +438,135 @@ export default function App() {
       cropX: 0,
       cropY: 0,
       cropScale: 1.0,
+
+      // Material overrides
+      materialRoughness: 0.8,
+      materialMetalness: 0.05,
+      wireframeMode: false,
+      materialEmissive: "#000000",
+      materialEmissiveIntensity: 0.0,
+
+      // Transform parameters
+      headScaleX: 1.0,
+      headScaleY: 1.0,
+      headScaleZ: 1.0,
+      headRotateX: 0.0,
+      headRotateY: 0.0,
+      headRotateZ: 0.0,
+      headTranslateX: 0.0,
+      headTranslateY: 0.0,
+      headTranslateZ: 0.0,
+
+      torsoScaleX: 1.0,
+      torsoScaleY: 1.0,
+      torsoScaleZ: 1.0,
+      torsoTranslateX: 0.0,
+      torsoTranslateY: 0.0,
+      torsoTranslateZ: 0.0,
+
+      armScaleX: 1.0,
+      armScaleY: 1.0,
+      armScaleZ: 1.0,
+
+      legScaleX: 1.0,
+      legScaleY: 1.0,
+      legScaleZ: 1.0,
+
+      // Scene & Viewport presets
+      showGrid: true,
+      ambientIntensity: 0.75,
+      keyLightIntensity: 0.85,
+      keyLightColor: "#ffffff",
+      cameraFov: 45,
+      cameraPreset: "front",
     });
-    addLog("Customizer configurations reset to defaults.", "info");
+    setEditorTab("parts");
+    addLog("Customizer configurations and workspace tabs reset to defaults.", "info");
   };
+
+  // Interactive 3D Step-by-Step Guide Stages Definition
+  const guideStages = [
+    {
+      title: "01 // Portrait Selection & Calibration",
+      description: "Directives on selecting the ideal portrait to generate a high-quality, distortion-free 3D asset.",
+      directives: [
+        "Use a front-facing, neutral photo with clear, sharp lighting.",
+        "Ensure there are no heavy side shadows, face coverings, or steep head tilts.",
+        "Once uploaded, the system automatically analyzes features.",
+      ],
+      tip: "💡 PRO TIP: Diffused natural lighting works best to prevent harsh nose shadows.",
+      actionText: "Open Upload Area",
+      action: () => {
+        const el = document.getElementById("upload-panel");
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+      }
+    },
+    {
+      title: "02 // Texture Mapping & Boundary Blending",
+      description: "How to perfectly position and feather the face photo onto the 3D skull mesh.",
+      directives: [
+        "Enable 'Feather Edges' to smoothly blend photo borders into the skin pigment.",
+        "Adjust 'Shift Horizontal' and 'Shift Vertical' so eyes align with the 3D sockets.",
+        "Tweak 'Crop Scale' to zoom the facial texture map to cover the frontal hemisphere.",
+      ],
+      tip: "💡 PRO TIP: Set feather radius to 85% to achieve a seamless, seam-free scalp texture transition.",
+      actionText: "Align Face Crop",
+      action: () => {
+        const el = document.getElementById("crop-tuning-panel");
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+      }
+    },
+    {
+      title: "03 // Mesh Sculpting & Proportional Scaling",
+      description: "Molding the individual body part scales and shapes to fit the desired aesthetic.",
+      directives: [
+        "Select head shapes (Organic Smooth vs Retro Boxy Cube) for target stylization.",
+        "Go to '3D TRANSFORM' tab to scale head size, shoulder width, or leg lengths.",
+        "Adjust Slender vs Bulk morph targets to widen chest volume or slim down bones.",
+      ],
+      tip: "💡 PRO TIP: For cute chibi designs, set Head Size to 1.3x and scale torso Y to 0.7x.",
+      actionText: "Open 3D Transform Tab",
+      action: () => {
+        setEditorTab("transforms");
+        const el = document.getElementById("customization-panel");
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+      }
+    },
+    {
+      title: "04 // Shaders, Materials & Cyber Emissive Glow",
+      description: "Tuning reflection properties, wireframes, and sci-fi glowing sub-modules.",
+      directives: [
+        "Go to 'MATERIALS' tab to adjust surface shine (Matte vs Metallic).",
+        "Lower 'Roughness' (0.2) and increase 'Metalness' (0.9) to render hard robotic shells.",
+        "Activate 'Wireframe Mode' to analyze real-time quad/triangle grid topologies.",
+        "Select an Emissive color and raise glow intensity to add futuristic laser accents.",
+      ],
+      tip: "💡 PRO TIP: Emissive cyan or neon green looks spectacular on dark metallic skins.",
+      actionText: "Open Shaders Tab",
+      action: () => {
+        setEditorTab("materials");
+        const el = document.getElementById("customization-panel");
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+      }
+    },
+    {
+      title: "05 // Lighting Rig & WebGL Production Export",
+      description: "Setting up studio lighting and exporting a game-ready asset.",
+      directives: [
+        "Go to 'SCENE' tab to choose camera presets: Front, Side, Top, or Isometric.",
+        "Toggle 'Show Grid' to visualize ground shadow planes.",
+        "Tweak Ambient and Key spotlight intensities for ideal three-point contrast.",
+        "Click 'Export Final GLB' to download a clean, production-ready 3D asset.",
+      ],
+      tip: "💡 PRO TIP: GLB files are highly optimized binary glTFs, ready for direct load into Unity or Blender.",
+      actionText: "Open Scene Tab",
+      action: () => {
+        setEditorTab("scene");
+        const el = document.getElementById("customization-panel");
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  ];
 
   return (
     <div className="min-h-screen border-[12px] md:border-[16px] border-[#141414] bg-[#E4E3E0] text-[#141414] flex flex-col font-sans selection:bg-[#141414] selection:text-[#E4E3E0]" id="app-root-container">
@@ -474,6 +647,86 @@ export default function App() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* LEFT PANEL: CONFIGURATION AND INPUTS (LG: 5 cols) */}
           <div className="lg:col-span-5 space-y-6">
+            {/* 🎓 STEP-BY-STEP STUDIO DIRECTIVES & GUIDE */}
+            <section className="bg-[#141414] border-2 border-[#141414] rounded-none p-5 text-[#E4E3E0] space-y-4 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.2)] font-mono" id="directives-guide-panel">
+              <div className="flex items-center justify-between border-b border-white/20 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 bg-[#E4E3E0] text-[#141414] flex items-center justify-center font-mono font-bold text-xs">🎓</div>
+                  <h2 className="font-serif text-[11px] italic font-bold tracking-wider uppercase text-white">
+                    3D Studio Perfection Guide
+                  </h2>
+                </div>
+                <div className="font-mono text-[9px] bg-white/10 px-2.5 py-0.5 border border-white/20 text-white font-bold">
+                  STAGE {guideStage + 1} OF 5
+                </div>
+              </div>
+
+              {/* Guide Contents */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-mono font-bold text-yellow-400 uppercase tracking-wide flex items-center gap-1.5">
+                  <span>✦</span>
+                  <span>{guideStages[guideStage].title}</span>
+                </h3>
+                <p className="text-[11px] font-mono text-white/80 leading-relaxed normal-case">
+                  {guideStages[guideStage].description}
+                </p>
+
+                {/* Directives list */}
+                <div className="bg-white/5 border border-white/10 p-3 rounded-none space-y-2">
+                  <span className="text-[9px] font-bold tracking-widest text-[#E4E3E0]/60 uppercase block text-white">DIRECTIVES FOR PERFECTION:</span>
+                  <ul className="space-y-2 text-[10px] font-mono leading-relaxed list-none text-white/90">
+                    {guideStages[guideStage].directives.map((dir, i) => (
+                      <li key={i} className="flex gap-2 normal-case">
+                        <span className="text-yellow-400 shrink-0">✔</span>
+                        <span>{dir}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Tip box */}
+                <div className="text-[10px] font-mono italic text-blue-300 bg-blue-950/40 border border-blue-900/30 p-2.5 normal-case">
+                  {guideStages[guideStage].tip}
+                </div>
+              </div>
+
+              {/* Guide Controls */}
+              <div className="flex items-center justify-between pt-2 border-t border-white/15">
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => setGuideStage(prev => Math.max(0, prev - 1))}
+                    disabled={guideStage === 0}
+                    className={`px-2.5 py-1 text-[10px] font-mono font-bold border transition-all ${
+                      guideStage === 0
+                        ? "text-white/30 border-white/10 cursor-not-allowed"
+                        : "text-white border-white/40 hover:bg-white hover:text-[#141414] cursor-pointer"
+                    }`}
+                  >
+                    ◄ Prev
+                  </button>
+                  <button
+                    onClick={() => setGuideStage(prev => Math.min(4, prev + 1))}
+                    disabled={guideStage === 4}
+                    className={`px-2.5 py-1 text-[10px] font-mono font-bold border transition-all ${
+                      guideStage === 4
+                        ? "text-white/30 border-white/10 cursor-not-allowed"
+                        : "text-white border-white/40 hover:bg-white hover:text-[#141414] cursor-pointer"
+                    }`}
+                  >
+                    Next ►
+                  </button>
+                </div>
+
+                {/* Guide stage direct alignment actions */}
+                <button
+                  onClick={guideStages[guideStage].action}
+                  className="bg-yellow-400 hover:bg-yellow-300 text-[#141414] px-2.5 py-1 text-[9px] font-mono font-bold border border-yellow-400 shadow-[1px_1px_0px_0px_rgba(255,255,255,0.4)] hover:translate-y-[1px] transition-all"
+                >
+                  {guideStages[guideStage].actionText}
+                </button>
+              </div>
+            </section>
+
             {/* CHARACTER IDENTITY & PHOTO UPLOAD */}
             <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]" id="upload-panel">
               <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#D4D3D0]">
@@ -718,12 +971,12 @@ export default function App() {
               </section>
             )}
 
-            {/* AVATAR STYLE CUSTOMIZATION PANEL */}
+            {/* AVATAR STYLE CUSTOMIZATION PANEL - BLENDER WORKSPACE */}
             <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]" id="customization-panel">
               <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#D4D3D0] flex items-center justify-between">
                 <h2 className="font-serif text-[11px] italic text-[#141414]/80 uppercase font-bold tracking-wider flex items-center gap-2">
                   <Palette className="w-3.5 h-3.5" />
-                  <span>03 // 3D Avatar Styling Parameters</span>
+                  <span>03 // Blender-Style Workspace Control</span>
                 </h2>
                 <button
                   onClick={handleResetDefaults}
@@ -732,6 +985,54 @@ export default function App() {
                   Defaults
                 </button>
               </div>
+
+              {/* Blender Tabs Selector */}
+              <div className="grid grid-cols-4 gap-1 bg-[#141414]/5 p-1 border-2 border-[#141414] font-mono text-[9px] font-bold">
+                <button
+                  onClick={() => setEditorTab("parts")}
+                  className={`py-1.5 px-1 uppercase text-center transition-all ${
+                    editorTab === "parts"
+                      ? "bg-[#141414] text-white"
+                      : "bg-transparent text-[#141414]/70 hover:bg-[#141414]/10"
+                  }`}
+                >
+                  Parts
+                </button>
+                <button
+                  onClick={() => setEditorTab("transforms")}
+                  className={`py-1.5 px-1 uppercase text-center transition-all ${
+                    editorTab === "transforms"
+                      ? "bg-[#141414] text-white"
+                      : "bg-transparent text-[#141414]/70 hover:bg-[#141414]/10"
+                  }`}
+                >
+                  Transform
+                </button>
+                <button
+                  onClick={() => setEditorTab("materials")}
+                  className={`py-1.5 px-1 uppercase text-center transition-all ${
+                    editorTab === "materials"
+                      ? "bg-[#141414] text-white"
+                      : "bg-transparent text-[#141414]/70 hover:bg-[#141414]/10"
+                  }`}
+                >
+                  Material
+                </button>
+                <button
+                  onClick={() => setEditorTab("scene")}
+                  className={`py-1.5 px-1 uppercase text-center transition-all ${
+                    editorTab === "scene"
+                      ? "bg-[#141414] text-white"
+                      : "bg-transparent text-[#141414]/70 hover:bg-[#141414]/10"
+                  }`}
+                >
+                  Scene
+                </button>
+              </div>
+
+              {/* TAB CONTENT WRAPPERS */}
+              {editorTab === "parts" && (
+                <div className="space-y-4">
 
               {/* Head Shape / Mesh Style */}
               <div className="space-y-1.5 pb-2 border-b border-[#141414]/10">
