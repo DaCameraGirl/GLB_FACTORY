@@ -385,7 +385,7 @@ export function buildAvatar(
     torso.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
 
     // Rounded shoulders/chest top cap
-    const chestTopGeo = getSphereGeometry(torsoWidth / 2, radialSeg, 16);
+    const chestTopGeo = getSphereGeometry(torsoWidth / 2, radialSeg, radialSeg);
     const chestTop = new THREE.Mesh(chestTopGeo, clothingMaterial);
     chestTop.name = "chest-top";
     chestTop.position.y = torsoHeight / 2;
@@ -393,7 +393,7 @@ export function buildAvatar(
     torso.add(chestTop);
 
     // Rounded bottom cap
-    const pelvisGeo = getSphereGeometry(torsoWidth / 2.3, radialSeg, 16);
+    const pelvisGeo = getSphereGeometry(torsoWidth / 2.3, radialSeg, radialSeg);
     const pelvis = new THREE.Mesh(pelvisGeo, pantsMaterial);
     pelvis.name = "pelvis";
     pelvis.position.y = -torsoHeight / 2;
@@ -609,7 +609,7 @@ export function buildAvatar(
         hairGroup.add(hair);
 
       } else if (config.hairStyle === "ponytail") {
-        const capGeo = getSphereGeometry(skullRadius * 1.05, radialSeg, 16);
+        const capGeo = getSphereGeometry(skullRadius * 1.05, radialSeg, radialSeg);
         const cap = new THREE.Mesh(capGeo, hairMaterial);
         cap.name = "hair-ponytail-cap";
         cap.rotation.x = -Math.PI * 0.06;
@@ -625,7 +625,7 @@ export function buildAvatar(
         hairGroup.add(tail);
 
       } else if (config.hairStyle === "cap") {
-        const capDomeGeo = getSphereGeometry(skullRadius * 1.07, radialSeg, 16);
+        const capDomeGeo = getSphereGeometry(skullRadius * 1.07, radialSeg, radialSeg);
         const capDome = new THREE.Mesh(capDomeGeo, clothingMaterial);
         capDome.name = "cap-dome";
         capDome.position.y = 0.02;
@@ -715,7 +715,7 @@ export function buildAvatar(
 
     const size = actualHeadSize * 0.22;
     const lensGeo = config.headShape === "organic-smooth" 
-      ? getCylinderGeometry(size, size, 0.03, 16) 
+      ? getCylinderGeometry(size, size, 0.03, radialSeg) 
       : getBoxGeometry(size * 1.4, size * 1.1, 0.03);
 
     // Left Lens
@@ -773,7 +773,7 @@ export function buildAvatar(
     const hpMaterial = new THREE.MeshStandardMaterial({ color: 0xe11d48, roughness: 0.3, metalness: 0.5, name: "headphones" });
 
     // Cups
-    const cupGeo = getCylinderGeometry(0.18, 0.18, 0.08, 16);
+    const cupGeo = getCylinderGeometry(0.18, 0.18, 0.08, radialSeg);
     
     const leftCup = new THREE.Mesh(cupGeo, hpMaterial);
     leftCup.rotation.z = Math.PI / 2;
@@ -852,7 +852,7 @@ export function buildAvatar(
     const gemRed = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.2, metalness: 0.8, emissive: new THREE.Color(0xef4444), emissiveIntensity: 0.3 });
     const gemBlue = new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.2, metalness: 0.8, emissive: new THREE.Color(0x3b82f6), emissiveIntensity: 0.3 });
 
-    const baseGeo = getCylinderGeometry(actualHeadSize * 0.44, actualHeadSize * 0.44, 0.15, 16);
+    const baseGeo = getCylinderGeometry(actualHeadSize * 0.44, actualHeadSize * 0.44, 0.15, radialSeg);
     const baseMesh = new THREE.Mesh(baseGeo, goldMat);
     baseMesh.position.set(0, actualHeadSize * 0.52, 0);
     baseMesh.castShadow = true;
@@ -918,20 +918,20 @@ export function buildAvatar(
     const hatMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.8, name: "wizard-felt" });
     const goldBandMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.2, metalness: 0.8, name: "wizard-gold" });
 
-    const brimGeo = getCylinderGeometry(actualHeadSize * 0.72, actualHeadSize * 0.72, 0.05, 16);
+    const brimGeo = getCylinderGeometry(actualHeadSize * 0.72, actualHeadSize * 0.72, 0.05, radialSeg);
     const brim = new THREE.Mesh(brimGeo, hatMat);
     brim.position.set(0, actualHeadSize * 0.48, 0);
     brim.rotation.x = Math.PI / 32;
     brim.castShadow = true;
     wizard.add(brim);
 
-    const bandGeo = getCylinderGeometry(actualHeadSize * 0.46, actualHeadSize * 0.48, 0.08, 16);
+    const bandGeo = getCylinderGeometry(actualHeadSize * 0.46, actualHeadSize * 0.48, 0.08, radialSeg);
     const band = new THREE.Mesh(bandGeo, goldBandMat);
     band.position.set(0, actualHeadSize * 0.54, -0.01);
     band.rotation.x = Math.PI / 32;
     wizard.add(band);
 
-    const coneGeo = getCylinderGeometry(0.02, actualHeadSize * 0.44, actualHeadSize * 0.95, 16);
+    const coneGeo = getCylinderGeometry(0.02, actualHeadSize * 0.44, actualHeadSize * 0.95, radialSeg);
     const cone = new THREE.Mesh(coneGeo, hatMat);
     cone.position.set(0, actualHeadSize * 0.98, -0.08);
     cone.rotation.x = -Math.PI * 0.08;
@@ -973,7 +973,7 @@ export function buildAvatar(
     const jointRadius = isArm ? 0.17 : 0.21;
     const limbMaterial = isArm ? clothingMaterial : pantsMaterial;
 
-    const limbGeo = getCylinderGeometry(jointRadius, jointRadius * 0.72, limbLength, radialSeg, 16).clone();
+    const limbGeo = getCylinderGeometry(jointRadius, jointRadius * 0.72, limbLength, radialSeg, radialSeg).clone();
     limbGeo.translate(0, -limbLength / 2, 0);
 
     // Assign Vertex weights for seamless skeleton binding
