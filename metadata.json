@@ -1,0 +1,6 @@
+{
+  "name": "Photo to GLB Studio",
+  "description": "Automatic portrait to stylized 3D avatar converter with live 3D preview and GLB export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
