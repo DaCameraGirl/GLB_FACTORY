@@ -1,69 +1,119 @@
-# GLB_FACTORY 🎨🤖
+<p align="center">
+  <img src="docs/assets/readme-hero.svg" alt="GLB_FACTORY — 3D Photo-to-Avatar Studio" width="100%"/>
+</p>
 
-Welcome to **GLB_FACTORY**! This application is an interactive **3D Photo-to-Avatar Studio**. It allows users to upload a portrait photo and automatically generate, customize, and export fully functional 3D blocky models in standard **GLB** format, ready for game engines or 3D viewports.
+# GLB_FACTORY
 
-View the application live on GitHub Pages: [dacameragirl.github.io/GLB_FACTORY/](https://dacameragirl.github.io/GLB_FACTORY/)
+<p align="center">
+  <a href="README.md"><img src="https://img.shields.io/badge/🇺🇸_English-f59e0b?style=for-the-badge" alt="English"/></a>
+  <a href="README.es.md"><img src="https://img.shields.io/badge/🇪🇸_Español-131a26?style=for-the-badge" alt="Español"/></a>
+  <a href="README.fr.md"><img src="https://img.shields.io/badge/🇫🇷_Français-131a26?style=for-the-badge" alt="Français"/></a>
+  <a href="README.de.md"><img src="https://img.shields.io/badge/🇩🇪_Deutsch-131a26?style=for-the-badge" alt="Deutsch"/></a>
+  <a href="README.pt-BR.md"><img src="https://img.shields.io/badge/🇧🇷_Português-131a26?style=for-the-badge" alt="Português"/></a>
+  <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/🇨🇳_中文-131a26?style=for-the-badge" alt="中文"/></a>
+  <a href="README.ja.md"><img src="https://img.shields.io/badge/🇯🇵_日本語-131a26?style=for-the-badge" alt="日本語"/></a>
+  <a href="README.ko.md"><img src="https://img.shields.io/badge/🇰🇷_한국어-131a26?style=for-the-badge" alt="한국어"/></a>
+  <a href="README.it.md"><img src="https://img.shields.io/badge/🇮🇹_Italiano-131a26?style=for-the-badge" alt="Italiano"/></a>
+  <a href="README.ar.md"><img src="https://img.shields.io/badge/🇸🇦_العربية-131a26?style=for-the-badge" alt="العربية"/></a>
+</p>
 
----
+<p align="center">
+  <img src="docs/assets/photo-to-glb-spin.svg" alt="Animated diagram: a portrait photo turns into a spinning 3D GLB avatar" width="420"/>
+</p>
 
-## 🚀 Dual-Mode Architecture
+<p align="center">
+  <a href="https://dacameragirl.github.io/GLB_FACTORY/"><img src="https://img.shields.io/badge/🌐_Live_Demo-f59e0b?style=for-the-badge" alt="Live demo"/></a>
+  <img src="https://img.shields.io/badge/React_19-149ECA?style=for-the-badge&logo=react&logoColor=white" alt="React 19"/>
+  <img src="https://img.shields.io/badge/Three.js-000000?style=for-the-badge&logo=three.js&logoColor=white" alt="Three.js"/>
+  <img src="https://img.shields.io/badge/Vite_6-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite 6"/>
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"/>
+</p>
 
-This application is built with a highly resilient **hybrid architecture**:
+**An interactive 3D Photo-to-Avatar Studio.** Upload a portrait, let the app read the face,
+skin tone, hair, and outfit colors, then export a fully rigged, game-ready **GLB** model —
+no 3D modeling experience required.
 
-1. **AI-Powered Mode (Cloud Hosting)**:
-   - When running on a full-stack Node/Express container environment (like local development or Cloud Run), the app communicates with a backend proxy connected to the **Gemini 3.5 Flash** API.
-   - Gemini automatically locates the face bounding box, extracts skin tones, hair colors, clothing colors, and recommends fitting hairstyle types with high visual precision.
-
-2. **Static Fallback Mode (GitHub Pages)**:
-   - When deployed statically on **GitHub Pages**, where no custom backend server runs, the app **automatically detects the environment** and switches to **Client-Side Face Analysis**.
-   - It utilizes a lightweight HTML5 canvas sampler to analyze the pixel data of the loaded portrait, extracting the representative skin, hair, and clothing colors directly in the browser with zero external network requests!
-
----
-
-## ⚡ GitHub Pages Deployment
-
-The repository is equipped with an automated GitHub Actions workflow (`.github/workflows/deploy.yml`) that builds and publishes the application dynamically on every commit to the `main` branch.
-
-### How to Activate GitHub Pages in Your Repository:
-1. Go to your repository on GitHub: `https://github.com/DaCameraGirl/GLB_FACTORY`.
-2. Click on the **Settings** tab.
-3. In the left sidebar, navigate to **Pages** under the *Code and automation* section.
-4. Under **Build and deployment**:
-   - For **Source**, select **GitHub Actions** from the dropdown.
-5. Once selected, your automated workflow will automatically build and publish the static app.
-6. The deployment progress can be monitored under the **Actions** tab.
-
----
-
-## 🛠️ Local Development
-
-### Prerequisites
-- Node.js (v18+)
-- npm
-
-### Installation & Run
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-2. Configure environment variables (optional for Gemini server features):
-   Create a `.env.local` or `.env` file in the root:
-   ```env
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
-
-3. Start the developmental server:
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+Live app: [dacameragirl.github.io/GLB_FACTORY](https://dacameragirl.github.io/GLB_FACTORY/)
 
 ---
 
-## 🏗️ Technologies Used
-- **Three.js** (WebGL 3D Rendering & Procedural Avatar Mesh Construction)
-- **React 19** + **Vite 6** (Modern SPA runtime & high-speed builder)
-- **Tailwind CSS v4** (Modern utility-first responsive layout styling)
-- **Lucide React** (Premium, lightweight icon pairings)
-- **Express + Google GenAI SDK** (Lightweight backend proxy handling Gemini API orchestration)
+## Product highlights
+
+| Feature | What it does |
+|---|---|
+| **Photo → avatar** | Upload a single portrait and get a blocky, game-ready 3D character back |
+| **Face-aware color extraction** | Detects skin tone, hair color, and clothing color straight from the photo |
+| **Hairstyle recommendation** | Suggests a fitting hairstyle type based on what it sees in the source image |
+| **Live 3D preview** | Rotate, zoom, and inspect the generated avatar in a Three.js viewport before exporting |
+| **One-click GLB export** | Download a standard `.glb` file ready for game engines and 3D viewers |
+| **Works with or without a server** | Full Gemini-powered analysis when hosted, automatic canvas-based fallback when static |
+
+## Dual-mode architecture
+
+GLB_FACTORY is built to run two different ways depending on where it's deployed, and it
+picks the right one automatically:
+
+1. **AI-powered mode (Node/Express hosting)** — On a full-stack environment like local
+   dev or a container host, the app talks to a backend proxy wired to **Gemini 3.5 Flash**.
+   Gemini locates the face bounding box and reads skin tone, hair color, clothing color, and
+   a recommended hairstyle with high visual precision.
+
+2. **Static fallback mode (GitHub Pages)** — With no backend available, the app detects the
+   static environment and switches to **client-side face analysis**: a lightweight HTML5
+   canvas sampler reads the portrait's pixel data directly in the browser and extracts the
+   same skin, hair, and clothing colors with zero network requests.
+
+Same UI, same GLB output, two different engines under the hood, whichever one the
+deployment target can actually run.
+
+---
+
+## Quick start
+
+```bash
+npm install
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+To enable AI-powered analysis locally, add a Gemini key:
+
+```env
+# .env.local
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Without a key, the app still runs, it just uses the client-side fallback analyzer.
+
+## Deploying to GitHub Pages
+
+The repo ships with `.github/workflows/deploy.yml`, which builds and publishes the static
+app on every push to `main`.
+
+1. Go to the repo on GitHub, then **Settings**.
+2. Under **Code and automation → Pages**, set **Source** to **GitHub Actions**.
+3. Push to `main` and watch the build under the **Actions** tab.
+
+---
+
+## Technologies used
+
+| Layer | Stack |
+|---|---|
+| 3D rendering | **Three.js** — WebGL rendering and procedural avatar mesh construction |
+| Frontend | **React 19** + **Vite 6** — SPA runtime and build |
+| Styling | **Tailwind CSS v4** |
+| Icons | **Lucide React** |
+| Backend | **Express** + **Google GenAI SDK** — Gemini API proxy |
+
+## Contributors
+
+- Angela — product direction, testing
+- Claude — implementation and GitHub workflow
+
+## Legal
+
+Uploaded photos are processed for the sole purpose of generating a 3D avatar. In AI-powered
+mode, image data is sent to the Gemini API under Google's terms; in static fallback mode,
+analysis happens entirely in the browser and nothing leaves the device.

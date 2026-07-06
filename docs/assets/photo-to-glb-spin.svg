@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 260" role="img" aria-label="Animated diagram: a portrait photo becomes a spinning 3D GLB avatar">
+  <defs>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1c1410"/>
+      <stop offset="100%" stop-color="#120d0a"/>
+    </linearGradient>
+    <linearGradient id="topFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fcd34d"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="leftFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="rightFace" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="420" height="260" rx="20" fill="#0a0709"/>
+
+  <g>
+    <rect x="18" y="70" width="118" height="120" rx="14" fill="url(#cardGrad)" stroke="#2a2230" stroke-width="1.5"/>
+    <circle cx="77" cy="112" r="20" fill="#a99e93" opacity="0.85"/>
+    <path d="M45 168 Q77 138 109 168 L109 178 Q77 190 45 178 Z" fill="#a99e93" opacity="0.85"/>
+    <text x="77" y="210" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700" fill="#a99e93" letter-spacing="1.5">PHOTO</text>
+  </g>
+
+  <g stroke="#f59e0b" stroke-width="3" fill="none" opacity="0.85">
+    <path d="M150 128 L206 128" stroke-dasharray="6 6">
+      <animate attributeName="stroke-dashoffset" from="24" to="0" dur="1s" repeatCount="indefinite"/>
+    </path>
+    <path d="M196 118 L210 128 L196 138" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <g transform="translate(310,128)">
+    <g>
+      <animateTransform attributeName="transform" type="scale" values="1,1;0.15,1;1,1;-0.15,1;-1,1;-0.15,1;-1,1;0.15,1;1,1" keyTimes="0;0.12;0.25;0.37;0.5;0.62;0.75;0.87;1" dur="6s" repeatCount="indefinite"/>
+      <path d="M0,-46 L46,-24 L46,24 L0,46 Z" fill="url(#rightFace)"/>
+      <path d="M0,-46 L-46,-24 L-46,24 L0,46 Z" fill="url(#leftFace)"/>
+      <path d="M0,-46 L46,-24 L0,-2 L-46,-24 Z" fill="url(#topFace)"/>
+    </g>
+
+    <circle r="4" fill="#fcd34d" opacity="0.9">
+      <animateMotion dur="5s" repeatCount="indefinite" path="M 0,0 m -70,0 a 70,26 0 1,0 140,0 a 70,26 0 1,0 -140,0"/>
+    </circle>
+    <circle r="3" fill="#c084fc" opacity="0.85">
+      <animateMotion dur="5s" begin="-2.5s" repeatCount="indefinite" path="M 0,0 m -70,0 a 70,26 0 1,0 140,0 a 70,26 0 1,0 -140,0"/>
+    </circle>
+
+    <text x="0" y="82" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="700" fill="#a99e93" letter-spacing="1.5">.GLB</text>
+  </g>
+</svg>
