@@ -1292,6 +1292,361 @@ export default function App() {
                   </div>
                 </div>
               </div>
+                </div>
+              )}
+
+              {/* TRANSFORMS TAB */}
+              {editorTab === "transforms" && (
+                <div className="space-y-4 text-[#141414] font-mono">
+                  {/* Head Transforms */}
+                  <div className="space-y-2 border-b border-[#141414]/10 pb-3">
+                    <label className="font-mono text-[10px] uppercase font-bold text-[#141414]/85">01 // HEAD TRANSFORM (LOCAL)</label>
+                    <div className="grid grid-cols-1 gap-2 text-[9px]">
+                      <div className="space-y-1">
+                        <div className="flex justify-between font-bold">
+                          <span>SCALE (XYZ)</span>
+                          <span>{config.headScaleX?.toFixed(2)}x</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.5"
+                          max="1.8"
+                          step="0.05"
+                          value={config.headScaleX || 1.0}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            setConfig((prev) => ({ ...prev, headScaleX: val, headScaleY: val, headScaleZ: val }));
+                          }}
+                          className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between font-bold">
+                          <span>OFFSET Y (HEIGHT)</span>
+                          <span>{config.headTranslateY !== undefined ? (config.headTranslateY > 0 ? "+" : "") + config.headTranslateY.toFixed(2) : "0.00"}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="-0.5"
+                          max="0.5"
+                          step="0.05"
+                          value={config.headTranslateY !== undefined ? config.headTranslateY : 0.0}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, headTranslateY: parseFloat(e.target.value) }))}
+                          className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between font-bold">
+                          <span>PITCH / TILT (ROTATE X)</span>
+                          <span>{((config.headRotateX || 0) * (180 / Math.PI)).toFixed(0)}°</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="-0.5"
+                          max="0.5"
+                          step="0.05"
+                          value={config.headRotateX || 0}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, headRotateX: parseFloat(e.target.value) }))}
+                          className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Torso Transforms */}
+                  <div className="space-y-2 border-b border-[#141414]/10 pb-3">
+                    <label className="font-mono text-[10px] uppercase font-bold text-[#141414]/85">02 // TORSO / CHEST EXPANSION</label>
+                    <div className="grid grid-cols-1 gap-2 text-[9px]">
+                      <div className="space-y-1">
+                        <div className="flex justify-between font-bold">
+                          <span>TORSO WIDTH (SCALE X)</span>
+                          <span>{config.torsoScaleX?.toFixed(2)}x</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.6"
+                          max="1.6"
+                          step="0.05"
+                          value={config.torsoScaleX || 1.0}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, torsoScaleX: parseFloat(e.target.value) }))}
+                          className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between font-bold">
+                          <span>TORSO DEPTH (SCALE Z)</span>
+                          <span>{config.torsoScaleZ?.toFixed(2)}x</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.6"
+                          max="1.6"
+                          step="0.05"
+                          value={config.torsoScaleZ || 1.0}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, torsoScaleZ: parseFloat(e.target.value) }))}
+                          className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Limbs Transforms */}
+                  <div className="space-y-2 border-b border-[#141414]/10 pb-3">
+                    <label className="font-mono text-[10px] uppercase font-bold text-[#141414]/85">03 // LIMB THICKNESS / SCALE</label>
+                    <div className="grid grid-cols-2 gap-4 text-[9px]">
+                      <div className="space-y-1">
+                        <div className="flex justify-between font-bold">
+                          <span>ARM SCALE</span>
+                          <span>{config.armScaleX?.toFixed(2)}x</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.5"
+                          max="1.5"
+                          step="0.05"
+                          value={config.armScaleX || 1.0}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            setConfig((prev) => ({ ...prev, armScaleX: val, armScaleY: val, armScaleZ: val }));
+                          }}
+                          className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between font-bold">
+                          <span>LEG SCALE</span>
+                          <span>{config.legScaleX?.toFixed(2)}x</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.5"
+                          max="1.5"
+                          step="0.05"
+                          value={config.legScaleX || 1.0}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            setConfig((prev) => ({ ...prev, legScaleX: val, legScaleY: val, legScaleZ: val }));
+                          }}
+                          className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Reset Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfig((prev) => ({
+                        ...prev,
+                        headScaleX: 1.0, headScaleY: 1.0, headScaleZ: 1.0,
+                        headTranslateX: 0, headTranslateY: 0, headTranslateZ: 0,
+                        headRotateX: 0, headRotateY: 0, headRotateZ: 0,
+                        torsoScaleX: 1.0, torsoScaleY: 1.0, torsoScaleZ: 1.0,
+                        torsoTranslateX: 0, torsoTranslateY: 0, torsoTranslateZ: 0,
+                        armScaleX: 1.0, armScaleY: 1.0, armScaleZ: 1.0,
+                        legScaleX: 1.0, legScaleY: 1.0, legScaleZ: 1.0,
+                      }));
+                      addLog("Transform matrices reset to defaults.", "info");
+                    }}
+                    className="w-full py-2 border-2 border-[#141414] text-[10px] bg-white/50 hover:bg-white active:translate-y-0.5 transition font-bold shadow-[2px_2px_0px_0px_#141414] select-none"
+                  >
+                    RESET TRANSFORM MATRIX
+                  </button>
+                </div>
+              )}
+
+              {/* MATERIALS TAB */}
+              {editorTab === "materials" && (
+                <div className="space-y-4 text-[#141414] font-mono">
+                  <div className="space-y-3">
+                    <label className="font-mono text-[10px] uppercase font-bold text-[#141414]/85 block">01 // GLTF SHADER PROPERTIES</label>
+                    <div className="space-y-2">
+                      <div className="space-y-1 text-[9px]">
+                        <div className="flex justify-between font-bold">
+                          <span>ROUGHNESS (MATTE vs SHINY)</span>
+                          <span>{Math.round((config.materialRoughness ?? 0.8) * 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.0"
+                          max="1.0"
+                          step="0.05"
+                          value={config.materialRoughness !== undefined ? config.materialRoughness : 0.8}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, materialRoughness: parseFloat(e.target.value) }))}
+                          className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                        />
+                      </div>
+
+                      <div className="space-y-1 text-[9px]">
+                        <div className="flex justify-between font-bold">
+                          <span>METALNESS (METALLIC REFLECT)</span>
+                          <span>{Math.round((config.materialMetalness ?? 0.05) * 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.0"
+                          max="1.0"
+                          step="0.05"
+                          value={config.materialMetalness !== undefined ? config.materialMetalness : 0.05}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, materialMetalness: parseFloat(e.target.value) }))}
+                          className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 border-t border-[#141414]/10 pt-3">
+                    <label className="font-mono text-[10px] uppercase font-bold text-[#141414]/85 block">02 // EMISSIVE GLOW (GLOW IN DARK)</label>
+                    <div className="grid grid-cols-2 gap-3 items-center">
+                      <div className="space-y-1 text-[9px]">
+                        <span className="font-bold uppercase text-[8px] text-[#141414]/70">GLOW COLOR</span>
+                        <div className="flex items-center gap-2 bg-white/60 border-2 border-[#141414] p-1 shadow-[2px_2px_0px_0px_#141414]">
+                          <input
+                            type="color"
+                            value={config.materialEmissive || "#000000"}
+                            onChange={(e) => setConfig((prev) => ({ ...prev, materialEmissive: e.target.value }))}
+                            className="w-5 h-5 cursor-pointer"
+                          />
+                          <span className="uppercase font-bold text-[9px]">{config.materialEmissive || "#000000"}</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1 text-[9px]">
+                        <div className="flex justify-between font-bold">
+                          <span>INTENSITY</span>
+                          <span>{(config.materialEmissiveIntensity || 0).toFixed(1)}</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.0"
+                          max="2.0"
+                          step="0.1"
+                          value={config.materialEmissiveIntensity !== undefined ? config.materialEmissiveIntensity : 0.0}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, materialEmissiveIntensity: parseFloat(e.target.value) }))}
+                          className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 border-t border-[#141414]/10 pt-3">
+                    <label className="font-mono text-[10px] uppercase font-bold text-[#141414]/85 block">03 // WIREFRAME RENDER OPTIONS</label>
+                    <label className="flex items-center gap-2 cursor-pointer bg-white/50 border-2 border-[#141414] p-2 text-[10px] hover:bg-white select-none shadow-[2px_2px_0px_0px_#141414] transition-all">
+                      <input
+                        type="checkbox"
+                        checked={!!config.wireframeMode}
+                        onChange={(e) => setConfig((prev) => ({ ...prev, wireframeMode: e.target.checked }))}
+                        className="accent-[#141414]"
+                      />
+                      <span className="font-bold">ENABLE WIREFRAME MODE (DEVELOPER PREVIEW)</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* SCENE TAB */}
+              {editorTab === "scene" && (
+                <div className="space-y-4 text-[#141414] font-mono">
+                  <div className="space-y-3">
+                    <label className="font-mono text-[10px] uppercase font-bold text-[#141414]/85 block">01 // CAMERA / VIEW ANGLE PRESETS</label>
+                    <div className="grid grid-cols-2 gap-3 text-[9px]">
+                      <div className="space-y-1">
+                        <span className="font-bold text-[8px] text-[#141414]/70">ANGLE PRESET</span>
+                        <select
+                          value={config.cameraPreset || "front"}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, cameraPreset: e.target.value as any }))}
+                          className="w-full bg-white/70 border-2 border-[#141414] px-1.5 py-1.5 text-[9px] font-mono font-bold focus:outline-none shadow-[2px_2px_0px_0px_#141414]"
+                        >
+                          <option value="front">✪ FRONT VIEW</option>
+                          <option value="side">✪ SIDE VIEW (PROFILE)</option>
+                          <option value="top">✪ TOP-DOWN VIEW</option>
+                          <option value="isometric">✪ ISOMETRIC (3D ORTHO)</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex justify-between font-bold">
+                          <span>FOV (CAMERA LENS)</span>
+                          <span>{config.cameraFov || 45}°</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="20"
+                          max="80"
+                          step="5"
+                          value={config.cameraFov || 45}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, cameraFov: parseInt(e.target.value) }))}
+                          className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 border-t border-[#141414]/10 pt-3">
+                    <label className="font-mono text-[10px] uppercase font-bold text-[#141414]/85 block">02 // LIGHTING & AMBIENT INTENSITIES</label>
+                    <div className="space-y-2 text-[9px]">
+                      <div className="space-y-1">
+                        <div className="flex justify-between font-bold">
+                          <span>AMBIENT ILLUMINATION</span>
+                          <span>{Math.round((config.ambientIntensity ?? 0.75) * 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.1"
+                          max="2.0"
+                          step="0.05"
+                          value={config.ambientIntensity !== undefined ? config.ambientIntensity : 0.75}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, ambientIntensity: parseFloat(e.target.value) }))}
+                          className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex justify-between font-bold">
+                          <span>SPOTLIGHT / KEY LIGHT INTENSITY</span>
+                          <span>{Math.round((config.keyLightIntensity ?? 0.85) * 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.1"
+                          max="2.0"
+                          step="0.05"
+                          value={config.keyLightIntensity !== undefined ? config.keyLightIntensity : 0.85}
+                          onChange={(e) => setConfig((prev) => ({ ...prev, keyLightIntensity: parseFloat(e.target.value) }))}
+                          className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="font-bold text-[8px] text-[#141414]/70 block">KEY LIGHT COLOR TEMP</span>
+                        <div className="flex items-center gap-2 bg-white/60 border-2 border-[#141414] p-1 max-w-[150px] shadow-[2px_2px_0px_0px_#141414]">
+                          <input
+                            type="color"
+                            value={config.keyLightColor || "#ffffff"}
+                            onChange={(e) => setConfig((prev) => ({ ...prev, keyLightColor: e.target.value }))}
+                            className="w-4 h-4 cursor-pointer"
+                          />
+                          <span className="uppercase font-bold text-[9px]">{config.keyLightColor || "#ffffff"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 border-t border-[#141414]/10 pt-3">
+                    <label className="font-mono text-[10px] uppercase font-bold text-[#141414]/85 block">03 // RENDER VIEWPORT DECORATIONS</label>
+                    <label className="flex items-center gap-2 cursor-pointer bg-white/50 border-2 border-[#141414] p-2 text-[10px] hover:bg-white select-none shadow-[2px_2px_0px_0px_#141414] transition-all">
+                      <input
+                        type="checkbox"
+                        checked={config.showGrid !== false}
+                        onChange={(e) => setConfig((prev) => ({ ...prev, showGrid: e.target.checked }))}
+                        className="accent-[#141414]"
+                      />
+                      <span className="font-bold">SHOW GROUND COORDINATE GRID HELPER</span>
+                    </label>
+                  </div>
+                </div>
+              )}
             </section>
           </div>
 
