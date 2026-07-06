@@ -1229,6 +1229,20 @@ export function buildAvatar(
     }
   });
 
+  const getCleanMeshWorldBox = (obj: THREE.Object3D): THREE.Box3 => {
+    const box = new THREE.Box3();
+    if (obj instanceof THREE.Mesh && obj.geometry) {
+      if (!obj.geometry.boundingBox) {
+        obj.geometry.computeBoundingBox();
+      }
+      box.copy(obj.geometry.boundingBox);
+      box.applyMatrix4(obj.matrixWorld);
+    } else {
+      box.setFromObject(obj);
+    }
+    return box;
+  };
+
   const skullBox = new THREE.Box3();
   const hairBox = new THREE.Box3();
   const noseBox = new THREE.Box3();
@@ -1237,11 +1251,11 @@ export function buildAvatar(
 
   const updateKeyBoxes = () => {
     group.updateMatrixWorld(true);
-    if (skullMesh) skullBox.setFromObject(skullMesh);
-    if (hairGroupObj) hairBox.setFromObject(hairGroupObj);
-    if (noseMesh) noseBox.setFromObject(noseMesh);
-    if (earsObj) earsBox.setFromObject(earsObj);
-    if (chinMesh) chinBox.setFromObject(chinMesh);
+    if (skullMesh) skullBox.copy(getCleanMeshWorldBox(skullMesh));
+    if (hairGroupObj) hairBox.copy(getCleanMeshWorldBox(hairGroupObj));
+    if (noseMesh) noseBox.copy(getCleanMeshWorldBox(noseMesh));
+    if (earsObj) earsBox.copy(getCleanMeshWorldBox(earsObj));
+    if (chinMesh) chinBox.copy(getCleanMeshWorldBox(chinMesh));
   };
 
   updateKeyBoxes();
@@ -1254,9 +1268,9 @@ export function buildAvatar(
     const leftEarMesh = earsObj.getObjectByName("left-ear");
     const rightEarMesh = earsObj.getObjectByName("right-ear");
     if (leftEarMesh && rightEarMesh) {
-      const leftEarBox = new THREE.Box3().setFromObject(leftEarMesh);
-      const rightEarBox = new THREE.Box3().setFromObject(rightEarMesh);
-      if (leftEarBox.intersectsBox(rightEarBox)) {
+      const leftEarBox = getCleanMeshWorldBox(leftEarMesh);
+      const rightEarBox = getCleanMeshWorldBox(rightEarMesh);
+      if (!leftEarBox.isEmpty() && !rightEarBox.isEmpty() && leftEarBox.intersectsBox(rightEarBox)) {
         const overlapX = leftEarBox.max.x - rightEarBox.min.x;
         if (overlapX > 0) {
           leftEarMesh.position.x -= (overlapX / 2) + 0.02 * headSize;
@@ -1269,7 +1283,7 @@ export function buildAvatar(
 
   // B. Nose vs Skull Collision (Swallowed nose due to extreme skull width/depth squashing)
   if (noseMesh && skullMesh) {
-    if (noseBox.max.z < skullBox.max.z + 0.01 * headSize) {
+    if (!noseBox.isEmpty() && !skullBox.isEmpty() && noseBox.max.z < skullBox.max.z + 0.01 * headSize) {
       const pushDistance = (skullBox.max.z - noseBox.max.z) + 0.03 * headSize;
       noseMesh.position.z += pushDistance;
       adjusted = true;
@@ -1278,7 +1292,7 @@ export function buildAvatar(
 
   // C. Chin vs Skull Collision (Swallowed chin due to extreme squashing or scaling)
   if (chinMesh && skullMesh) {
-    if (chinBox.max.z < skullBox.max.z * 0.4) {
+    if (!chinBox.isEmpty() && !skullBox.isEmpty() && chinBox.max.z < skullBox.max.z * 0.4) {
       chinMesh.position.z += 0.06 * headSize;
       chinMesh.position.y -= 0.03 * headSize;
       adjusted = true;
@@ -1287,9 +1301,7 @@ export function buildAvatar(
 
   // D. Hair vs Nose Collision (Fringe/hair swallowing the nose)
   if (hairGroupObj && noseMesh) {
-    const tempHairBox = new THREE.Box3().setFromObject(hairGroupObj);
-    const tempNoseBox = new THREE.Box3().setFromObject(noseMesh);
-    if (tempHairBox.intersectsBox(tempNoseBox)) {
+    if (!hairBox.isEmpty() && !noseBox.isEmpty() && hairBox.intersectsBox(noseBox)) {
       hairGroupObj.position.y += 0.04 * headSize;
       hairGroupObj.position.z -= 0.03 * headSize;
       adjusted = true;

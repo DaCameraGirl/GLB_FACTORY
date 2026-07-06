@@ -17,7 +17,7 @@ export interface AvatarConfig {
   cropX: number; // percentage offset
   cropY: number; // percentage offset
   cropScale: number; // magnification
-  detailLevel?: "low" | "medium" | "high";
+  detailLevel: "low" | "medium" | "high";
   accessories?: ("glasses" | "backpack" | "headphones" | "halo" | "crown" | "cat-ears" | "wizard-hat")[];
   clothingStyle?: "tshirt" | "hoodie" | "armor" | "dress";
   expression?: "neutral" | "happy" | "angry" | "sad" | "surprised";
