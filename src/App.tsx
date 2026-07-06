@@ -415,6 +415,29 @@ export default function App() {
     symmetrySkew: string;
   } | null>(null);
 
+  // Unlocked Mutant stable/vault state with localStorage persistence
+  const [mutationVault, setMutationVault] = useState<Array<{
+    id: string;
+    config: AvatarConfig;
+    name: string;
+    rarity: "COMMON" | "UNCOMMON" | "RARE" | "ULTRA-RARE" | "LEGENDARY" | "CHAOTIC-DIVINE";
+    rarityColor: string;
+    buildType: string;
+    mutatedGlow: boolean;
+    accessoryCount: number;
+    symmetrySkew: string;
+    timestamp: string;
+  }>>(() => {
+    try {
+      const saved = localStorage.getItem("glb_factory_mutants");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [splicerParents, setSplicerParents] = useState<string[]>([]);
+
   // Refs for Image element and exported group
   const imageRef = useRef<HTMLImageElement | null>(null);
   const avatarGroupRef = useRef<THREE.Group | null>(null);
@@ -508,8 +531,8 @@ export default function App() {
     const materialEmissive = isEmissive ? emissiveColors[Math.floor(Math.random() * emissiveColors.length)] : "#000000";
     const materialEmissiveIntensity = isEmissive ? Math.round((0.5 + Math.random() * (1.5 * chaosIntensity)) * 100) / 100 : 0;
 
-    setConfig((prev) => ({
-      ...prev,
+    const mutatedConfig: AvatarConfig = {
+      ...config,
       name: randomName,
       skinColor: chosenSkin,
       hairColor: chosenHair,
@@ -535,7 +558,9 @@ export default function App() {
       materialMetalness,
       materialEmissive,
       materialEmissiveIntensity,
-    }));
+    };
+
+    setConfig(mutatedConfig);
 
     // Calculate dynamic genotype classifications & rarity
     let maxDeviation = 0;
@@ -584,7 +609,7 @@ export default function App() {
     const legXDev = Math.abs(legScaleX - 1.0);
     const symmetrySkew = (armXDev + legXDev) > 0.4 ? "Unbalanced Skeletal Warp" : "Balanced Bone Symmetry";
 
-    setLastMutationSummary({
+    const summary = {
       name: randomName,
       rarity,
       rarityColor,
@@ -592,6 +617,27 @@ export default function App() {
       mutatedGlow: isEmissive,
       accessoryCount: chosenAccessories.length,
       symmetrySkew,
+    };
+
+    setLastMutationSummary(summary);
+
+    // Auto-record new specimens to our local Vault Stable!
+    const vaultSpecimen = {
+      id: Math.random().toString(),
+      config: mutatedConfig,
+      name: randomName,
+      rarity,
+      rarityColor,
+      buildType,
+      mutatedGlow: isEmissive,
+      accessoryCount: chosenAccessories.length,
+      symmetrySkew,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+
+    setMutationVault((prev) => {
+      const filtered = prev.filter(item => item.name !== randomName);
+      return [vaultSpecimen, ...filtered].slice(0, 40);
     });
 
     addLog(`[MUTATION] Procedural Chaos Engine spawned '${randomName}' (Rarity: ${rarity}, Build: ${buildType}).`, "success");
@@ -604,6 +650,195 @@ export default function App() {
     } else {
       playSynthSound("arp");
     }
+  };
+
+  // Splice/breed parental genetic codes to spawn hybrid offspring!
+  const handleFuseGenomes = () => {
+    if (splicerParents.length !== 2) {
+      addLog("🧬 [GENOME SPLICER] Please select exactly 2 parent genotypes in the Vault to initiate splicing.", "error");
+      return;
+    }
+
+    const parentA = mutationVault.find(m => m.id === splicerParents[0]);
+    const parentB = mutationVault.find(m => m.id === splicerParents[1]);
+
+    if (!parentA || !parentB) {
+      addLog("🧬 [GENOME SPLICER] Parent specimens could not be located in database.", "error");
+      return;
+    }
+
+    // Hybrid descriptive nomenclature
+    const splitA = parentA.name.split("_");
+    const splitB = parentB.name.split("_");
+    const parentAPrefix = splitA[0] || parentA.name;
+    const parentBSuffix = splitB[1] || splitB[0] || "Hybrid";
+    const childName = `${parentAPrefix}_${parentBSuffix}`;
+    setCharacterName(childName);
+
+    const chooseOne = <T,>(a: T, b: T): T => (Math.random() > 0.5 ? a : b);
+
+    // Dynamic scale blender with soft mutation offsets
+    const blendValue = (a: number = 1.0, b: number = 1.0, variation: number = 0.05) => {
+      const base = (a + b) / 2;
+      const offset = (Math.random() * 2 - 1) * variation;
+      return Math.round(Math.max(0.4, Math.min(2.0, base + offset)) * 100) / 100;
+    };
+
+    const childSkin = chooseOne(parentA.config.skinColor, parentB.config.skinColor);
+    const childHair = chooseOne(parentA.config.hairColor, parentB.config.hairColor);
+    const childClothing = chooseOne(parentA.config.clothingColor, parentB.config.clothingColor);
+    const childPants = chooseOne(parentA.config.pantsColor, parentB.config.pantsColor);
+    const childShoes = chooseOne(parentA.config.shoesColor, parentB.config.shoesColor);
+
+    const childHairStyle = chooseOne(parentA.config.hairStyle, parentB.config.hairStyle);
+    const childBodyType = chooseOne(parentA.config.bodyType, parentB.config.bodyType);
+    const childHeadShape = chooseOne(parentA.config.headShape, parentB.config.headShape);
+
+    // Merge Parent accessories
+    const mergedAccessories: ("glasses" | "backpack" | "headphones" | "halo" | "crown" | "cat-ears" | "wizard-hat")[] = [];
+    const allAccs = Array.from(new Set([
+      ...(parentA.config.accessories || []),
+      ...(parentB.config.accessories || [])
+    ]));
+    allAccs.sort(() => 0.5 - Math.random());
+    for (let i = 0; i < Math.min(allAccs.length, 3); i++) {
+      mergedAccessories.push(allAccs[i]);
+    }
+
+    // Blend size dimensions
+    const headScaleX = blendValue(parentA.config.headScaleX, parentB.config.headScaleX);
+    const headScaleY = blendValue(parentA.config.headScaleY, parentB.config.headScaleY);
+    const headScaleZ = blendValue(parentA.config.headScaleZ, parentB.config.headScaleZ);
+
+    const torsoScaleX = blendValue(parentA.config.torsoScaleX, parentB.config.torsoScaleX);
+    const torsoScaleZ = blendValue(parentA.config.torsoScaleZ, parentB.config.torsoScaleZ);
+
+    const armScaleX = blendValue(parentA.config.armScaleX, parentB.config.armScaleX);
+    const armScaleY = blendValue(parentA.config.armScaleY, parentB.config.armScaleY);
+    const armScaleZ = blendValue(parentA.config.armScaleZ, parentB.config.armScaleZ);
+
+    const legScaleX = blendValue(parentA.config.legScaleX, parentB.config.legScaleX);
+    const legScaleY = blendValue(parentA.config.legScaleY, parentB.config.legScaleY);
+    const legScaleZ = blendValue(parentA.config.legScaleZ, parentB.config.legScaleZ);
+
+    const materialRoughness = blendValue(parentA.config.materialRoughness, parentB.config.materialRoughness);
+    const materialMetalness = blendValue(parentA.config.materialMetalness, parentB.config.materialMetalness);
+
+    // Blend bioluminescent shaders
+    const isEmissive = parentA.config.materialEmissive !== "#000000" || parentB.config.materialEmissive !== "#000000" || Math.random() < 0.35;
+    const parentEmissive = parentA.config.materialEmissive !== "#000000" ? parentA.config.materialEmissive : parentB.config.materialEmissive;
+    const childEmissive = isEmissive 
+      ? (parentEmissive && parentEmissive !== "#000000" ? parentEmissive : "#39ff14") 
+      : "#000000";
+    const childEmissiveIntensity = isEmissive 
+      ? blendValue(parentA.config.materialEmissiveIntensity || 0, parentB.config.materialEmissiveIntensity || 0, 0.2) 
+      : 0;
+
+    const childConfig: AvatarConfig = {
+      ...config,
+      name: childName,
+      skinColor: childSkin,
+      hairColor: childHair,
+      clothingColor: childClothing,
+      pantsColor: childPants,
+      shoesColor: childShoes,
+      hairStyle: childHairStyle,
+      bodyType: childBodyType,
+      headShape: childHeadShape,
+      accessories: mergedAccessories,
+      headScaleX,
+      headScaleY,
+      headScaleZ,
+      torsoScaleX,
+      torsoScaleZ,
+      armScaleX,
+      armScaleY,
+      armScaleZ,
+      legScaleX,
+      legScaleY,
+      legScaleZ,
+      materialRoughness,
+      materialMetalness,
+      materialEmissive: childEmissive,
+      materialEmissiveIntensity: childEmissiveIntensity,
+    };
+
+    setConfig(childConfig);
+
+    // Find new genotype metrics
+    let maxDeviation = 0;
+    const deviations = [
+      Math.abs(1.0 - headScaleX), Math.abs(1.0 - headScaleY), Math.abs(1.0 - headScaleZ),
+      Math.abs(1.0 - armScaleY), Math.abs(1.0 - legScaleY), Math.abs(1.0 - torsoScaleX)
+    ];
+    maxDeviation = Math.max(...deviations);
+
+    let rarity: "COMMON" | "UNCOMMON" | "RARE" | "ULTRA-RARE" | "LEGENDARY" | "CHAOTIC-DIVINE" = "COMMON";
+    let rarityColor = "text-[#141414]";
+    const totalChaosSum = chaosIntensity * (1 + maxDeviation);
+
+    if (totalChaosSum > 3.0) {
+      rarity = "CHAOTIC-DIVINE";
+      rarityColor = "text-fuchsia-600 font-extrabold animate-pulse";
+    } else if (totalChaosSum > 2.0) {
+      rarity = "LEGENDARY";
+      rarityColor = "text-amber-500 font-extrabold";
+    } else if (totalChaosSum > 1.4) {
+      rarity = "ULTRA-RARE";
+      rarityColor = "text-purple-600 font-bold";
+    } else if (totalChaosSum > 0.9) {
+      rarity = "RARE";
+      rarityColor = "text-blue-600 font-bold";
+    } else if (totalChaosSum > 0.5) {
+      rarity = "UNCOMMON";
+      rarityColor = "text-emerald-600 font-bold";
+    }
+
+    const buildType = `Spliced ${childBodyType === "chibi" ? "Minikin" : childBodyType === "tall" ? "Titan" : "Hybrid"}`;
+    const armXDev = Math.abs(armScaleX - 1.0);
+    const legXDev = Math.abs(legScaleX - 1.0);
+    const symmetrySkew = (armXDev + legXDev) > 0.4 ? "Unbalanced Skeletal Warp" : "Balanced Bone Symmetry";
+
+    const childMutant = {
+      id: Math.random().toString(),
+      config: childConfig,
+      name: childName,
+      rarity,
+      rarityColor,
+      buildType,
+      mutatedGlow: isEmissive,
+      accessoryCount: mergedAccessories.length,
+      symmetrySkew,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+
+    setMutationVault((prev) => {
+      const filtered = prev.filter(item => item.name !== childName);
+      return [childMutant, ...filtered].slice(0, 40);
+    });
+
+    setLastMutationSummary(childMutant);
+    setSplicerParents([]);
+
+    addLog(`🧬 [GENOME SPLICER] Spiced & spliced! Offspring '${childName}' synthesized successfully. Added to genotype crypt!`, "success");
+    playSynthSound("disco");
+  };
+
+  // Toggle specimen selection for DNA cross-breeding
+  const toggleParentSelection = (id: string) => {
+    setSplicerParents((prev) => {
+      if (prev.includes(id)) {
+        playSynthSound("zap");
+        return prev.filter(x => x !== id);
+      }
+      if (prev.length >= 2) {
+        playSynthSound("zap");
+        addLog("🧬 [GENOME SPLICER] Maximum parent selection reached (2). Deselect a parent before selecting another.", "info");
+        return prev;
+      }
+      playSynthSound("coin");
+      return [...prev, id];
+    });
   };
 
   // 3. Texture computation
@@ -660,6 +895,15 @@ export default function App() {
 
     return () => clearInterval(interval);
   }, [autoMutationActive, chaosIntensity]);
+
+  // Save mutationVault entries to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem("glb_factory_mutants", JSON.stringify(mutationVault));
+    } catch (err) {
+      console.warn("Could not save to localStorage:", err);
+    }
+  }, [mutationVault]);
 
   // 4. File upload handlers
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2974,6 +3218,271 @@ export default function App() {
                     <span className="text-xs flex items-center gap-1">🌀 MUTATE SKELETAL DNA NOW</span>
                     <span className="text-[8px] opacity-75 font-normal normal-case block">Instantaneous procedurally calculated proportions & palettes</span>
                   </button>
+                </div>
+              </div>
+            </section>
+
+            {/* ==========================================
+                🧬 GENOTYPE CRYPT & SKELETAL BREEDER VAULT (GACHA STABLE)
+               ========================================== */}
+            <section className="bg-[#fcfbf9] border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_rgba(20,20,20,1)] relative overflow-hidden" id="genotype-crypt-panel">
+              {/* Retro decorative caution stripe corner background */}
+              <div className="absolute top-0 right-0 w-24 h-24 bg-[repeating-linear-gradient(-45deg,#f0fdf4,#f0fdf4_6px,#dcfce7_6px,#dcfce7_12px)] opacity-20 pointer-events-none -z-10" />
+
+              <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#b8c9b8] flex items-center justify-between">
+                <h2 className="font-serif text-[11px] italic text-[#113011] uppercase font-bold tracking-wider flex items-center gap-2">
+                  <span>🧬 08 // Genotype Crypt & Breeder Vault</span>
+                </h2>
+                <div className="flex items-center gap-1">
+                  <span className="text-[7.5px] font-mono bg-[#113011] text-[#dcfce7] px-2 py-0.5 uppercase font-bold tracking-widest">
+                    stable // {mutationVault.length} specimens saved
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="font-mono text-[9px] text-[#141414]/80 uppercase leading-relaxed">
+                  Every mutation is automatically added as a unique genomic specimen. Pick any two specimens to splice their DNA, or load a previous configuration directly onto the 3D canvas rig.
+                </p>
+
+                {/* --- 🧬 SPLICER BREEDING TANK --- */}
+                <div className="bg-[#113011] text-[#dcfce7] p-4 border-2 border-[#141414] space-y-3 relative shadow-[inset_0_0_15px_rgba(0,0,0,0.8)]">
+                  <div className="absolute top-2 right-2 text-[7px] text-[#dcfce7]/40 uppercase tracking-widest font-bold">
+                    BIOLOGICAL_SPLICER_v3.2
+                  </div>
+                  <h3 className="font-serif text-xs italic font-bold text-white border-b border-[#dcfce7]/20 pb-1.5 uppercase tracking-wide flex items-center gap-1.5">
+                    <span>🧬 GENETIC BREEDING & FUSION TANK</span>
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Parent A Selection */}
+                    <div className="bg-black/40 border border-[#dcfce7]/20 p-2.5 flex flex-col justify-between min-h-[70px]">
+                      <div className="text-[7.5px] text-[#dcfce7]/60 font-mono uppercase font-bold tracking-wider">
+                        🧬 GENETIC PARENT A (MATERNAL SKEW)
+                      </div>
+                      {splicerParents[0] ? (
+                        (() => {
+                          const parent = mutationVault.find(m => m.id === splicerParents[0]);
+                          if (!parent) return <span className="text-[9px] text-red-400">Specimen lost!</span>;
+                          return (
+                            <div className="flex items-center justify-between gap-1.5 pt-1">
+                              <div>
+                                <div className="text-[11px] font-bold text-white font-mono">{parent.name}</div>
+                                <div className={`text-[8px] uppercase ${parent.rarityColor}`}>{parent.rarity}</div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSplicerParents(prev => prev.filter(x => x !== splicerParents[0]));
+                                  playSynthSound("zap");
+                                }}
+                                className="text-[8px] bg-red-950 hover:bg-red-900 text-red-200 border border-red-800 px-1.5 py-0.5 font-mono uppercase cursor-pointer"
+                              >
+                                DESELECT
+                              </button>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <div className="text-[9px] text-[#dcfce7]/40 italic pt-1 flex items-center gap-1">
+                          <span>[VACANT SLOT]</span>
+                          <span className="text-[8px] font-mono normal-case">(Click BREED on a card below)</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Parent B Selection */}
+                    <div className="bg-black/40 border border-[#dcfce7]/20 p-2.5 flex flex-col justify-between min-h-[70px]">
+                      <div className="text-[7.5px] text-[#dcfce7]/60 font-mono uppercase font-bold tracking-wider">
+                        🧬 GENETIC PARENT B (PATERNAL SKEW)
+                      </div>
+                      {splicerParents[1] ? (
+                        (() => {
+                          const parent = mutationVault.find(m => m.id === splicerParents[1]);
+                          if (!parent) return <span className="text-[9px] text-red-400">Specimen lost!</span>;
+                          return (
+                            <div className="flex items-center justify-between gap-1.5 pt-1">
+                              <div>
+                                <div className="text-[11px] font-bold text-white font-mono">{parent.name}</div>
+                                <div className={`text-[8px] uppercase ${parent.rarityColor}`}>{parent.rarity}</div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSplicerParents(prev => prev.filter(x => x !== splicerParents[1]));
+                                  playSynthSound("zap");
+                                }}
+                                className="text-[8px] bg-red-950 hover:bg-red-900 text-red-200 border border-red-800 px-1.5 py-0.5 font-mono uppercase cursor-pointer"
+                              >
+                                DESELECT
+                              </button>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <div className="text-[9px] text-[#dcfce7]/40 italic pt-1 flex items-center gap-1">
+                          <span>[VACANT SLOT]</span>
+                          <span className="text-[8px] font-mono normal-case">(Click BREED on a card below)</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Splice Command Button */}
+                  <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="text-[8px] text-[#dcfce7]/70 font-mono max-w-sm leading-normal">
+                      {splicerParents.length === 2 
+                        ? "⚡ Parent codes aligned. Ready to cross-breed scale matrices, clothing genes, and hair styles!"
+                        : "🧬 Select exactly TWO genotypes from the list below by clicking 'BREED' to unlock the breeding button."}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={splicerParents.length !== 2}
+                      onClick={handleFuseGenomes}
+                      className={`border-2 text-[10px] font-mono font-bold py-2 px-3 tracking-wider uppercase transition-all duration-150 ${
+                        splicerParents.length === 2
+                          ? "bg-[#39ff14] text-black border-black shadow-[3px_3px_0px_0px_rgba(255,255,255,0.9)] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.9)] active:translate-y-[3px] active:shadow-none cursor-pointer"
+                          : "bg-gray-850 text-gray-500 border-gray-900 shadow-none cursor-not-allowed opacity-50"
+                      }`}
+                    >
+                      🧬 FUSE PARENT GENOMES
+                    </button>
+                  </div>
+                </div>
+
+                {/* --- Horizontal Scroll Specimen stable gallery --- */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[9px] font-mono font-bold uppercase text-[#141414] flex items-center gap-1.5">
+                      <span>👥 SPECIMEN ARCHIVE (GENOMIC CRYPT):</span>
+                    </span>
+                    {mutationVault.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm("Are you sure you want to purge the genotype archive? This cannot be undone.")) {
+                            setMutationVault([]);
+                            setSplicerParents([]);
+                            playSynthSound("boom");
+                            addLog("🧬 [MUTANT CRYPT] Purged all genomic data. Empty database initialized.", "info");
+                          }
+                        }}
+                        className="text-[8px] text-red-600 font-mono uppercase hover:underline cursor-pointer"
+                      >
+                        Purge All Genotypes
+                      </button>
+                    )}
+                  </div>
+
+                  {mutationVault.length === 0 ? (
+                    <div className="border-2 border-dashed border-[#141414]/20 p-8 text-center text-[#141414]/50 font-mono text-[10px] uppercase">
+                      No mutant specimens recorded yet. Click the "Mutate" button above to generate and collect your first specimen!
+                    </div>
+                  ) : (
+                    <div className="flex gap-3 overflow-x-auto pb-4 pt-1 snap-x scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
+                      {mutationVault.map((specimen) => {
+                        const isSelectedAsParent = splicerParents.includes(specimen.id);
+                        const parentIndex = splicerParents.indexOf(specimen.id);
+                        
+                        return (
+                          <div
+                            key={specimen.id}
+                            className={`snap-start shrink-0 w-[170px] border-2 bg-white flex flex-col justify-between p-3 relative shadow-[3px_3px_0px_0px_rgba(20,20,20,1)] ${
+                              isSelectedAsParent 
+                                ? "border-emerald-500 ring-2 ring-emerald-400 ring-offset-1" 
+                                : "border-[#141414]"
+                            }`}
+                          >
+                            {isSelectedAsParent && (
+                              <div className="absolute -top-2.5 -left-1 bg-emerald-500 text-white border border-black font-mono text-[7px] font-bold px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] uppercase">
+                                PARENT {parentIndex === 0 ? "A" : "B"}
+                              </div>
+                            )}
+
+                            <div>
+                              <div className="flex items-start justify-between gap-1 border-b border-gray-100 pb-1 mb-1.5">
+                                <span className="font-mono font-bold text-[10.5px] truncate text-[#141414]">
+                                  {specimen.name}
+                                </span>
+                                <span className="font-mono text-[7px] text-gray-400 shrink-0 select-none">
+                                  {specimen.timestamp}
+                                </span>
+                              </div>
+
+                              <div className="space-y-1 text-[8.5px] font-mono uppercase text-[#141414]/75">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Rarity:</span>
+                                  <span className={`font-bold ${specimen.rarityColor}`}>{specimen.rarity}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Build:</span>
+                                  <span className="text-gray-900 font-semibold truncate max-w-[90px]">{specimen.buildType}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Skelet:</span>
+                                  <span className="text-[#3b82f6]">{specimen.config.bodyType}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Glow:</span>
+                                  <span className={specimen.mutatedGlow ? "text-[#39ff14] font-bold" : "text-gray-400"}>
+                                    {specimen.mutatedGlow ? "YES" : "NO"}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Specimen Card Actions */}
+                            <div className="grid grid-cols-3 gap-1 mt-3 pt-2 border-t border-gray-100">
+                              {/* Clone / Load */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setConfig(specimen.config);
+                                  setCharacterName(specimen.name);
+                                  playSynthSound("coin");
+                                  addLog(`👤 [GENOME] Loaded specimen '${specimen.name}' to the active WebGL canvas.`, "info");
+                                }}
+                                className="border border-[#141414] bg-sky-50 hover:bg-sky-100 text-[8px] font-mono font-bold py-1 px-1 cursor-pointer hover:translate-y-[0.5px] transition-all text-sky-800 uppercase text-center"
+                                title="Load skeleton to active workspace"
+                              >
+                                LOAD
+                              </button>
+
+                              {/* Breed Selection Toggle */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  toggleParentSelection(specimen.id);
+                                }}
+                                className={`border border-[#141414] text-[8px] font-mono font-bold py-1 px-1 cursor-pointer transition-all uppercase text-center ${
+                                  isSelectedAsParent 
+                                    ? "bg-emerald-500 text-white" 
+                                    : "bg-emerald-50 hover:bg-emerald-100 text-emerald-800"
+                                }`}
+                              >
+                                {isSelectedAsParent ? "SELECTED" : "BREED"}
+                              </button>
+
+                              {/* Delete individual specimen */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMutationVault(prev => prev.filter(m => m.id !== specimen.id));
+                                  setSplicerParents(prev => prev.filter(x => x !== specimen.id));
+                                  playSynthSound("boom");
+                                  addLog(`🗑️ [MUTANT CRYPT] Purged genotype of '${specimen.name}' from index archive.`, "info");
+                                }}
+                                className="border border-red-200 bg-red-50 hover:bg-red-100 text-[8px] font-mono font-bold py-1 px-1 cursor-pointer text-red-600 uppercase text-center"
+                                title="Erase genetic data"
+                              >
+                                PURGE
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </section>
