@@ -57,7 +57,6 @@ const PRESET_HEROES: PresetHero[] = [
       materialMetalness: 0.8,
       materialEmissive: "#00f0ff",
       materialEmissiveIntensity: 1.5,
-      twoDStyleEffect: "cyberpunk",
     }
   },
   {
@@ -78,7 +77,6 @@ const PRESET_HEROES: PresetHero[] = [
       materialMetalness: 0.0,
       materialEmissive: "#3b82f6",
       materialEmissiveIntensity: 0.8,
-      twoDStyleEffect: "blueprint",
     }
   },
   {
@@ -99,7 +97,6 @@ const PRESET_HEROES: PresetHero[] = [
       materialMetalness: 0.95,
       materialEmissive: "#ff007f",
       materialEmissiveIntensity: 0.5,
-      twoDStyleEffect: "crt",
     }
   },
   {
@@ -1583,7 +1580,7 @@ export default function App() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* LEFT PANEL: CONFIGURATION AND INPUTS (LG: 5 cols) */}
-          <div className="lg:col-span-5 space-y-6">
+          <div className="lg:col-span-5 space-y-6 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:sticky lg:top-4">
             {/* 🎓 STEP-BY-STEP STUDIO DIRECTIVES & GUIDE */}
             <section className="bg-[#141414] border-2 border-[#141414] rounded-none p-5 text-[#E4E3E0] space-y-4 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.2)] font-mono" id="directives-guide-panel">
               <div className="flex items-center justify-between border-b border-white/20 pb-2.5">
