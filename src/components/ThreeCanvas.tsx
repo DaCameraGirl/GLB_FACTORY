@@ -31,6 +31,11 @@ export default function ThreeCanvas({
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
   const dirLightRef = useRef<THREE.DirectionalLight | null>(null);
 
+  // Snapchat Lenses particles state refs
+  const particlesRef = useRef<THREE.Group | null>(null);
+  const particleMetaRef = useRef<{ ySpeed: number[]; rotSpeed: number[] } | null>(null);
+  const lastLensRef = useRef<string | null>(null);
+
   // Animation and interaction state
   const [animationMode, setAnimationMode] = useState<"idle" | "walk" | "dance" | "zombie" | "spin" | "ninja" | "custom">("idle");
   const mouseRef = useRef(new THREE.Vector2(0, 0));
@@ -74,6 +79,12 @@ export default function ThreeCanvas({
     scene.background = new THREE.Color("#CCCCCC");
     sceneRef.current = scene;
 
+    // Create Snapchat lens particles group
+    const particlesGroup = new THREE.Group();
+    particlesGroup.name = "lens-particles-group";
+    scene.add(particlesGroup);
+    particlesRef.current = particlesGroup;
+
     // Add grid helper
     const gridHelper = new THREE.GridHelper(10, 20, "#141414", "#888888");
     gridHelper.position.y = -0.01;
@@ -115,8 +126,8 @@ export default function ThreeCanvas({
     }
     cameraRef.current = camera;
 
-    // Create WebGLRenderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    // Create WebGLRenderer (preserving drawing buffer for snapshot capabilities)
+    const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
@@ -231,6 +242,134 @@ export default function ThreeCanvas({
 
         avatarGroupRef.current.position.y = bounceY;
         avatarGroupRef.current.scale.set(squishXZ, squishY, squishXZ);
+
+        // Snapchat Dynamic Big Head Lens controller
+        const headObj = avatarGroupRef.current.getObjectByName("head") as THREE.Object3D;
+        if (headObj) {
+          const baseHeadFactor = 1.0 + (activeConfig.bigHeadFactor || 0) * 1.5;
+          headObj.scale.set(baseHeadFactor, baseHeadFactor, baseHeadFactor);
+        }
+      }
+
+      // --- SNAPCHAT LENS PARTICLES SYSTEM ---
+      const activeLens = activeConfig.activeLens || "none";
+      if (lastLensRef.current !== activeLens) {
+        lastLensRef.current = activeLens;
+        if (particlesRef.current) {
+          // Clear current particle children safely
+          while (particlesRef.current.children.length > 0) {
+            const child = particlesRef.current.children[0] as THREE.Mesh;
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material.forEach((m) => m.dispose());
+              } else {
+                child.material.dispose();
+              }
+            }
+            particlesRef.current.remove(child);
+          }
+          
+          // Populate new particle meshes
+          if (activeLens !== "none") {
+            const count = activeLens === "heart-vfx" ? 25 : 35;
+            const ySpeedList: number[] = [];
+            const rotSpeedList: number[] = [];
+            
+            for (let i = 0; i < count; i++) {
+              let geom: THREE.BufferGeometry;
+              let mat: THREE.Material;
+              
+              if (activeLens === "heart-vfx") {
+                geom = new THREE.ConeGeometry(0.08, 0.16, 4);
+                mat = new THREE.MeshStandardMaterial({
+                  color: 0xef4444,
+                  roughness: 0.1,
+                  metalness: 0.2,
+                  emissive: new THREE.Color(0xef4444),
+                  emissiveIntensity: 0.6
+                });
+              } else if (activeLens === "sparkle-vfx") {
+                geom = new THREE.BoxGeometry(0.06, 0.06, 0.06);
+                mat = new THREE.MeshStandardMaterial({
+                  color: 0xfacc15,
+                  roughness: 0.01,
+                  metalness: 0.9,
+                  emissive: new THREE.Color(0xfacc15),
+                  emissiveIntensity: 1.2
+                });
+              } else if (activeLens === "code-vfx") {
+                geom = new THREE.BoxGeometry(0.05, 0.1, 0.02);
+                mat = new THREE.MeshStandardMaterial({
+                  color: 0x10b981,
+                  roughness: 0.3,
+                  emissive: new THREE.Color(0x10b981),
+                  emissiveIntensity: 0.9
+                });
+              } else if (activeLens === "bubble-vfx") {
+                geom = new THREE.SphereGeometry(0.06, 8, 8);
+                mat = new THREE.MeshStandardMaterial({
+                  color: 0x60a5fa,
+                  transparent: true,
+                  opacity: 0.5,
+                  roughness: 0.05,
+                  metalness: 0.1
+                });
+              } else {
+                geom = new THREE.SphereGeometry(0.04, 6, 6);
+                mat = new THREE.MeshStandardMaterial({
+                  color: 0xa7f3d0,
+                  emissive: new THREE.Color(0x4ade80),
+                  emissiveIntensity: 1.6,
+                  roughness: 0.5
+                });
+              }
+              
+              const particle = new THREE.Mesh(geom, mat);
+              particle.position.set(
+                (Math.random() - 0.5) * 3.0,
+                Math.random() * 4.0 - 0.5,
+                (Math.random() - 0.5) * 2.5
+              );
+              particle.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+              
+              particlesRef.current.add(particle);
+              ySpeedList.push(0.015 + Math.random() * 0.02);
+              rotSpeedList.push(0.01 + Math.random() * 0.03);
+            }
+            
+            particleMetaRef.current = { ySpeed: ySpeedList, rotSpeed: rotSpeedList };
+          } else {
+            particleMetaRef.current = null;
+          }
+        }
+      }
+      
+      // Animate flying lens particles
+      if (activeLens !== "none" && particlesRef.current && particleMetaRef.current) {
+        const pMeta = particleMetaRef.current;
+        particlesRef.current.children.forEach((child, index) => {
+          const mesh = child as THREE.Mesh;
+          const ySpeedVal = (pMeta.ySpeed && pMeta.ySpeed[index] !== undefined) ? pMeta.ySpeed[index] : 0.02;
+          const rotSpeedVal = (pMeta.rotSpeed && pMeta.rotSpeed[index] !== undefined) ? pMeta.rotSpeed[index] : 0.02;
+          mesh.position.y += ySpeedVal;
+          mesh.rotation.y += rotSpeedVal;
+          mesh.rotation.x += rotSpeedVal * 0.5;
+          
+          if (activeLens === "heart-vfx") {
+            const pulse = 1.0 + Math.sin(elapsedTime * 6.0 + index) * 0.15;
+            mesh.scale.set(pulse, pulse, pulse);
+          }
+          if (activeLens === "code-vfx") {
+            mesh.position.x += Math.sin(elapsedTime * 2.0 + index) * 0.003;
+          }
+          
+          if (mesh.position.y > 3.5) {
+            mesh.position.y = -0.5;
+            mesh.position.x = (Math.random() - 0.5) * 3.0;
+            mesh.position.z = (Math.random() - 0.5) * 2.5;
+          }
+        });
       }
 
       // Live presets lighting & shader overrides (cheap color HSL settings)
@@ -293,7 +432,7 @@ export default function ThreeCanvas({
         scene.background = new THREE.Color("#fbf9f4");
       } else {
         if (dirLight) {
-          dirLight.color.setStyle(activeConfig.keyLightColor || "#ffffff");
+          dirLight.color.set(activeConfig.keyLightColor || "#ffffff");
           dirLight.position.set(3, 6, 4);
           dirLight.intensity = activeConfig.keyLightIntensity !== undefined ? activeConfig.keyLightIntensity : 0.85;
         }

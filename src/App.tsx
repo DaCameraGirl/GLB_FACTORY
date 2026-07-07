@@ -57,6 +57,7 @@ const PRESET_HEROES: PresetHero[] = [
       materialMetalness: 0.8,
       materialEmissive: "#00f0ff",
       materialEmissiveIntensity: 1.5,
+      twoDStyleEffect: "cyberpunk",
     }
   },
   {
@@ -77,6 +78,7 @@ const PRESET_HEROES: PresetHero[] = [
       materialMetalness: 0.0,
       materialEmissive: "#3b82f6",
       materialEmissiveIntensity: 0.8,
+      twoDStyleEffect: "blueprint",
     }
   },
   {
@@ -97,6 +99,7 @@ const PRESET_HEROES: PresetHero[] = [
       materialMetalness: 0.95,
       materialEmissive: "#ff007f",
       materialEmissiveIntensity: 0.5,
+      twoDStyleEffect: "crt",
     }
   },
   {
@@ -139,6 +142,111 @@ const PRESET_HEROES: PresetHero[] = [
       materialEmissive: "#f59e0b",
       materialEmissiveIntensity: 1.2,
       twoDStyleEffect: "none",
+    }
+  },
+  {
+    name: "Astral Valkyrie",
+    emoji: "🛡️",
+    badge: "VALKYRIE LEGEND",
+    config: {
+      skinColor: "#fde047",
+      hairColor: "#ffffff",
+      clothingColor: "#ffffff",
+      pantsColor: "#111827",
+      shoesColor: "#facc15",
+      hairStyle: "ponytail",
+      bodyType: "athletic",
+      headShape: "organic-smooth",
+      accessories: ["crown", "wings", "halo"],
+      materialRoughness: 0.1,
+      materialMetalness: 0.9,
+      materialEmissive: "#fbbf24",
+      materialEmissiveIntensity: 1.4,
+      twoDStyleEffect: "none",
+    }
+  },
+  {
+    name: "Deep Sea Explorer",
+    emoji: "🦑",
+    badge: "SUB-AQUA EXPLORER",
+    config: {
+      skinColor: "#22d3ee",
+      hairColor: "#0e7490",
+      clothingColor: "#083344",
+      pantsColor: "#0f172a",
+      shoesColor: "#22d3ee",
+      hairStyle: "none",
+      bodyType: "normal",
+      headShape: "rounded-cube",
+      accessories: ["headphones", "glasses", "backpack"],
+      materialRoughness: 0.2,
+      materialMetalness: 0.85,
+      materialEmissive: "#06b6d4",
+      materialEmissiveIntensity: 1.0,
+      twoDStyleEffect: "none",
+    }
+  },
+  {
+    name: "Dread Warlord",
+    emoji: "👿",
+    badge: "HELL KNIGHT",
+    config: {
+      skinColor: "#f87171",
+      hairColor: "#7f1d1d",
+      clothingColor: "#111827",
+      pantsColor: "#000000",
+      shoesColor: "#7f1d1d",
+      hairStyle: "none",
+      bodyType: "athletic",
+      headShape: "cube",
+      accessories: ["horns", "cape", "cyber-visor"],
+      materialRoughness: 0.3,
+      materialMetalness: 0.75,
+      materialEmissive: "#ef4444",
+      materialEmissiveIntensity: 1.6,
+      twoDStyleEffect: "crt",
+    }
+  },
+  {
+    name: "Steampunk Aviator",
+    emoji: "⚙️",
+    badge: "STEAM ADVENTURER",
+    config: {
+      skinColor: "#fed7aa",
+      hairColor: "#7c2d12",
+      clothingColor: "#78350f",
+      pantsColor: "#451a03",
+      shoesColor: "#78350f",
+      hairStyle: "cap",
+      bodyType: "tall",
+      headShape: "organic-smooth",
+      accessories: ["glasses", "backpack"],
+      materialRoughness: 0.55,
+      materialMetalness: 0.4,
+      materialEmissive: "#ea580c",
+      materialEmissiveIntensity: 0.5,
+      twoDStyleEffect: "none",
+    }
+  },
+  {
+    name: "Cosmic Void-Walk",
+    emoji: "🌌",
+    badge: "VOID ANOMALY",
+    config: {
+      skinColor: "#581c87",
+      hairColor: "#a855f7",
+      clothingColor: "#120e2e",
+      pantsColor: "#020617",
+      shoesColor: "#d946ef",
+      hairStyle: "short",
+      bodyType: "chibi",
+      headShape: "organic-smooth",
+      accessories: ["cat-ears", "wings", "halo"],
+      materialRoughness: 0.1,
+      materialMetalness: 0.95,
+      materialEmissive: "#d946ef",
+      materialEmissiveIntensity: 1.2,
+      twoDStyleEffect: "cyberpunk",
     }
   }
 ];
@@ -194,6 +302,14 @@ export function playSynthSound(type: "zap" | "coin" | "jump" | "boom" | "arp" | 
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
+
+    // Prevent hardware audio context leaks by scheduling close after sound duration
+    const duration = type === "disco" ? 0.9 : type === "arp" ? 0.5 : type === "boom" ? 0.45 : type === "jump" ? 0.3 : 0.4;
+    setTimeout(() => {
+      try {
+        ctx.close();
+      } catch (closeErr) {}
+    }, duration * 1000 + 100);
     
     if (type === "zap") {
       const osc = ctx.createOscillator();
@@ -308,33 +424,38 @@ export default function App() {
   }, []);
 
   const playSpookyNote = (ctx: AudioContext, freq: number, time: number, duration: number, type: OscillatorType = "sine") => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, time);
-    
-    // High-pitched theremin vibrato
-    if (type === "sine" && freq > 400) {
-      const lfo = ctx.createOscillator();
-      const lfoGain = ctx.createGain();
-      lfo.frequency.value = 5.5; // Vibrato rate
-      lfoGain.gain.value = 8.0; // Vibrato depth
-      lfo.connect(lfoGain);
-      lfoGain.connect(osc.frequency);
-      lfo.start(time);
-      lfo.stop(time + duration);
-    }
+    try {
+      if (!ctx || ctx.state === "closed") return;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, time);
+      
+      // High-pitched theremin vibrato
+      if (type === "sine" && freq > 400) {
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        lfo.frequency.value = 5.5; // Vibrato rate
+        lfoGain.gain.value = 8.0; // Vibrato depth
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        lfo.start(time);
+        lfo.stop(time + duration);
+      }
 
-    gain.gain.setValueAtTime(0.0, time);
-    gain.gain.linearRampToValueAtTime(type === "sawtooth" ? 0.015 : 0.045, time + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    
-    osc.start(time);
-    osc.stop(time + duration);
+      gain.gain.setValueAtTime(0.0, time);
+      gain.gain.linearRampToValueAtTime(type === "sawtooth" ? 0.015 : 0.045, time + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start(time);
+      osc.stop(time + duration);
+    } catch (err) {
+      console.warn("Spooky note playback prevented due to context closure or audio block:", err);
+    }
   };
 
   const handleToggleSpookyMusic = () => {
@@ -422,9 +543,10 @@ export default function App() {
 
   // Pipeline steps status
   const [currentStep, setCurrentStep] = useState<"upload" | "texture" | "mesh" | "glb" | "ready">("upload");
+  const [showFlash, setShowFlash] = useState(false);
 
   // Blender-style Workspace active tab
-  const [editorTab, setEditorTab] = useState<"parts" | "transforms" | "materials" | "scene">("parts");
+  const [editorTab, setEditorTab] = useState<"parts" | "transforms" | "materials" | "scene" | "camera">("parts");
 
   // Interactive 3D Step-by-Step Directives guide stage
   const [guideStage, setGuideStage] = useState<number>(0);
@@ -449,7 +571,6 @@ export default function App() {
     cropX: 0,
     cropY: 0,
     cropScale: 1.0,
-    cropRotation: 0,
 
     // Material default parameters
     materialRoughness: 0.8,
@@ -501,6 +622,14 @@ export default function App() {
     poseRightArmRotationZ: 5,
     poseLeftLegRotationX: 0,
     poseRightLegRotationX: 0,
+
+    // Snapchat Lenses & Camera Studio default state
+    activeLens: "none",
+    photoCaption: "",
+    photoCaptionEmoji: "",
+    storyFrameStyle: "none",
+    bigHeadFactor: 0.0,
+    colorFilterPreset: "none",
   });
 
   // Physics bounce timer trigger
@@ -981,8 +1110,7 @@ export default function App() {
         config.featherRadius,
         config.cropX,
         config.cropY,
-        config.cropScale,
-        config.cropRotation || 0
+        config.cropScale
       );
       setFaceCanvas(canvas);
     } catch (err: any) {
@@ -1003,7 +1131,6 @@ export default function App() {
     config.cropX,
     config.cropY,
     config.cropScale,
-    config.cropRotation,
     faceBox,
     sourceImage,
   ]);
@@ -1277,6 +1404,156 @@ export default function App() {
     }
   };
 
+  // 8. Snapchat Shutter Snap Capture & Compositer
+  const handleTakeSnap = () => {
+    // Synth shutter trigger using Web Audio API
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      const playClick = (time: number, freq: number, dur: number) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, time);
+        osc.frequency.exponentialRampToValueAtTime(80, time + dur);
+        
+        gain.gain.setValueAtTime(0.3, time);
+        gain.gain.linearRampToValueAtTime(0.001, time + dur);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(time);
+        osc.stop(time + dur);
+      };
+      
+      const now = audioCtx.currentTime;
+      playClick(now, 1100, 0.05); // High crisp mirror-up sound
+      playClick(now + 0.06, 600, 0.12); // Deep shutter-closing curtain release
+    } catch (soundErr) {
+      console.warn("Audio Context block or unsupported browser: ", soundErr);
+    }
+
+    // Trigger active flash overlay
+    setShowFlash(true);
+    setTimeout(() => {
+      setShowFlash(false);
+    }, 250);
+
+    // Locate live WebGL rendering canvas
+    const canvas = document.querySelector("#preview-panel canvas") as HTMLCanvasElement;
+    if (!canvas) {
+      addLog("Unable to identify current WebGL renderer context.", "error");
+      return;
+    }
+
+    try {
+      addLog("Taking high-fidelity snap... Processing VFX layers...", "info");
+      
+      // Create high resolution Composite Canvas to bake overlays
+      const compositeCanvas = document.createElement("canvas");
+      compositeCanvas.width = canvas.width;
+      compositeCanvas.height = canvas.height;
+      const ctx = compositeCanvas.getContext("2d");
+      
+      if (!ctx) {
+        addLog("Composite pipeline initialization failed.", "error");
+        return;
+      }
+
+      // Draw original WebGL frame with simulated filters inside canvas 2D
+      ctx.save();
+      
+      // Map color filters safely
+      if (config.colorFilterPreset === "retro") {
+        ctx.filter = "sepia(0.2) contrast(1.2) saturate(1.4) brightness(0.95)";
+      } else if (config.colorFilterPreset === "cyber") {
+        ctx.filter = "hue-rotate(270deg) saturate(1.8) contrast(1.1)";
+      } else if (config.colorFilterPreset === "sepia") {
+        ctx.filter = "sepia(0.85) contrast(0.9) brightness(0.9)";
+      } else if (config.colorFilterPreset === "pink-glow") {
+        ctx.filter = "hue-rotate(320deg) brightness(1.1) saturate(1.3)";
+      } else if (config.colorFilterPreset === "glitch") {
+        ctx.filter = "contrast(1.5) saturate(1.5) brightness(1.1)";
+      }
+      
+      ctx.drawImage(canvas, 0, 0);
+      ctx.restore();
+
+      const w = compositeCanvas.width;
+      const h = compositeCanvas.height;
+
+      // Render Framings
+      if (config.storyFrameStyle === "polaroid") {
+        const borderSize = Math.min(w, h) * 0.08;
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.lineWidth = borderSize;
+        ctx.strokeRect(borderSize / 2, borderSize / 2, w - borderSize, h - borderSize);
+        
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, h - borderSize * 2.2, w, borderSize * 2.2);
+
+        // Name sticker
+        ctx.fillStyle = "#1e293b";
+        ctx.font = `italic bold ${Math.round(borderSize * 0.75)}px Georgia, serif`;
+        ctx.textAlign = "center";
+        ctx.fillText(characterName || "Specimen", w / 2, h - borderSize * 0.8);
+      }
+
+      if (config.storyFrameStyle === "story") {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+        ctx.font = `bold ${Math.round(w * 0.035)}px monospace`;
+        ctx.textAlign = "left";
+        ctx.fillText("📍 MUTANT WORKSPACE", w * 0.05, h * 0.08);
+
+        ctx.textAlign = "right";
+        ctx.fillText("⚡ 24 KM/H", w * 0.95, h * 0.08);
+
+        ctx.textAlign = "center";
+        ctx.font = `bold ${Math.round(w * 0.065)}px sans-serif`;
+        ctx.fillText("15:41 PM", w / 2, h * 0.16);
+      }
+
+      if (config.storyFrameStyle === "cinematic") {
+        const barH = h * 0.12;
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, w, barH);
+        ctx.fillRect(0, h - barH, w, barH);
+
+        ctx.fillStyle = "#fbbf24"; // yellow subtitles font
+        ctx.font = `bold ${Math.round(h * 0.032)}px Courier, monospace`;
+        ctx.textAlign = "center";
+        ctx.fillText(`[VOX-RIG SYSTEM // MODEL: ${characterName.toUpperCase()}]`, w / 2, h - barH * 0.45);
+      }
+
+      // Draw Caption Bar
+      if (config.photoCaption) {
+        const barH = h * 0.08;
+        const barY = h * 0.70;
+        ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+        ctx.fillRect(0, barY, w, barH);
+
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = `bold ${Math.round(barH * 0.40)}px sans-serif`;
+        ctx.textAlign = "center";
+        const captionText = `${config.photoCaptionEmoji || ""} ${config.photoCaption}`.trim();
+        ctx.fillText(captionText, w / 2, barY + barH * 0.62);
+      }
+
+      // Auto download composite canvas
+      const link = document.createElement("a");
+      const safeName = characterName.toLowerCase().replace(/\s+/g, "_");
+      link.download = `${safeName}_snap.png`;
+      link.href = compositeCanvas.toDataURL("image/png");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      addLog(`📸 Captured custom photo snap: ${safeName}_snap.png`, "success");
+    } catch (snapErr: any) {
+      addLog(`Photo capture failed: ${snapErr.message}`, "error");
+    }
+  };
+
   // Reset configuration to defaults
   const handleResetDefaults = () => {
     setConfig({
@@ -1295,7 +1572,6 @@ export default function App() {
       cropX: 0,
       cropY: 0,
       cropScale: 1.0,
-      cropRotation: 0,
 
       // Material overrides
       materialRoughness: 0.8,
@@ -1580,7 +1856,7 @@ export default function App() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* LEFT PANEL: CONFIGURATION AND INPUTS (LG: 5 cols) */}
-          <div className="lg:col-span-5 space-y-6 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:sticky lg:top-4">
+          <div className="lg:col-span-5 space-y-6">
             {/* 🎓 STEP-BY-STEP STUDIO DIRECTIVES & GUIDE */}
             <section className="bg-[#141414] border-2 border-[#141414] rounded-none p-5 text-[#E4E3E0] space-y-4 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.2)] font-mono" id="directives-guide-panel">
               <div className="flex items-center justify-between border-b border-white/20 pb-2.5">
@@ -1799,7 +2075,7 @@ export default function App() {
                   </h2>
                   <button
                     onClick={() => {
-                      setConfig((p) => ({ ...p, cropX: 0, cropY: 0, cropScale: 1.0, cropRotation: 0, featherRadius: 85 }));
+                      setConfig((p) => ({ ...p, cropX: 0, cropY: 0, cropScale: 1.0, featherRadius: 85 }));
                     }}
                     className="text-[9px] text-[#141414] font-bold font-mono uppercase bg-white/60 border border-[#141414] px-1.5 py-0.5 rounded-none shadow-[1px_1px_0px_0px_#141414] hover:bg-white hover:translate-y-[1px] transition-all duration-200"
                   >
@@ -1886,33 +2162,6 @@ export default function App() {
                   />
                 </div>
 
-                {/* Portrait Rotation Control */}
-                <div className="space-y-2 pt-2 border-t border-[#141414]/10">
-                  <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
-                    <span>PORTRAIT ROTATION</span>
-                    <span>{config.cropRotation || 0}°</span>
-                  </div>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[0, 90, 180, 270].map((angle) => (
-                      <button
-                        key={angle}
-                        type="button"
-                        onClick={() => {
-                          setConfig((prev) => ({ ...prev, cropRotation: angle }));
-                          playSynthSound("zap");
-                        }}
-                        className={`py-2 px-2 text-[10px] font-mono font-bold border-2 transition-all ${
-                          (config.cropRotation || 0) === angle
-                            ? "bg-[#141414] text-white border-[#141414] shadow-[2px_2px_0px_0px_#141414]"
-                            : "bg-white text-[#141414] border-[#141414] hover:bg-gray-50 shadow-[1px_1px_0px_0px_#141414]"
-                        }`}
-                      >
-                        {angle}°
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 {/* Face Texture Preview Thumbnail */}
                 {faceCanvas && (
                   <div className="flex items-center gap-4 p-2.5 rounded-none bg-white/50 border border-[#141414] shadow-[1px_1px_0px_0px_#141414]">
@@ -1948,10 +2197,10 @@ export default function App() {
               </div>
 
               {/* Blender Tabs Selector */}
-              <div className="grid grid-cols-4 gap-1 bg-[#141414]/5 p-1 border-2 border-[#141414] font-mono text-[9px] font-bold">
+              <div className="grid grid-cols-5 gap-1 bg-[#141414]/5 p-1 border-2 border-[#141414] font-mono text-[9px] font-bold">
                 <button
                   onClick={() => setEditorTab("parts")}
-                  className={`py-1.5 px-1 uppercase text-center transition-all ${
+                  className={`py-1.5 px-0.5 uppercase text-center transition-all ${
                     editorTab === "parts"
                       ? "bg-[#141414] text-white"
                       : "bg-transparent text-[#141414]/70 hover:bg-[#141414]/10"
@@ -1961,7 +2210,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setEditorTab("transforms")}
-                  className={`py-1.5 px-1 uppercase text-center transition-all ${
+                  className={`py-1.5 px-0.5 uppercase text-center transition-all ${
                     editorTab === "transforms"
                       ? "bg-[#141414] text-white"
                       : "bg-transparent text-[#141414]/70 hover:bg-[#141414]/10"
@@ -1971,7 +2220,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setEditorTab("materials")}
-                  className={`py-1.5 px-1 uppercase text-center transition-all ${
+                  className={`py-1.5 px-0.5 uppercase text-center transition-all ${
                     editorTab === "materials"
                       ? "bg-[#141414] text-white"
                       : "bg-transparent text-[#141414]/70 hover:bg-[#141414]/10"
@@ -1981,13 +2230,23 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setEditorTab("scene")}
-                  className={`py-1.5 px-1 uppercase text-center transition-all ${
+                  className={`py-1.5 px-0.5 uppercase text-center transition-all ${
                     editorTab === "scene"
                       ? "bg-[#141414] text-white"
                       : "bg-transparent text-[#141414]/70 hover:bg-[#141414]/10"
                   }`}
                 >
                   Scene
+                </button>
+                <button
+                  onClick={() => setEditorTab("camera")}
+                  className={`py-1.5 px-0.5 uppercase text-center transition-all ${
+                    editorTab === "camera"
+                      ? "bg-[#D946EF] text-white border-2 border-[#141414] shadow-[1px_1px_0px_0px_#141414]"
+                      : "bg-transparent text-[#D946EF] hover:bg-[#D946EF]/10"
+                  }`}
+                >
+                  📸 Snap
                 </button>
               </div>
 
@@ -2932,13 +3191,191 @@ export default function App() {
                   </div>
                 </div>
               )}
+
+              {/* SNAPCHAT CAMERA / SNAP STUDIO TAB */}
+              {editorTab === "camera" && (
+                <div className="space-y-4 text-[#141414] font-mono">
+                  {/* Title Section */}
+                  <div className="bg-[#D946EF]/10 border-2 border-[#D946EF] p-3 space-y-1.5 shadow-[2px_2px_0px_0px_#D946EF]">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-[10px] text-[#D946EF] uppercase tracking-wider flex items-center gap-1">
+                        <span>📸 SNAP SHUTTER STUDIO</span>
+                      </span>
+                      <span className="text-[8px] bg-[#D946EF] text-white px-1.5 py-0.5 rounded-none font-bold uppercase">LIVE VFX</span>
+                    </div>
+                    <p className="text-[9px] text-[#141414]/80 leading-normal">
+                      Customize real camera presets, interactive Snapchat-style 3D lenses, color overlays, frames, and custom caption text. Bake your custom composite snap photo on click!
+                    </p>
+                  </div>
+
+                  {/* 1. LENS SELECTOR */}
+                  <div className="space-y-2 border-b border-[#141414]/10 pb-3">
+                    <label className="text-[10px] uppercase font-bold text-[#141414]/85 block">01 // SELECT Interactive 3D LENS (PARTICLES)</label>
+                    <div className="grid grid-cols-3 gap-2 text-[9px] font-bold">
+                      {[
+                        { id: "none", label: "🚫 None", desc: "Clean focus" },
+                        { id: "heart-vfx", label: "💖 Love", desc: "Pulsing hearts" },
+                        { id: "sparkle-vfx", label: "✨ Sparkles", desc: "Glowing gold starbox" },
+                        { id: "code-vfx", label: "💚 Matrix", desc: "Falling green code" },
+                        { id: "bubble-vfx", label: "🫧 Bubbles", desc: "Translucent bubbles" },
+                        { id: "glow-vfx", label: "🟢 Fireflies", desc: "Enchanted floaters" },
+                      ].map((lens) => (
+                        <button
+                          key={lens.id}
+                          type="button"
+                          onClick={() => {
+                            setConfig((prev) => ({ ...prev, activeLens: lens.id as any }));
+                            addLog(`Equipped 3D Snapchat Lens: ${lens.label.toUpperCase()}`, "success");
+                            playSynthSound("jump");
+                          }}
+                          className={`border-2 p-1.5 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
+                            (config.activeLens || "none") === lens.id
+                              ? "bg-[#D946EF] text-white border-[#141414] shadow-[1px_1px_0px_0px_#141414]"
+                              : "bg-white/50 text-[#141414] border-[#141414] hover:bg-white shadow-[2px_2px_0px_0px_#141414] active:translate-y-[1px]"
+                          }`}
+                        >
+                          <span>{lens.label}</span>
+                          <span className="text-[7px] opacity-75 font-normal mt-0.5">{lens.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 2. BIG HEAD LENS SLIDER */}
+                  <div className="space-y-1.5 border-b border-[#141414]/10 pb-3">
+                    <div className="flex justify-between items-center font-bold">
+                      <label className="text-[10px] uppercase font-bold text-[#141414]/85">02 // Snapchat Big Head Lens Factor</label>
+                      <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.2 border border-purple-300 font-mono">
+                        {Math.round((config.bigHeadFactor || 0) * 100)}% scale
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.0"
+                      max="1.0"
+                      step="0.05"
+                      value={config.bigHeadFactor || 0}
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setConfig((prev) => ({ ...prev, bigHeadFactor: val }));
+                        if (val > 0.5) {
+                          playSynthSound("coin");
+                        }
+                      }}
+                      className="w-full accent-[#D946EF] h-1.5 cursor-pointer bg-[#141414]/10"
+                    />
+                    <p className="text-[8px] text-[#141414]/60 italic">Drag to scale the character's head to goofy Snapchat bobble-head proportions dynamically!</p>
+                  </div>
+
+                  {/* 3. COLOR FILTER SELECTOR */}
+                  <div className="space-y-2 border-b border-[#141414]/10 pb-3">
+                    <label className="text-[10px] uppercase font-bold text-[#141414]/85 block">03 // VIEWPORT COLOR FILTER OVERLAY</label>
+                    <div className="grid grid-cols-3 gap-2 text-[9px] font-bold">
+                      {[
+                        { id: "none", label: "Clean" },
+                        { id: "retro", label: "📼 VHS Retro" },
+                        { id: "cyber", label: "💜 Cyber Neon" },
+                        { id: "sepia", label: "🎞️ Warm Sepia" },
+                        { id: "pink-glow", label: "🌸 Pastel Pink" },
+                        { id: "glitch", label: "⚡ Glitch Contrast" },
+                      ].map((filter) => (
+                        <button
+                          key={filter.id}
+                          type="button"
+                          onClick={() => {
+                            setConfig((prev) => ({ ...prev, colorFilterPreset: filter.id as any }));
+                            addLog(`Applied color filter preset: ${filter.label}`, "info");
+                          }}
+                          className={`border-2 p-1.5 uppercase text-center transition-all cursor-pointer ${
+                            (config.colorFilterPreset || "none") === filter.id
+                              ? "bg-[#141414] text-white border-[#141414] shadow-[1px_1px_0px_0px_#141414]"
+                              : "bg-white/50 text-[#141414] border-[#141414] hover:bg-white shadow-[2px_2px_0px_0px_#141414] active:translate-y-[1px]"
+                          }`}
+                        >
+                          {filter.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 4. STORY FRAMES */}
+                  <div className="space-y-2 border-b border-[#141414]/10 pb-3">
+                    <label className="text-[10px] uppercase font-bold text-[#141414]/85 block">04 // PHOTO FRAME LAYOUT & OVERLAYS</label>
+                    <div className="grid grid-cols-2 gap-2 text-[9px] font-bold">
+                      {[
+                        { id: "none", label: "Clean Viewport" },
+                        { id: "story", label: "📱 Snapchat Story (9:16)" },
+                        { id: "polaroid", label: "📸 Polaroid Vintage (1:1)" },
+                        { id: "cinematic", label: "🎬 Cinematic Widescreen (21:9)" },
+                      ].map((frame) => (
+                        <button
+                          key={frame.id}
+                          type="button"
+                          onClick={() => {
+                            setConfig((prev) => ({ ...prev, storyFrameStyle: frame.id as any }));
+                            addLog(`Switched photo frame layout: ${frame.label}`, "success");
+                            playSynthSound("zap");
+                          }}
+                          className={`border-2 p-1.5 text-center transition-all cursor-pointer ${
+                            (config.storyFrameStyle || "none") === frame.id
+                              ? "bg-[#D946EF] text-white border-[#141414] shadow-[1px_1px_0px_0px_#141414]"
+                              : "bg-white/50 text-[#141414] border-[#141414] hover:bg-white shadow-[2px_2px_0px_0px_#141414] active:translate-y-[1px]"
+                          }`}
+                        >
+                          {frame.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 5. CAPTION INPUT */}
+                  <div className="space-y-2 border-b border-[#141414]/10 pb-3">
+                    <label className="text-[10px] uppercase font-bold text-[#141414]/85 block">05 // Snapchat Overlay Caption text</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        maxLength={40}
+                        placeholder="Type standard snapchat caption..."
+                        value={config.photoCaption || ""}
+                        onChange={(e) => setConfig((prev) => ({ ...prev, photoCaption: e.target.value }))}
+                        className="flex-1 bg-white border-2 border-[#141414] px-2 py-1 text-xs font-mono font-bold focus:outline-none focus:border-[#D946EF] shadow-[2px_2px_0px_0px_#141414]"
+                      />
+                      {/* Fast emoji selector button */}
+                      <select
+                        value={config.photoCaptionEmoji || ""}
+                        onChange={(e) => setConfig((prev) => ({ ...prev, photoCaptionEmoji: e.target.value }))}
+                        className="bg-white border-2 border-[#141414] text-xs font-mono font-bold px-2 py-1 shadow-[2px_2px_0px_0px_#141414] focus:outline-none"
+                      >
+                        <option value="">No Emoji</option>
+                        <option value="🔥">🔥 Hot</option>
+                        <option value="👑">👑 Crown</option>
+                        <option value="👽">👽 Alien</option>
+                        <option value="💯">💯 Real</option>
+                        <option value="✨">✨ Magic</option>
+                        <option value="💀">💀 Ded</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* 6. BIG DOWNLOAD SNAP BUTTON */}
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={handleTakeSnap}
+                      className="w-full py-3.5 px-4 font-mono text-sm font-black tracking-widest bg-gradient-to-r from-[#D946EF] via-[#FF007F] to-[#F59E0B] text-white border-3 border-[#141414] rounded-none hover:brightness-110 active:translate-y-[2px] shadow-[4px_4px_0px_0px_#141414] active:shadow-[1px_1px_0px_0px_#141414] flex items-center justify-center gap-2 uppercase cursor-pointer"
+                    >
+                      <span>📸 BAKE & TAKE PHOTO SNAP!</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </section>
           </div>
 
           {/* RIGHT PANEL: LIVE 3D PREVIEW AND EXPORT TERMINAL (LG: 7 cols) */}
           <div className="lg:col-span-7 space-y-6">
-            {/* 3D PREVIEW BLOCK - STICKY VIEWPORT */}
-            <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 relative shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)] lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto" id="preview-panel">
+            {/* 3D PREVIEW BLOCK */}
+            <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 relative shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]" id="preview-panel">
               <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#D4D3D0] flex items-center justify-between">
                 <h2 className="font-serif text-[11px] italic text-[#141414]/80 uppercase font-bold tracking-wider flex items-center gap-2">
                   <Layers className="w-3.5 h-3.5" />
@@ -2960,22 +3397,90 @@ export default function App() {
               </div>
 
               {/* Interactive ThreeJS View */}
-              <div className="relative">
-                <ThreeCanvas
-                  config={config}
-                  faceCanvas={faceCanvas}
-                  autoRotate={autoRotate}
-                  bounceTime={bounceTime}
-                  onSceneReady={(group) => {
-                    avatarGroupRef.current = group;
-                  }}
-                />
+              <div className="relative overflow-hidden border-2 border-[#141414] shadow-[4px_4px_0px_0px_#141414]">
+                {/* Visual filter container */}
+                <div className={`transition-all duration-300 w-full h-full ${
+                  config.colorFilterPreset === "retro" ? "sepia-[0.2] contrast-[1.2] saturate-[1.4] brightness-[0.95]" :
+                  config.colorFilterPreset === "cyber" ? "hue-rotate-[270deg] saturate-[1.8] contrast-[1.1]" :
+                  config.colorFilterPreset === "sepia" ? "sepia-[0.85] contrast-[0.9] brightness-[0.9]" :
+                  config.colorFilterPreset === "pink-glow" ? "hue-rotate-[320deg] brightness-[1.1] saturate-[1.3]" :
+                  config.colorFilterPreset === "glitch" ? "contrast-[1.5] saturate-[1.5] brightness-[1.1]" : ""
+                }`}>
+                  <ThreeCanvas
+                    config={config}
+                    faceCanvas={faceCanvas}
+                    autoRotate={autoRotate}
+                    bounceTime={bounceTime}
+                    onSceneReady={(group) => {
+                      avatarGroupRef.current = group;
+                    }}
+                  />
+                </div>
+
+                {/* --- 2D FRAMING OVERLAYS --- */}
+                {config.storyFrameStyle === "polaroid" && (
+                  <div className="absolute inset-0 border-[20px] border-white pointer-events-none flex flex-col justify-end select-none z-10">
+                    <div className="bg-white h-14 -mx-[20px] -mb-[20px] border-t border-[#141414]/10 flex flex-col items-center justify-center">
+                      <span className="font-serif italic text-xs text-gray-800 tracking-wider font-bold">
+                        {characterName || "Chase"}
+                      </span>
+                      <span className="text-[6px] text-gray-400 font-mono tracking-widest mt-0.5">
+                        POLAROID ORIGINAL // 1984
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {config.storyFrameStyle === "story" && (
+                  <div className="absolute inset-0 pointer-events-none p-3 flex flex-col justify-between select-none font-sans z-10">
+                    <div className="flex justify-between items-start">
+                      <div className="bg-black/55 text-white text-[8px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider backdrop-blur-xs">
+                        📍 MUTANT WORKSPACE
+                      </div>
+                      <div className="bg-black/55 text-white text-[8px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider backdrop-blur-xs">
+                        ⚡ 24 KM/H
+                      </div>
+                    </div>
+                    <div className="absolute top-10 left-1/2 -translate-x-1/2 flex flex-col items-center">
+                      <span className="text-white text-xl font-extrabold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">15:41 PM</span>
+                      <span className="text-white text-[7px] uppercase tracking-wider font-mono font-bold bg-[#D946EF] text-white px-1.5 py-0.2 mt-0.5">
+                        TEMP: 24°C
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {config.storyFrameStyle === "cinematic" && (
+                  <div className="absolute inset-0 pointer-events-none flex flex-col justify-between select-none z-10">
+                    <div className="bg-black h-8 w-full border-b border-white/5" />
+                    <div className="bg-black h-8 w-full border-t border-white/5 flex items-center justify-center">
+                      <span className="text-yellow-400 font-mono text-[8px] tracking-wider uppercase font-bold">
+                        [VOX-RIG LAB v2.0 // SPECIMEN: {characterName?.toUpperCase()}]
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Snapchat Black Caption Bar */}
+                {config.photoCaption && (
+                  <div className="absolute bottom-[20%] left-0 w-full bg-black/60 py-2 px-3 text-center z-10 text-white text-[10px] font-bold font-sans select-none border-y border-white/5 shadow-md flex items-center justify-center gap-1">
+                    {config.photoCaptionEmoji && <span className="text-xs">{config.photoCaptionEmoji}</span>}
+                    <span>{config.photoCaption}</span>
+                  </div>
+                )}
 
                 {/* Overlaid watermark / name */}
-                <div className="absolute bottom-4 right-4 bg-white/90 border border-[#141414] px-3 py-1.5 rounded-none z-10 text-right select-none shadow-[2px_2px_0px_0px_#141414]">
-                  <span className="text-[9px] text-[#141414]/60 block font-mono font-bold">NAME</span>
-                  <span className="text-xs font-bold text-[#141414] tracking-wider font-mono uppercase">{characterName}</span>
-                </div>
+                {config.storyFrameStyle !== "polaroid" && (
+                  <div className="absolute bottom-4 right-4 bg-white/90 border border-[#141414] px-3 py-1.5 rounded-none z-10 text-right select-none shadow-[2px_2px_0px_0px_#141414]">
+                    <span className="text-[9px] text-[#141414]/60 block font-mono font-bold">NAME</span>
+                    <span className="text-xs font-bold text-[#141414] tracking-wider font-mono uppercase">{characterName}</span>
+                  </div>
+                )}
+
+                {/* Flash Transient Cover */}
+                {showFlash && (
+                  <div className="absolute inset-0 bg-white z-50 pointer-events-none duration-200 transition-opacity" />
+                )}
               </div>
 
               {/* ACTION EXPORTS PANEL */}

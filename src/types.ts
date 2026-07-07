@@ -17,9 +17,8 @@ export interface AvatarConfig {
   cropX: number; // percentage offset
   cropY: number; // percentage offset
   cropScale: number; // magnification
-  cropRotation: number; // rotation in degrees (0, 90, 180, 270)
   detailLevel: "low" | "medium" | "high";
-  accessories?: ("glasses" | "backpack" | "headphones" | "halo" | "crown" | "cat-ears" | "wizard-hat")[];
+  accessories?: ("glasses" | "backpack" | "headphones" | "halo" | "crown" | "cat-ears" | "wizard-hat" | "wings" | "horns" | "cyber-visor" | "cape")[];
   clothingStyle?: "tshirt" | "hoodie" | "armor" | "dress";
   expression?: "neutral" | "happy" | "angry" | "sad" | "surprised";
   morphSlender?: number; // 0 to 1
@@ -68,6 +67,14 @@ export interface AvatarConfig {
   cameraFov?: number;
   cameraPreset?: "front" | "side" | "top" | "isometric";
   twoDStyleEffect?: "none" | "crt" | "blueprint" | "gameboy" | "cyberpunk" | "sketch";
+
+  // Snapchat Lenses & Camera Studio settings
+  activeLens?: "none" | "heart-vfx" | "sparkle-vfx" | "code-vfx" | "bubble-vfx" | "fireflies-vfx" | "glow-vfx";
+  photoCaption?: string;
+  photoCaptionEmoji?: string;
+  storyFrameStyle?: "none" | "story" | "polaroid" | "cinematic";
+  bigHeadFactor?: number; // 0 to 1
+  colorFilterPreset?: "none" | "retro" | "cyber" | "sepia" | "pink-glow" | "glitch";
 
   // Manual Armature Bones Posing (Blender-killing armature controllers)
   poseHeadYaw?: number; // degrees -180 to 180

@@ -11,8 +11,7 @@ export function prepareFaceTexture(
   featherRadius: number, // 0 to 100 (percentage size of the solid center)
   offsetX: number = 0, // shift crop horizontally (percent of face size)
   offsetY: number = 0, // shift crop vertically
-  scale: number = 1.0,  // manual crop scaling zoom
-  rotation: number = 0  // rotation in degrees (0, 90, 180, 270)
+  scale: number = 1.0  // manual crop scaling zoom
 ): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
@@ -24,9 +23,9 @@ export function prepareFaceTexture(
   ctx.fillStyle = skinColor;
   ctx.fillRect(0, 0, 256, 256);
 
-  // Convert percentage box to actual image pixels
-  const imgW = img.naturalWidth;
-  const imgH = img.naturalHeight;
+  // Convert percentage box to actual image pixels (with client-side fallback)
+  const imgW = img.naturalWidth || img.width || img.clientWidth || 256;
+  const imgH = img.naturalHeight || img.height || img.clientHeight || 256;
 
   let ymin = (box[0] / 100) * imgH;
   let xmin = (box[1] / 100) * imgW;
@@ -70,22 +69,16 @@ export function prepareFaceTexture(
   const targetX = (256 - faceSizeOnCanvas) / 2;
   const targetY = (256 - faceSizeOnCanvas) / 2;
 
-  // Apply rotation if specified
-  if (rotation !== 0) {
-    tempCtx.save();
-    tempCtx.translate(128, 128); // Move to center
-    tempCtx.rotate((rotation * Math.PI) / 180); // Rotate
-    tempCtx.translate(-128, -128); // Move back
-  }
-
-  tempCtx.drawImage(
-    img,
-    finalXmin, finalYmin, finalW, finalH, // Source
-    targetX, targetY, faceSizeOnCanvas, faceSizeOnCanvas // Destination centered
-  );
-
-  if (rotation !== 0) {
-    tempCtx.restore();
+  if (finalW > 0 && finalH > 0 && imgW > 0 && imgH > 0) {
+    try {
+      tempCtx.drawImage(
+        img,
+        finalXmin, finalYmin, finalW, finalH, // Source
+        targetX, targetY, faceSizeOnCanvas, faceSizeOnCanvas // Destination centered
+      );
+    } catch (drawErr) {
+      console.warn("Skipped drawing raw crop due to canvas drawImage limits", drawErr);
+    }
   }
 
   // 3. Apply radial mask feathering or circular clipping
@@ -98,8 +91,8 @@ export function prepareFaceTexture(
     
     if (featherEdges) {
       // Smooth feathered radial gradient mask
-      const innerRadius = maxRadius * (featherRadius / 100) * 0.85;
-      const outerRadius = maxRadius * (featherRadius / 100) * 1.8;
+      const innerRadius = maxRadius * (featherRadius / 100) * 0.45;
+      const outerRadius = maxRadius * (featherRadius / 100) * 0.95;
 
       const gradient = maskCtx.createRadialGradient(
         128, 128, innerRadius,

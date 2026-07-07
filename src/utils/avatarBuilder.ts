@@ -347,7 +347,11 @@ export function buildAvatar(
   if (ctx) {
     if (faceTextureCanvas) {
       // Draw uploaded/analyzed portrait first
-      ctx.drawImage(faceTextureCanvas, 0, 0, 256, 256);
+      try {
+        ctx.drawImage(faceTextureCanvas, 0, 0, 256, 256);
+      } catch (err) {
+        console.warn("Could not draw faceTextureCanvas:", err);
+      }
     } else {
       // Draw generic solid skin-colored backing
       ctx.fillStyle = config.skinColor;
@@ -1005,6 +1009,154 @@ export function buildAvatar(
     wizard.add(cone);
 
     head.add(wizard);
+  }
+
+  // --- EXTRA HIGHLY DETAILED ACCESSORIES ---
+  if (accessories.includes("wings")) {
+    const wings = new THREE.Group();
+    wings.name = "wings";
+    
+    const wingsMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(config.materialEmissive || "#00f0ff"),
+      roughness: 0.1,
+      metalness: 0.1,
+      emissive: new THREE.Color(config.materialEmissive || "#00f0ff"),
+      emissiveIntensity: 1.5,
+      transparent: true,
+      opacity: 0.8,
+      side: THREE.DoubleSide,
+      name: "wings-material"
+    });
+    
+    const wingLeftGeo = getBoxGeometry(torsoWidth * 1.5, torsoHeight * 0.5, 0.04);
+    const leftWing = new THREE.Mesh(wingLeftGeo, wingsMat);
+    leftWing.position.set(-torsoWidth * 0.9, torsoHeight * 0.2, -torsoDepth * 0.65);
+    leftWing.rotation.set(0.1, -Math.PI * 0.2, -Math.PI * 0.1);
+    leftWing.castShadow = true;
+    wings.add(leftWing);
+
+    const featherL = new THREE.Mesh(getBoxGeometry(torsoWidth * 1.0, torsoHeight * 0.35, 0.04), wingsMat);
+    featherL.position.set(-torsoWidth * 1.1, -torsoHeight * 0.1, -torsoDepth * 0.7);
+    featherL.rotation.set(0.1, -Math.PI * 0.25, -Math.PI * 0.2);
+    wings.add(featherL);
+
+    const wingRightGeo = getBoxGeometry(torsoWidth * 1.5, torsoHeight * 0.5, 0.04);
+    const rightWing = new THREE.Mesh(wingRightGeo, wingsMat);
+    rightWing.position.set(torsoWidth * 0.9, torsoHeight * 0.2, -torsoDepth * 0.65);
+    rightWing.rotation.set(0.1, Math.PI * 0.2, Math.PI * 0.1);
+    rightWing.castShadow = true;
+    wings.add(rightWing);
+
+    const featherR = new THREE.Mesh(getBoxGeometry(torsoWidth * 1.0, torsoHeight * 0.35, 0.04), wingsMat);
+    featherR.position.set(torsoWidth * 1.1, -torsoHeight * 0.1, -torsoDepth * 0.7);
+    featherR.rotation.set(0.1, Math.PI * 0.25, Math.PI * 0.2);
+    wings.add(featherR);
+    
+    torso.add(wings);
+  }
+
+  if (accessories.includes("horns")) {
+    const horns = new THREE.Group();
+    horns.name = "horns";
+    
+    const hornMat = new THREE.MeshStandardMaterial({
+      color: 0xef4444,
+      roughness: 0.2,
+      metalness: 0.7,
+      name: "horn-material"
+    });
+    
+    const hornLeftBase = new THREE.Mesh(getCylinderGeometry(0.08, 0.06, 0.35, 8), hornMat);
+    hornLeftBase.position.set(-actualHeadSize * 0.35, actualHeadSize * 0.45, 0.1);
+    hornLeftBase.rotation.set(Math.PI * 0.15, 0, Math.PI * 0.2);
+    hornLeftBase.castShadow = true;
+    horns.add(hornLeftBase);
+
+    const hornLeftTip = new THREE.Mesh(getCylinderGeometry(0.06, 0.01, 0.25, 8), hornMat);
+    hornLeftTip.position.set(-actualHeadSize * 0.42, actualHeadSize * 0.65, -0.05);
+    hornLeftTip.rotation.set(-Math.PI * 0.1, 0, Math.PI * 0.35);
+    hornLeftTip.castShadow = true;
+    horns.add(hornLeftTip);
+
+    const hornRightBase = new THREE.Mesh(getCylinderGeometry(0.08, 0.06, 0.35, 8), hornMat);
+    hornRightBase.position.set(actualHeadSize * 0.35, actualHeadSize * 0.45, 0.1);
+    hornRightBase.rotation.set(Math.PI * 0.15, 0, -Math.PI * 0.2);
+    hornRightBase.castShadow = true;
+    horns.add(hornRightBase);
+
+    const hornRightTip = new THREE.Mesh(getCylinderGeometry(0.06, 0.01, 0.25, 8), hornMat);
+    hornRightTip.position.set(actualHeadSize * 0.42, actualHeadSize * 0.65, -0.05);
+    hornRightTip.rotation.set(-Math.PI * 0.1, 0, -Math.PI * 0.35);
+    hornRightTip.castShadow = true;
+    horns.add(hornRightTip);
+
+    head.add(horns);
+  }
+
+  if (accessories.includes("cyber-visor")) {
+    const visor = new THREE.Group();
+    visor.name = "cyber-visor";
+    
+    const visorMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(config.materialEmissive || "#00f0ff"),
+      roughness: 0.05,
+      metalness: 0.95,
+      emissive: new THREE.Color(config.materialEmissive || "#00f0ff"),
+      emissiveIntensity: 1.8,
+      transparent: true,
+      opacity: 0.85,
+      name: "visor-neon"
+    });
+    
+    const bandMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.3, name: "visor-strap" });
+
+    const shieldGeo = getBoxGeometry(actualHeadSize * 0.72, 0.18, 0.12);
+    const shield = new THREE.Mesh(shieldGeo, visorMat);
+    shield.position.set(0, actualHeadSize * 0.05, actualHeadSize * 0.44);
+    shield.castShadow = true;
+    visor.add(shield);
+
+    const leftStrap = new THREE.Mesh(getBoxGeometry(0.04, 0.08, actualHeadSize * 0.45), bandMat);
+    leftStrap.position.set(-actualHeadSize * 0.36, actualHeadSize * 0.05, actualHeadSize * 0.15);
+    visor.add(leftStrap);
+
+    const rightStrap = new THREE.Mesh(getBoxGeometry(0.04, 0.08, actualHeadSize * 0.45), bandMat);
+    rightStrap.position.set(actualHeadSize * 0.36, actualHeadSize * 0.05, actualHeadSize * 0.15);
+    visor.add(rightStrap);
+
+    head.add(visor);
+  }
+
+  if (accessories.includes("cape")) {
+    const cape = new THREE.Group();
+    cape.name = "cape";
+    
+    const capeMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(config.clothingColor || "#1e3a8a"),
+      roughness: 0.85,
+      side: THREE.DoubleSide,
+      name: "cape-cloth"
+    });
+    
+    const capeGeo = getBoxGeometry(torsoWidth * 1.15, torsoHeight * 1.35, 0.03);
+    const capeMesh = new THREE.Mesh(capeGeo, capeMat);
+    capeMesh.position.set(0, -torsoHeight * 0.22, -torsoDepth * 0.58);
+    capeMesh.rotation.x = Math.PI * 0.06;
+    capeMesh.castShadow = true;
+    cape.add(capeMesh);
+    
+    const claspMat = new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.15, metalness: 0.85, name: "clasp-gold" });
+    const claspGeo = getSphereGeometry(0.08, 8, 8);
+    
+    const leftClasp = new THREE.Mesh(claspGeo, claspMat);
+    leftClasp.position.set(-torsoWidth * 0.35, torsoHeight * 0.46, torsoDepth * 0.52);
+    cape.add(leftClasp);
+
+    const rightClasp = new THREE.Mesh(claspGeo, claspMat);
+    rightClasp.position.set(torsoWidth * 0.35, torsoHeight * 0.46, torsoDepth * 0.52);
+    cape.add(rightClasp);
+
+    torso.add(cape);
   }
 
   // ==========================================
