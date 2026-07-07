@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 GitHub Discussions
+    url: https://github.com/DaCameraGirl/GLB_FACTORY/discussions
+    about: Ask questions, share ideas, and discuss features
+  - name: 🐛 Bug Report
+    url: https://github.com/DaCameraGirl/GLB_FACTORY/issues/new?template=bug_report.md
+    about: Report a bug or issue
+  - name: 💡 Feature Request
+    url: https://github.com/DaCameraGirl/GLB_FACTORY/issues/new?template=feature_request.md
+    about: Suggest a new feature or enhancement
