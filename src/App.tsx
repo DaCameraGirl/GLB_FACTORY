@@ -2909,8 +2909,8 @@ export default function App() {
 
           {/* RIGHT PANEL: LIVE 3D PREVIEW AND EXPORT TERMINAL (LG: 7 cols) */}
           <div className="lg:col-span-7 space-y-6">
-            {/* 3D PREVIEW BLOCK */}
-            <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 relative shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]" id="preview-panel">
+            {/* 3D PREVIEW BLOCK - STICKY VIEWPORT */}
+            <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 relative shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)] lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto" id="preview-panel">
               <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#D4D3D0] flex items-center justify-between">
                 <h2 className="font-serif text-[11px] italic text-[#141414]/80 uppercase font-bold tracking-wider flex items-center gap-2">
                   <Layers className="w-3.5 h-3.5" />
