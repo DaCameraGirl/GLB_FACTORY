@@ -452,6 +452,7 @@ export default function App() {
     cropX: 0,
     cropY: 0,
     cropScale: 1.0,
+    cropRotation: 0,
 
     // Material default parameters
     materialRoughness: 0.8,
@@ -983,7 +984,8 @@ export default function App() {
         config.featherRadius,
         config.cropX,
         config.cropY,
-        config.cropScale
+        config.cropScale,
+        config.cropRotation || 0
       );
       setFaceCanvas(canvas);
     } catch (err: any) {
@@ -1004,6 +1006,7 @@ export default function App() {
     config.cropX,
     config.cropY,
     config.cropScale,
+    config.cropRotation,
     faceBox,
     sourceImage,
   ]);
@@ -1295,6 +1298,7 @@ export default function App() {
       cropX: 0,
       cropY: 0,
       cropScale: 1.0,
+      cropRotation: 0,
 
       // Material overrides
       materialRoughness: 0.8,
@@ -1798,7 +1802,7 @@ export default function App() {
                   </h2>
                   <button
                     onClick={() => {
-                      setConfig((p) => ({ ...p, cropX: 0, cropY: 0, cropScale: 1.0, featherRadius: 85 }));
+                      setConfig((p) => ({ ...p, cropX: 0, cropY: 0, cropScale: 1.0, cropRotation: 0, featherRadius: 85 }));
                     }}
                     className="text-[9px] text-[#141414] font-bold font-mono uppercase bg-white/60 border border-[#141414] px-1.5 py-0.5 rounded-none shadow-[1px_1px_0px_0px_#141414] hover:bg-white hover:translate-y-[1px] transition-all duration-200"
                   >
@@ -1883,6 +1887,33 @@ export default function App() {
                     onChange={(e) => setConfig((prev) => ({ ...prev, cropY: parseInt(e.target.value) }))}
                     className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
                   />
+                </div>
+
+                {/* Portrait Rotation Control */}
+                <div className="space-y-2 pt-2 border-t border-[#141414]/10">
+                  <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
+                    <span>PORTRAIT ROTATION</span>
+                    <span>{config.cropRotation || 0}°</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[0, 90, 180, 270].map((angle) => (
+                      <button
+                        key={angle}
+                        type="button"
+                        onClick={() => {
+                          setConfig((prev) => ({ ...prev, cropRotation: angle }));
+                          playSynthSound("zap");
+                        }}
+                        className={`py-2 px-2 text-[10px] font-mono font-bold border-2 transition-all ${
+                          (config.cropRotation || 0) === angle
+                            ? "bg-[#141414] text-white border-[#141414] shadow-[2px_2px_0px_0px_#141414]"
+                            : "bg-white text-[#141414] border-[#141414] hover:bg-gray-50 shadow-[1px_1px_0px_0px_#141414]"
+                        }`}
+                      >
+                        {angle}°
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Face Texture Preview Thumbnail */}

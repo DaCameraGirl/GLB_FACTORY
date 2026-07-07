@@ -11,7 +11,8 @@ export function prepareFaceTexture(
   featherRadius: number, // 0 to 100 (percentage size of the solid center)
   offsetX: number = 0, // shift crop horizontally (percent of face size)
   offsetY: number = 0, // shift crop vertically
-  scale: number = 1.0  // manual crop scaling zoom
+  scale: number = 1.0,  // manual crop scaling zoom
+  rotation: number = 0  // rotation in degrees (0, 90, 180, 270)
 ): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
@@ -69,11 +70,23 @@ export function prepareFaceTexture(
   const targetX = (256 - faceSizeOnCanvas) / 2;
   const targetY = (256 - faceSizeOnCanvas) / 2;
 
+  // Apply rotation if specified
+  if (rotation !== 0) {
+    tempCtx.save();
+    tempCtx.translate(128, 128); // Move to center
+    tempCtx.rotate((rotation * Math.PI) / 180); // Rotate
+    tempCtx.translate(-128, -128); // Move back
+  }
+
   tempCtx.drawImage(
     img,
     finalXmin, finalYmin, finalW, finalH, // Source
     targetX, targetY, faceSizeOnCanvas, faceSizeOnCanvas // Destination centered
   );
+
+  if (rotation !== 0) {
+    tempCtx.restore();
+  }
 
   // 3. Apply radial mask feathering or circular clipping
   const maskCanvas = document.createElement("canvas");
