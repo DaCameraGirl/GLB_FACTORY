@@ -4,4 +4,25 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --animate-melt: melt 7s ease-in-out infinite;
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  
+  @keyframes melt {
+    0% {
+      border-radius: 50% 50% 45% 55% / 55% 45% 55% 45%;
+    }
+    25% {
+      border-radius: 40% 60% 55% 45% / 45% 55% 40% 60%;
+    }
+    50% {
+      border-radius: 55% 45% 40% 60% / 60% 40% 50% 50%;
+    }
+    75% {
+      border-radius: 45% 55% 60% 40% / 50% 50% 45% 55%;
+    }
+    100% {
+      border-radius: 50% 50% 45% 55% / 55% 45% 55% 45%;
+    }
+  }
 }

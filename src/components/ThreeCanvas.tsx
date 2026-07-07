@@ -164,6 +164,7 @@ export default function ThreeCanvas({
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
+    controls.enableZoom = false; // Allow mouse scroll wheel to scroll the webpage instead of zooming the scene
     controls.maxPolarAngle = Math.PI / 2 + 0.1;
     controls.minDistance = 2.0;
     controls.maxDistance = 10.0;
@@ -671,18 +672,35 @@ export default function ThreeCanvas({
   useEffect(() => {
     if (!sceneRef.current) return;
 
-    // Remove old avatar group if exists
-    if (avatarGroupRef.current) {
-      sceneRef.current.remove(avatarGroupRef.current);
-    }
+    try {
+      // Remove old avatar group if exists
+      if (avatarGroupRef.current) {
+        sceneRef.current.remove(avatarGroupRef.current);
+        // Dispose old geometries and materials to prevent memory leaks
+        avatarGroupRef.current.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+              if (Array.isArray(child.material)) {
+                child.material.forEach((mat) => mat.dispose());
+              } else {
+                child.material.dispose();
+              }
+            }
+          }
+        });
+      }
 
-    // Build new avatar
-    const avatarGroup = buildAvatar(config, faceCanvas);
-    sceneRef.current.add(avatarGroup);
-    avatarGroupRef.current = avatarGroup;
+      // Build new avatar
+      const avatarGroup = buildAvatar(config, faceCanvas);
+      sceneRef.current.add(avatarGroup);
+      avatarGroupRef.current = avatarGroup;
 
-    if (onSceneReadyRef.current) {
-      onSceneReadyRef.current(avatarGroup);
+      if (onSceneReadyRef.current) {
+        onSceneReadyRef.current(avatarGroup);
+      }
+    } catch (err) {
+      console.error("CRITICAL: Failed to build or render 3D Avatar group:", err);
     }
   }, [
     config.skinColor,

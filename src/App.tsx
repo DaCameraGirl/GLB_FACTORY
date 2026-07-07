@@ -708,6 +708,57 @@ export default function App() {
     ]);
   };
 
+  // Slot Machine Probabilistic Rarity Engine
+  const calculateSlotMachineRarity = (chaosIntensity: number, maxDeviation: number): {
+    rarity: "COMMON" | "UNCOMMON" | "RARE" | "ULTRA-RARE" | "LEGENDARY" | "CHAOTIC-DIVINE";
+    rarityColor: string;
+  } => {
+    const baseRoll = Math.random(); // 0 to 1
+    // High chaos and deviation give a slight luck factor to the roll
+    const luckFactor = (maxDeviation * 0.08) + (chaosIntensity * 0.05);
+    const roll = baseRoll + luckFactor;
+
+    if (roll > 0.995) {
+      return {
+        rarity: "CHAOTIC-DIVINE",
+        rarityColor: "text-fuchsia-600 font-extrabold animate-pulse",
+      };
+    } else if (roll > 0.982) {
+      return {
+        rarity: "LEGENDARY",
+        rarityColor: "text-amber-500 font-extrabold",
+      };
+    } else if (roll > 0.925) {
+      return {
+        rarity: "ULTRA-RARE",
+        rarityColor: "text-purple-600 font-bold",
+      };
+    } else if (roll > 0.81) {
+      return {
+        rarity: "RARE",
+        rarityColor: "text-blue-600 font-bold",
+      };
+    } else if (roll > 0.52) {
+      return {
+        rarity: "UNCOMMON",
+        rarityColor: "text-emerald-600 font-bold",
+      };
+    } else {
+      return {
+        rarity: "COMMON",
+        rarityColor: "text-neutral-500 font-medium",
+      };
+    }
+  };
+
+  // Tab Selection with smooth scrolling
+  const handleTabSelection = (tab: "parts" | "transforms" | "materials" | "scene" | "camera") => {
+    setEditorTab(tab);
+    setTimeout(() => {
+      document.getElementById("customization-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
+
   const handleChaosMutation = () => {
     // Generate an absolute banger name
     const prefixes = ["Mega", "Giga", "Cyber", "Voxel", "Byte", "Chibi", "Retro", "Mecha", "Pixel", "Spell", "Nexus", "Turbo", "Stellar", "Quantum", "Hyper", "Vectr", "Alpha", "Slayer", "Neon", "Cosmic", "Glitch", "Retro", "Overlord", "Pico", "Spectre", "Buster"];
@@ -823,27 +874,7 @@ export default function App() {
     ];
     maxDeviation = Math.max(...deviations);
 
-    let rarity: "COMMON" | "UNCOMMON" | "RARE" | "ULTRA-RARE" | "LEGENDARY" | "CHAOTIC-DIVINE" = "COMMON";
-    let rarityColor = "text-[#141414]";
-
-    const totalChaosSum = chaosIntensity * (1 + maxDeviation);
-
-    if (totalChaosSum > 3.0) {
-      rarity = "CHAOTIC-DIVINE";
-      rarityColor = "text-fuchsia-600 font-extrabold animate-pulse";
-    } else if (totalChaosSum > 2.0) {
-      rarity = "LEGENDARY";
-      rarityColor = "text-amber-500 font-extrabold";
-    } else if (totalChaosSum > 1.4) {
-      rarity = "ULTRA-RARE";
-      rarityColor = "text-purple-600 font-bold";
-    } else if (totalChaosSum > 0.9) {
-      rarity = "RARE";
-      rarityColor = "text-blue-600 font-bold";
-    } else if (totalChaosSum > 0.5) {
-      rarity = "UNCOMMON";
-      rarityColor = "text-emerald-600 font-bold";
-    }
+    const { rarity, rarityColor } = calculateSlotMachineRarity(chaosIntensity, maxDeviation);
 
     // Dynamic descriptive builds
     let buildType = "Symmetric Normal";
@@ -1026,26 +1057,7 @@ export default function App() {
     ];
     maxDeviation = Math.max(...deviations);
 
-    let rarity: "COMMON" | "UNCOMMON" | "RARE" | "ULTRA-RARE" | "LEGENDARY" | "CHAOTIC-DIVINE" = "COMMON";
-    let rarityColor = "text-[#141414]";
-    const totalChaosSum = chaosIntensity * (1 + maxDeviation);
-
-    if (totalChaosSum > 3.0) {
-      rarity = "CHAOTIC-DIVINE";
-      rarityColor = "text-fuchsia-600 font-extrabold animate-pulse";
-    } else if (totalChaosSum > 2.0) {
-      rarity = "LEGENDARY";
-      rarityColor = "text-amber-500 font-extrabold";
-    } else if (totalChaosSum > 1.4) {
-      rarity = "ULTRA-RARE";
-      rarityColor = "text-purple-600 font-bold";
-    } else if (totalChaosSum > 0.9) {
-      rarity = "RARE";
-      rarityColor = "text-blue-600 font-bold";
-    } else if (totalChaosSum > 0.5) {
-      rarity = "UNCOMMON";
-      rarityColor = "text-emerald-600 font-bold";
-    }
+    const { rarity, rarityColor } = calculateSlotMachineRarity(chaosIntensity, maxDeviation);
 
     const buildType = `Spliced ${childBodyType === "chibi" ? "Minikin" : childBodyType === "tall" ? "Titan" : "Hybrid"}`;
     const armXDev = Math.abs(armScaleX - 1.0);
@@ -1633,6 +1645,11 @@ export default function App() {
     setCurrentStep("ready");
     addLog(`[GALLERY] Loaded premium character blueprint: ${hero.name.toUpperCase()}`, "success");
     playSynthSound("arp");
+
+    // Smooth scroll to 3D customizer workspace
+    setTimeout(() => {
+      document.getElementById("customization-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   };
 
   // Interactive 3D Step-by-Step Guide Stages Definition
@@ -1984,44 +2001,46 @@ export default function App() {
                   />
 
                   {sourceImage ? (
-                    <div className="relative w-full aspect-square max-w-[180px] rounded-none border border-[#141414] overflow-hidden group">
-                      <img
-                        ref={imageRef}
-                        src={sourceImage}
-                        alt="Portrait source"
-                        className="w-full h-full object-cover"
-                        onLoad={() => {
-                          // Automatically set a full-bounding box if none is set
-                          if (!faceBox) {
-                            setFaceBox([10, 10, 90, 90]);
-                          } else {
-                            updateFaceTexture();
-                          }
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-white/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
-                        <span className="text-[10px] bg-[#141414] text-white font-mono px-2 py-1 rounded-none uppercase font-bold tracking-wider">
-                          Replace Photo
-                        </span>
-                      </div>
-
-                      {/* Display Face Bounding Box Overlay if available */}
-                      {faceBox && (
-                        <div
-                          className="absolute border-2 border-dashed border-[#141414] pointer-events-none"
-                          style={{
-                            top: `${faceBox[0]}%`,
-                            left: `${faceBox[1]}%`,
-                            width: `${faceBox[3] - faceBox[1]}%`,
-                            height: `${faceBox[2] - faceBox[0]}%`,
+                    <div className="relative w-full aspect-square max-w-[180px] border-4 border-double border-[#141414] overflow-hidden group animate-melt shadow-[4px_4px_0px_0px_rgba(20,20,20,0.15)] bg-gradient-to-br from-[#D946EF]/20 via-transparent to-[#F59E0B]/20 p-2 flex items-center justify-center">
+                      <div className="w-full h-full overflow-hidden animate-melt border border-[#141414] relative bg-white/60">
+                        <img
+                          ref={imageRef}
+                          src={sourceImage}
+                          alt="Portrait source"
+                          className="w-full h-full object-cover"
+                          onLoad={() => {
+                            // Automatically set a full-bounding box if none is set
+                            if (!faceBox) {
+                              setFaceBox([10, 10, 90, 90]);
+                            } else {
+                              updateFaceTexture();
+                            }
                           }}
-                          id="detected-face-box-overlay"
-                        >
-                          <span className="absolute -top-5 left-0 bg-[#141414] text-white text-[9px] font-mono font-bold px-1 rounded-none uppercase">
-                            FACE_BOX
+                        />
+                        <div className="absolute inset-0 bg-white/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 z-10">
+                          <span className="text-[10px] bg-[#141414] text-white font-mono px-2 py-1 rounded-none uppercase font-bold tracking-wider">
+                            Replace Photo
                           </span>
                         </div>
-                      )}
+
+                        {/* Display Face Bounding Box Overlay if available */}
+                        {faceBox && (
+                          <div
+                            className="absolute border-2 border-dashed border-[#141414] pointer-events-none z-10"
+                            style={{
+                              top: `${faceBox[0]}%`,
+                              left: `${faceBox[1]}%`,
+                              width: `${faceBox[3] - faceBox[1]}%`,
+                              height: `${faceBox[2] - faceBox[0]}%`,
+                            }}
+                            id="detected-face-box-overlay"
+                          >
+                            <span className="absolute -top-5 left-0 bg-[#141414] text-white text-[9px] font-mono font-bold px-1 rounded-none uppercase">
+                              FACE_BOX
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -2199,7 +2218,7 @@ export default function App() {
               {/* Blender Tabs Selector */}
               <div className="grid grid-cols-5 gap-1 bg-[#141414]/5 p-1 border-2 border-[#141414] font-mono text-[9px] font-bold">
                 <button
-                  onClick={() => setEditorTab("parts")}
+                  onClick={() => handleTabSelection("parts")}
                   className={`py-1.5 px-0.5 uppercase text-center transition-all ${
                     editorTab === "parts"
                       ? "bg-[#141414] text-white"
@@ -2209,7 +2228,7 @@ export default function App() {
                   Parts
                 </button>
                 <button
-                  onClick={() => setEditorTab("transforms")}
+                  onClick={() => handleTabSelection("transforms")}
                   className={`py-1.5 px-0.5 uppercase text-center transition-all ${
                     editorTab === "transforms"
                       ? "bg-[#141414] text-white"
@@ -2219,7 +2238,7 @@ export default function App() {
                   Transform
                 </button>
                 <button
-                  onClick={() => setEditorTab("materials")}
+                  onClick={() => handleTabSelection("materials")}
                   className={`py-1.5 px-0.5 uppercase text-center transition-all ${
                     editorTab === "materials"
                       ? "bg-[#141414] text-white"
@@ -2229,7 +2248,7 @@ export default function App() {
                   Material
                 </button>
                 <button
-                  onClick={() => setEditorTab("scene")}
+                  onClick={() => handleTabSelection("scene")}
                   className={`py-1.5 px-0.5 uppercase text-center transition-all ${
                     editorTab === "scene"
                       ? "bg-[#141414] text-white"
@@ -2239,7 +2258,7 @@ export default function App() {
                   Scene
                 </button>
                 <button
-                  onClick={() => setEditorTab("camera")}
+                  onClick={() => handleTabSelection("camera")}
                   className={`py-1.5 px-0.5 uppercase text-center transition-all ${
                     editorTab === "camera"
                       ? "bg-[#D946EF] text-white border-2 border-[#141414] shadow-[1px_1px_0px_0px_#141414]"
@@ -3373,7 +3392,7 @@ export default function App() {
           </div>
 
           {/* RIGHT PANEL: LIVE 3D PREVIEW AND EXPORT TERMINAL (LG: 7 cols) */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="lg:col-span-7 space-y-6 lg:sticky lg:top-6 h-fit">
             {/* 3D PREVIEW BLOCK */}
             <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 relative shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]" id="preview-panel">
               <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#D4D3D0] flex items-center justify-between">
