@@ -85,8 +85,8 @@ export function prepareFaceTexture(
     
     if (featherEdges) {
       // Smooth feathered radial gradient mask
-      const innerRadius = maxRadius * (featherRadius / 100) * 0.45;
-      const outerRadius = maxRadius * (featherRadius / 100) * 0.95;
+      const innerRadius = maxRadius * (featherRadius / 100) * 0.85;
+      const outerRadius = maxRadius * (featherRadius / 100) * 1.8;
 
       const gradient = maskCtx.createRadialGradient(
         128, 128, innerRadius,
