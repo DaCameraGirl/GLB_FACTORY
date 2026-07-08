@@ -551,7 +551,7 @@ export default function App() {
   // Interactive 3D Step-by-Step Directives guide stage
   const [guideStage, setGuideStage] = useState<number>(0);
 
-  // BettiN2Win-Style Interactive Documentation & Wiki Active Tab
+  // Interactive documentation and workflow guide active tab
   const [wikiTab, setWikiTab] = useState<"quickstart" | "texturing" | "rigging" | "shading" | "export">("quickstart");
 
   // Avatar Configuration
@@ -3392,7 +3392,7 @@ export default function App() {
           </div>
 
           {/* RIGHT PANEL: LIVE 3D PREVIEW AND EXPORT TERMINAL (LG: 7 cols) */}
-          <div className="lg:col-span-7 space-y-6 lg:sticky lg:top-6 h-fit">
+          <div className="lg:col-span-7 space-y-6">
             {/* 3D PREVIEW BLOCK */}
             <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 relative shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]" id="preview-panel">
               <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#D4D3D0] flex items-center justify-between">
@@ -4186,24 +4186,24 @@ export default function App() {
           </div>
         </div>
 
-        {/* 📖 BettiN2Win Masterclass: Ultimate Voxel-Rig Pipeline & Multi-Framework Guidebook */}
+        {/* Studio guidebook and export workflow documentation */}
         <section className="bg-white/95 border-2 border-[#141414] rounded-none p-6 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.15)] text-[#141414] space-y-4" id="documentation-section">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#141414] pb-3 gap-2">
             <h3 className="font-serif text-[12px] text-[#141414] font-bold uppercase tracking-wide flex items-center gap-2">
               <span className="text-base">📖</span>
-              <span>BettiN2Win Masterclass: Ultimate Voxel-Rig Pipeline & Multi-Framework Guidebook</span>
+              <span>GLB Factory Guidebook: Voxel Rig Pipeline & Export Workflow</span>
             </h3>
-            <span className="font-mono text-[9px] bg-yellow-400 border border-[#141414] px-2 py-0.5 font-bold uppercase tracking-widest shadow-[1px_1px_0px_0px_#141414] shrink-0">
-              DEVELOPER_EDITION // ONLINE_WIKI
+            <span className="font-mono text-[11px] bg-yellow-400 border border-[#141414] px-2 py-0.5 font-bold uppercase tracking-widest shadow-[1px_1px_0px_0px_#141414] shrink-0">
+              STUDIO_DOCS // WORKFLOW_GUIDE
             </span>
           </div>
 
-          <p className="text-[11px] font-mono leading-relaxed normal-case text-gray-700">
-            Welcome to the masterclass manual! Inspired by the high-fidelity verbose structures of the Bettin2Win repositories, we have built a fully detailed step-by-step documentation system explaining our mathematical, canvas, shader, and external engine translation systems. Toggle the folders below to explore.
+          <p className="text-[14px] font-mono leading-relaxed normal-case text-gray-700">
+            This guide explains the core portrait, texture, rigging, shading, and export workflow used in GLB Factory. Use the sections below to review how the studio turns source images into stylized voxel-ready GLB characters.
           </p>
 
           {/* Interactive Documentation Sub-Tabs */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1 bg-[#141414]/5 border-2 border-[#141414] font-mono text-[9px] font-bold select-none">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1 bg-[#141414]/5 border-2 border-[#141414] font-mono text-[11px] font-bold select-none">
             {(["quickstart", "texturing", "rigging", "shading", "export"] as const).map((tab) => (
               <button
                 key={tab}
@@ -4225,14 +4225,14 @@ export default function App() {
           </div>
 
           {/* TAB CONTENTS (Ultra-Verbose, Technical, Detailed Explanations!) */}
-          <div className="bg-[#141414]/5 border-2 border-[#141414] p-5 font-mono text-xs text-gray-800 leading-relaxed shadow-[inner_2px_2px_4px_rgba(0,0,0,0.05)]">
+          <div className="bg-[#141414]/5 border-2 border-[#141414] p-5 font-mono text-[14px] text-gray-800 leading-relaxed shadow-[inner_2px_2px_4px_rgba(0,0,0,0.05)]">
             
             {/* QUICKSTART TAB */}
             {wikiTab === "quickstart" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-[#141414]/20 pb-2">
-                  <span className="font-bold uppercase text-[10px] text-gray-950 tracking-wider">[01 / 🚀 FIVE-STEP AVATAR CREATION WALKTHROUGH]</span>
-                  <span className="text-[9px] bg-green-200 text-green-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">BEGINNER FRIENDLY</span>
+                  <span className="font-bold uppercase text-[12px] text-gray-950 tracking-wider">[01 / 🚀 FIVE-STEP AVATAR CREATION WALKTHROUGH]</span>
+                  <span className="text-[11px] bg-green-200 text-green-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">BEGINNER FRIENDLY</span>
                 </div>
                 <p className="normal-case">
                   Follow these step-by-step procedural instructions to generate, fine-tune, style, and retrieve a rigged, production-ready voxel character:
@@ -4240,31 +4240,31 @@ export default function App() {
                 <div className="space-y-3 pl-2 border-l-2 border-yellow-500">
                   <div className="space-y-1">
                     <span className="font-bold text-gray-950 block">1. INITIAL PORTRAIT ACQUISITION & PHOTOGRAPHY RULES</span>
-                    <p className="normal-case pl-3 text-[11px] text-gray-700">
+                    <p className="normal-case pl-3 text-[14px] text-gray-700">
                       Drag and drop any front-facing portrait photo into the Drag & Drop Zone. For optimal results, ensure the camera is at eye-level, the subject is facing straight forward, and has flat, uniform lighting. Shadows on half the face can affect color-picker calculations!
                     </p>
                   </div>
                   <div className="space-y-1">
                     <span className="font-bold text-gray-950 block">2. PIPELINE TRIGGERING (GEMINI AI DETECTOR)</span>
-                    <p className="normal-case pl-3 text-[11px] text-gray-700">
+                    <p className="normal-case pl-3 text-[14px] text-gray-700">
                       Click <strong className="text-gray-950">"Build 3D Avatar"</strong>. This activates our server-side secure proxy pipeline. The Gemini vision model analyzes your photo, locates the exact bounding coordinates of the face, and automatically detects dominant skin-tone, hair-style, and clothing pigment hashes.
                     </p>
                   </div>
                   <div className="space-y-1">
                     <span className="font-bold text-gray-950 block">3. TEXTURE TUNING & SEAMLESS CANVAS FEATHERING</span>
-                    <p className="normal-case pl-3 text-[11px] text-gray-700">
+                    <p className="normal-case pl-3 text-[14px] text-gray-700">
                       Check the <strong className="text-gray-950">"02 // Fine-Tune Face Texture"</strong> panel. Enable "Feather Edges" to allow our canvas shader helper to blend the edges of your photo into the synthetic skin. Use "Shift Horizontal/Vertical" and "Crop Scale" to center the eyes within the 3D model sockets perfectly!
                     </p>
                   </div>
                   <div className="space-y-1">
                     <span className="font-bold text-gray-950 block">4. PARTS SELECTION AND CUSTOM TRANSFORM OVERRIDES</span>
-                    <p className="normal-case pl-3 text-[11px] text-gray-700">
+                    <p className="normal-case pl-3 text-[14px] text-gray-700">
                       Access the tabbed workspace. Equip custom voxel parts (Hairstyles, Body Proportions), toggle custom 3D mesh transforms (head scale, arm offsets, leg morphing), or slide roughness/metalness parameters to achieve custom plastic, matte, or futuristic chrome textures.
                     </p>
                   </div>
                   <div className="space-y-1">
                     <span className="font-bold text-gray-950 block">5. RETRIEVAL AND RETARGETING (EXPORT)</span>
-                    <p className="normal-case pl-3 text-[11px] text-gray-700">
+                    <p className="normal-case pl-3 text-[14px] text-gray-700">
                       Click <strong className="text-gray-950">"Export Final GLB"</strong> to retrieve a single, highly compressed 3D GLB model containing animations, PBR materials, skin weighting, and structural bone rigs ready to be integrated into any 3D workflow!
                     </p>
                   </div>
@@ -4276,14 +4276,14 @@ export default function App() {
             {wikiTab === "texturing" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-[#141414]/20 pb-2">
-                  <span className="font-bold uppercase text-[10px] text-gray-950 tracking-wider">[02 / 🧠 MATHEMATICAL FRONT FACE UV TEXTURE GENERATION]</span>
-                  <span className="text-[9px] bg-blue-200 text-blue-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">ADVANCED CANVAS MATH</span>
+                  <span className="font-bold uppercase text-[12px] text-gray-950 tracking-wider">[02 / 🧠 MATHEMATICAL FRONT FACE UV TEXTURE GENERATION]</span>
+                  <span className="text-[11px] bg-blue-200 text-blue-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">ADVANCED CANVAS MATH</span>
                 </div>
                 <p className="normal-case">
                   This engine maps flat 2D portrait pixels onto a custom 3D sphere/cube topology using an HTML5 canvas processing model:
                 </p>
                 <div className="space-y-2.5">
-                  <div className="bg-white border border-[#141414]/20 p-3 rounded text-[11px] font-mono leading-relaxed space-y-1">
+                  <div className="bg-white border border-[#141414]/20 p-3 rounded text-[14px] font-mono leading-relaxed space-y-1">
                     <span className="font-bold text-[#141414] block">How coordinates are resolved:</span>
                     <p className="normal-case text-gray-700">
                       Gemini returns face coordinate boundaries normalized on a 0-100% grid: <code className="bg-gray-100 text-[#141414] px-1 font-bold">[ymin, xmin, ymax, xmax]</code>. We read this data and extract a crop box around the facial region.
@@ -4293,14 +4293,14 @@ export default function App() {
                     </p>
                   </div>
 
-                  <div className="bg-white border border-[#141414]/20 p-3 rounded text-[11px] font-mono leading-relaxed space-y-1">
+                  <div className="bg-white border border-[#141414]/20 p-3 rounded text-[14px] font-mono leading-relaxed space-y-1">
                     <span className="font-bold text-[#141414] block">Seamless Edge Feathering Algorithm:</span>
                     <p className="normal-case text-gray-700">
                       To prevent jarring straight boundaries, we generate a secondary transparent radial canvas mask. We fill the canvas perimeter with the solid, computer-generated skin pigment matching the computed <code className="bg-gray-100 text-[#141414] px-1 font-bold">skinColor</code>, and overlay the photograph with an inverse gradient transparency envelope. The feathering radius governs the blur slope. This results in a seamless transition!
                     </p>
                   </div>
 
-                  <div className="bg-white border border-[#141414]/20 p-3 rounded text-[11px] font-mono leading-relaxed space-y-1">
+                  <div className="bg-white border border-[#141414]/20 p-3 rounded text-[14px] font-mono leading-relaxed space-y-1">
                     <span className="font-bold text-[#141414] block">2D Esthetic Overlay Filters:</span>
                     <p className="normal-case text-gray-700">
                       To expand the styling options beyond raw 3D meshes, you can toggle active 2D Style Overlays on the scene container. These overlays utilize high-performance CSS grid patterns and mix-blend CSS overlays to simulate physical phosphor masks (CRT), dot-matrix sub-pixels (GameBoy), vector crosshairs (Cyberpunk), and pencil/graphite textures (Sketch) in real time.
@@ -4314,13 +4314,13 @@ export default function App() {
             {wikiTab === "rigging" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-[#141414]/20 pb-2">
-                  <span className="font-bold uppercase text-[10px] text-gray-950 tracking-wider">[03 / 🧱 VOXEL GRAPH RIGGING & ROTATIONAL MATRICES]</span>
-                  <span className="text-[9px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">HIERARCHICAL RIGGING</span>
+                  <span className="font-bold uppercase text-[12px] text-gray-950 tracking-wider">[03 / 🧱 VOXEL GRAPH RIGGING & ROTATIONAL MATRICES]</span>
+                  <span className="text-[11px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">HIERARCHICAL RIGGING</span>
                 </div>
                 <p className="normal-case">
                   Voxel character rigs are represented as a joint-hierarchy of connected meshes inside a 3D scenegraph context:
                 </p>
-                <div className="space-y-3 text-[11px] text-gray-700">
+                <div className="space-y-3 text-[14px] text-gray-700">
                   <p className="normal-case">
                     The model root container is a single <code className="bg-gray-100 text-[#141414] px-1 font-bold">THREE.Group</code> representing the character bounds. All parts are parented hierarchically, meaning translation and rotation applied to the parent automatically offsets children:
                   </p>
@@ -4348,13 +4348,13 @@ export default function App() {
             {wikiTab === "shading" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-[#141414]/20 pb-2">
-                  <span className="font-bold uppercase text-[10px] text-gray-950 tracking-wider">[04 / ✨ WEBGL PHYSICALLY-BASED MATERIALS & CYBER EMISSIVE LIGHTING]</span>
-                  <span className="text-[9px] bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">PBR PIPELINE</span>
+                  <span className="font-bold uppercase text-[12px] text-gray-950 tracking-wider">[04 / ✨ WEBGL PHYSICALLY-BASED MATERIALS & CYBER EMISSIVE LIGHTING]</span>
+                  <span className="text-[11px] bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">PBR PIPELINE</span>
                 </div>
                 <p className="normal-case">
                   Every mesh uses <code className="bg-gray-100 text-[#141414] px-1 font-bold">THREE.MeshStandardMaterial</code> to achieve high-fidelity rendering:
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] text-gray-700">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[14px] text-gray-700">
                   <div className="bg-white border border-[#141414]/20 p-3 rounded space-y-1">
                     <strong className="text-gray-950 block uppercase font-bold">1. Surface Micro-Facet Roughness</strong>
                     <p className="normal-case">
@@ -4381,14 +4381,14 @@ export default function App() {
             {wikiTab === "export" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-[#141414]/20 pb-2">
-                  <span className="font-bold uppercase text-[10px] text-gray-950 tracking-wider">[05 / 🎮 BLENDER, MIXAMO, UNITY, AND UNREAL ENGINE WORKFLOW]</span>
-                  <span className="text-[9px] bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">PRODUCTION READY</span>
+                  <span className="font-bold uppercase text-[12px] text-gray-950 tracking-wider">[05 / 🎮 BLENDER, MIXAMO, UNITY, AND UNREAL ENGINE WORKFLOW]</span>
+                  <span className="text-[11px] bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">PRODUCTION READY</span>
                 </div>
                 <p className="normal-case">
                   How to import and animate your exported GLB file in major industry-standard 3D software and games platforms:
                 </p>
                 
-                <div className="space-y-3 text-[11px] text-gray-700">
+                <div className="space-y-3 text-[14px] text-gray-700">
                   <div className="bg-white border border-[#141414]/20 p-3 rounded space-y-1.5">
                     <div className="flex items-center justify-between">
                       <strong className="text-gray-950 block font-bold">🧡 BLENDER RE-RIGGING & COMPOSITION</strong>
