@@ -85,6 +85,12 @@ export interface AvatarConfig {
   poseRightArmRotationZ?: number; // degrees -180 to 180
   poseLeftLegRotationX?: number; // degrees -90 to 90
   poseRightLegRotationX?: number; // degrees -90 to 90
+
+  // Meltdown Factory features
+  isMelting?: boolean;
+  meltProgress?: number; // 0 to 1
+  meltPreset?: "slime" | "gold" | "acid" | "lava";
+  meltViscosity?: number; // 0.1 to 1.0
 }
 
 export interface DetectionResult {

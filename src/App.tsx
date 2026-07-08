@@ -544,6 +544,7 @@ export default function App() {
   // Pipeline steps status
   const [currentStep, setCurrentStep] = useState<"upload" | "texture" | "mesh" | "glb" | "ready">("upload");
   const [showFlash, setShowFlash] = useState(false);
+  const [brightnessLevel, setBrightnessLevel] = useState<"standard" | "low" | "high" | "overdrive">("standard");
 
   // Blender-style Workspace active tab
   const [editorTab, setEditorTab] = useState<"parts" | "transforms" | "materials" | "scene" | "camera">("parts");
@@ -630,6 +631,8 @@ export default function App() {
     storyFrameStyle: "none",
     bigHeadFactor: 0.0,
     colorFilterPreset: "none",
+    meltPreset: "slime",
+    meltViscosity: 0.5,
   });
 
   // Physics bounce timer trigger
@@ -654,6 +657,7 @@ export default function App() {
   // Visual parameters
   const [autoRotate, setAutoRotate] = useState(true);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [meltActive, setMeltActive] = useState(false);
 
   // Irresistible Chaos Mutation states
   const [chaosIntensity, setChaosIntensity] = useState<number>(0.85);
@@ -694,6 +698,7 @@ export default function App() {
   // Refs for Image element and exported group
   const imageRef = useRef<HTMLImageElement | null>(null);
   const avatarGroupRef = useRef<THREE.Group | null>(null);
+  const meltdownTimerRef = useRef<number | null>(null);
 
   // 2. Logging helper
   const addLog = (text: string, type: LogEntry["type"] = "info") => {
@@ -1158,6 +1163,14 @@ export default function App() {
     return () => clearInterval(interval);
   }, [autoMutationActive, chaosIntensity]);
 
+  useEffect(() => {
+    return () => {
+      if (meltdownTimerRef.current) {
+        window.clearInterval(meltdownTimerRef.current);
+      }
+    };
+  }, []);
+
   // Save mutationVault entries to localStorage whenever they change
   useEffect(() => {
     try {
@@ -1413,6 +1426,78 @@ export default function App() {
     }
   };
 
+  const handleCycleBrightness = () => {
+    const sequence: Array<{
+      level: "low" | "standard" | "high" | "overdrive";
+      ambient: number;
+      key: number;
+    }> = [
+      { level: "low", ambient: 0.35, key: 0.45 },
+      { level: "standard", ambient: 0.75, key: 0.85 },
+      { level: "high", ambient: 1.35, key: 1.45 },
+      { level: "overdrive", ambient: 1.95, key: 1.95 },
+    ];
+
+    const currentIndex = sequence.findIndex((entry) => entry.level === brightnessLevel);
+    const next = sequence[(currentIndex + 1) % sequence.length];
+
+    setBrightnessLevel(next.level);
+    setConfig((prev) => ({
+      ...prev,
+      ambientIntensity: next.ambient,
+      keyLightIntensity: next.key,
+    }));
+    addLog(`[LIGHTING] Set brightness preset to ${next.level.toUpperCase()}.`, "info");
+    playSynthSound("zap");
+  };
+
+  const handleTriggerMeltdown = (preset: "slime" | "gold" | "acid" | "lava" = "slime") => {
+    if (meltdownTimerRef.current) {
+      window.clearInterval(meltdownTimerRef.current);
+    }
+
+    const viscosity = config.meltViscosity ?? 0.5;
+    const stepSpeed = 0.01 + viscosity * 0.03;
+
+    setConfig((prev) => ({
+      ...prev,
+      isMelting: true,
+      meltProgress: 0,
+      meltPreset: preset,
+    }));
+    setMeltActive(true);
+    addLog(`[MELTDOWN] Reactor engaged: ${preset.toUpperCase()} profile.`, "warning");
+    playSynthSound("boom");
+
+    let progress = 0;
+    meltdownTimerRef.current = window.setInterval(() => {
+      progress = Math.min(1, progress + stepSpeed);
+
+      setConfig((prev) => ({
+        ...prev,
+        meltProgress: progress,
+      }));
+
+      if (progress >= 1) {
+        if (meltdownTimerRef.current) {
+          window.clearInterval(meltdownTimerRef.current);
+          meltdownTimerRef.current = null;
+        }
+
+        window.setTimeout(() => {
+          setConfig((prev) => ({
+            ...prev,
+            isMelting: false,
+            meltProgress: 0,
+          }));
+          setMeltActive(false);
+          addLog("[MELTDOWN] Splice cycle complete. Geometry re-solidified.", "success");
+          playSynthSound("coin");
+        }, 700);
+      }
+    }, 30);
+  };
+
   // 8. Snapchat Shutter Snap Capture & Compositer
   const handleTakeSnap = () => {
     // Synth shutter trigger using Web Audio API
@@ -1565,6 +1650,11 @@ export default function App() {
 
   // Reset configuration to defaults
   const handleResetDefaults = () => {
+    if (meltdownTimerRef.current) {
+      window.clearInterval(meltdownTimerRef.current);
+      meltdownTimerRef.current = null;
+    }
+
     setConfig({
       name: "Chase",
       skinColor: "#e5a65d",
@@ -1622,7 +1712,11 @@ export default function App() {
       keyLightColor: "#ffffff",
       cameraFov: 45,
       cameraPreset: "front",
+      meltPreset: "slime",
+      meltViscosity: 0.5,
     });
+    setBrightnessLevel("standard");
+    setMeltActive(false);
     setEditorTab("parts");
     addLog("Customizer configurations and workspace tabs reset to defaults.", "info");
     playSynthSound("jump");
@@ -1630,12 +1724,20 @@ export default function App() {
 
   // Load preset character template
   const handleLoadPreset = (hero: PresetHero) => {
+    if (meltdownTimerRef.current) {
+      window.clearInterval(meltdownTimerRef.current);
+      meltdownTimerRef.current = null;
+    }
+
     setCharacterName(hero.name);
     setConfig((prev) => ({
       ...prev,
       ...hero.config,
       name: hero.name,
+      isMelting: false,
+      meltProgress: 0,
     }));
+    setMeltActive(false);
     setIsSuccess(true);
     setCurrentStep((prev) => (prev === "upload" ? "ready" : prev));
     addLog(`[GALLERY] Loaded premium character blueprint: ${hero.name.toUpperCase()}`, "success");
@@ -2187,6 +2289,96 @@ export default function App() {
                     </div>
                   </div>
                 )}
+              </section>
+            )}
+
+            {sourceImage && (
+              <section className="bg-yellow-50/85 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_#141414]" id="meltdown-factory-panel">
+                <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-yellow-300 flex items-center justify-between">
+                  <h2 className="font-sans text-[11px] font-black text-[#141414] uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="text-[14px]">☣</span>
+                    <span>Meltdown Factory</span>
+                  </h2>
+                  <span className="text-[9px] font-mono font-bold bg-[#141414] text-yellow-300 px-1.5 py-0.5 uppercase tracking-tight">
+                    Image Splicer
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-[#141414]/85 leading-relaxed font-sans">
+                  Trigger a melt pass that collapses the rig into a pooled splice effect, then solidifies it back into the avatar.
+                </p>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-mono font-bold text-[#141414]/70 uppercase">Select Melting Agent</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: "slime", label: "Toxic Slime", desc: "Radioactive plasma drip" },
+                      { id: "gold", label: "Liquid Gold", desc: "Molten premium metal" },
+                      { id: "acid", label: "Bio Acid", desc: "Corrosive neon sludge" },
+                      { id: "lava", label: "Volcanic Lava", desc: "Fiery magma puddle" },
+                    ].map((agent) => (
+                      <button
+                        key={agent.id}
+                        type="button"
+                        onClick={() => setConfig((prev) => ({ ...prev, meltPreset: agent.id as AvatarConfig["meltPreset"] }))}
+                        className={`text-left p-2 rounded-none border-2 border-[#141414] transition-all duration-150 cursor-pointer ${
+                          (config.meltPreset || "slime") === agent.id
+                            ? "bg-[#141414] text-white shadow-none"
+                            : "bg-white text-[#141414] shadow-[2px_2px_0px_0px_#141414] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#141414]"
+                        }`}
+                      >
+                        <div className="text-[10px] font-bold uppercase">{agent.label}</div>
+                        <div className={`text-[8px] mt-0.5 ${(config.meltPreset || "slime") === agent.id ? "text-white/60" : "text-neutral-500"}`}>
+                          {agent.desc}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
+                    <span className="uppercase">Reactor Viscosity</span>
+                    <span>{Math.round((config.meltViscosity || 0.5) * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="1.0"
+                    step="0.1"
+                    value={config.meltViscosity || 0.5}
+                    onChange={(e) => setConfig((prev) => ({ ...prev, meltViscosity: parseFloat(e.target.value) }))}
+                    className="w-full accent-[#141414] h-1.5 bg-[#D4D3D0] rounded-none cursor-pointer"
+                  />
+                </div>
+
+                {meltActive && (
+                  <div className="p-3 bg-[#141414] text-white rounded-none border-2 border-[#141414] font-mono text-[10px] space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-yellow-400 font-bold uppercase tracking-wider animate-pulse">Melting Geometry...</span>
+                      <span>{Math.round((config.meltProgress || 0) * 100)}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-neutral-800 rounded-none overflow-hidden relative">
+                      <div
+                        className="h-full bg-gradient-to-r from-green-500 via-yellow-400 to-red-500 transition-all duration-100"
+                        style={{ width: `${(config.meltProgress || 0) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  disabled={meltActive}
+                  onClick={() => handleTriggerMeltdown(config.meltPreset || "slime")}
+                  className={`w-full py-2.5 px-4 font-mono text-xs font-black tracking-wider transition-all duration-300 flex items-center justify-center gap-2 uppercase select-none rounded-none border-2 border-[#141414] ${
+                    meltActive
+                      ? "bg-neutral-300 text-neutral-500 cursor-not-allowed shadow-none"
+                      : "bg-red-500 text-white hover:bg-red-600 hover:translate-x-[2px] hover:translate-y-[2px] shadow-[3px_3px_0px_0px_#141414] hover:shadow-[1px_1px_0px_0px_#141414] cursor-pointer"
+                  }`}
+                >
+                  <span>{meltActive ? "Splicing in progress..." : "Trigger Meltdown Transition"}</span>
+                </button>
               </section>
             )}
 
@@ -3391,7 +3583,16 @@ export default function App() {
                   <span>04 // 3D Render Viewport</span>
                 </h2>
 
-                <div className="flex items-center gap-4 text-[10px] font-mono text-[#141414]">
+                <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-[#141414]">
+                  <button
+                    type="button"
+                    onClick={handleCycleBrightness}
+                    title={`Cycle brightness levels (Current: ${brightnessLevel.toUpperCase()})`}
+                    className="flex items-center gap-1 border-2 border-[#141414] bg-neutral-100 hover:bg-neutral-200 text-[#141414] px-2 py-0.5 font-bold uppercase tracking-wide select-none cursor-pointer text-[9px] shadow-[1px_1px_0px_0px_rgba(20,20,20,0.15)] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none"
+                  >
+                    <span>Light: {brightnessLevel.toUpperCase()}</span>
+                  </button>
+
                   {/* Auto rotate checkbox */}
                   <label className="flex items-center gap-1.5 cursor-pointer text-[#141414]/80 hover:text-[#141414] font-bold uppercase select-none">
                     <input

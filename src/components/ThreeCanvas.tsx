@@ -31,6 +31,7 @@ export default function ThreeCanvas({
   const gridHelperRef = useRef<THREE.GridHelper | null>(null);
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
   const dirLightRef = useRef<THREE.DirectionalLight | null>(null);
+  const meltParticlesRef = useRef<THREE.Group | null>(null);
 
   // Snapchat Lenses particles state refs
   const particlesRef = useRef<THREE.Group | null>(null);
@@ -130,6 +131,11 @@ export default function ThreeCanvas({
     particlesGroup.name = "lens-particles-group";
     scene.add(particlesGroup);
     particlesRef.current = particlesGroup;
+
+    const meltParticlesGroup = new THREE.Group();
+    meltParticlesGroup.name = "melt-particles-group";
+    scene.add(meltParticlesGroup);
+    meltParticlesRef.current = meltParticlesGroup;
 
     // Add grid helper
     const gridHelper = new THREE.GridHelper(10, 20, "#141414", "#888888");
@@ -288,7 +294,18 @@ export default function ThreeCanvas({
         }
 
         avatarGroupRef.current.position.y = bounceY;
-        avatarGroupRef.current.scale.set(squishXZ, squishY, squishXZ);
+        let finalScaleX = squishXZ;
+        let finalScaleY = squishY;
+        let finalScaleZ = squishXZ;
+
+        if (activeConfig.isMelting) {
+          const progress = activeConfig.meltProgress || 0;
+          finalScaleY *= 1.0 - progress * 0.75;
+          finalScaleX *= 1.0 + progress * 0.65;
+          finalScaleZ *= 1.0 + progress * 0.65;
+        }
+
+        avatarGroupRef.current.scale.set(finalScaleX, finalScaleY, finalScaleZ);
 
         // Snapchat Dynamic Big Head Lens controller
         const headObj = avatarGroupRef.current.getObjectByName("head") as THREE.Object3D;
@@ -415,6 +432,98 @@ export default function ThreeCanvas({
             mesh.position.y = -0.5;
             mesh.position.x = (Math.random() - 0.5) * 3.0;
             mesh.position.z = (Math.random() - 0.5) * 2.5;
+          }
+        });
+      }
+
+      if (meltParticlesRef.current) {
+        const isMeltActive = activeConfig.isMelting && activeConfig.meltProgress !== undefined;
+        if (isMeltActive && Math.random() < 0.45) {
+          const progress = activeConfig.meltProgress || 0;
+          let colorHex = activeConfig.skinColor || "#e5a65d";
+          const selector = Math.random();
+
+          if (selector < 0.25) colorHex = activeConfig.hairColor || "#141414";
+          else if (selector < 0.55) colorHex = activeConfig.clothingColor || "#3b82f6";
+          else if (selector < 0.75) colorHex = activeConfig.pantsColor || "#111827";
+
+          if (activeConfig.meltPreset === "gold") colorHex = "#ffd700";
+          else if (activeConfig.meltPreset === "acid") colorHex = "#39ff14";
+          else if (activeConfig.meltPreset === "lava") colorHex = "#ff4500";
+          else if (activeConfig.meltPreset === "slime") colorHex = "#4ade80";
+
+          const viscosity = activeConfig.meltViscosity ?? 0.5;
+          const dropSize = 0.03 + Math.random() * 0.04;
+          const drop = new THREE.Mesh(
+            new THREE.SphereGeometry(dropSize, 5, 5),
+            new THREE.MeshStandardMaterial({
+              color: new THREE.Color(colorHex),
+              roughness: 0.15,
+              metalness: activeConfig.meltPreset === "gold" ? 0.9 : 0.08,
+              emissive:
+                activeConfig.meltPreset === "lava" || activeConfig.meltPreset === "acid"
+                  ? new THREE.Color(colorHex)
+                  : new THREE.Color(0, 0, 0),
+              emissiveIntensity: activeConfig.meltPreset === "lava" ? 1.2 : activeConfig.meltPreset === "acid" ? 0.7 : 0,
+            })
+          );
+
+          const baseHeight = activeConfig.bodyType === "tall" ? 2.0 : activeConfig.bodyType === "chibi" ? 0.9 : 1.45;
+          drop.position.set(
+            (Math.random() - 0.5) * 0.7 * (progress + 0.5),
+            baseHeight * (1.0 - progress * 0.45) + (Math.random() - 0.5) * 0.15,
+            (Math.random() - 0.5) * 0.6 * (progress + 0.5)
+          );
+          drop.userData = {
+            vy: -(0.012 + (1 - viscosity) * 0.03 + Math.random() * 0.02),
+            vx: (Math.random() - 0.5) * 0.01,
+            vz: (Math.random() - 0.5) * 0.01,
+            life: 1.0,
+            hasLanded: false,
+          };
+          meltParticlesRef.current.add(drop);
+        }
+
+        [...meltParticlesRef.current.children].forEach((child) => {
+          const drop = child as THREE.Mesh;
+          const meta = drop.userData;
+          if (!meta || meta.hasLanded === undefined) return;
+
+          if (!meta.hasLanded) {
+            drop.position.y += meta.vy;
+            drop.position.x += meta.vx;
+            drop.position.z += meta.vz;
+            meta.vy -= 0.0012;
+            const speed = Math.abs(meta.vy);
+            drop.scale.set(1.0, Math.min(2.5, 1.0 + speed * 4.5), 1.0);
+
+            if (drop.position.y <= 0) {
+              drop.position.y = 0;
+              meta.hasLanded = true;
+              meta.vy = 0;
+              meta.vx = 0;
+              meta.vz = 0;
+              drop.scale.set(2.4, 0.05, 2.4);
+            }
+          } else {
+            drop.scale.x += 0.035;
+            drop.scale.z += 0.035;
+            meta.life -= 0.032;
+
+            if (!Array.isArray(drop.material)) {
+              drop.material.transparent = true;
+              drop.material.opacity = Math.max(0, meta.life);
+            }
+          }
+
+          if (meta.life <= 0 || drop.position.y < -0.4) {
+            drop.geometry.dispose();
+            if (Array.isArray(drop.material)) {
+              drop.material.forEach((material) => material.dispose());
+            } else {
+              drop.material.dispose();
+            }
+            meltParticlesRef.current?.remove(drop);
           }
         });
       }
@@ -639,6 +748,78 @@ export default function ThreeCanvas({
             rightArm.rotation.x = -Math.sin(elapsedTime * 0.5) * 0.03;
           }
         }
+
+        const meltProgress = activeConfig.isMelting ? activeConfig.meltProgress || 0 : 0;
+        const hairGroupObj = avatarGroupRef.current.getObjectByName("hairGroup") as THREE.Object3D | null;
+
+        if (head) {
+          if (head.userData.originalY === undefined) {
+            head.userData.originalY = head.position.y;
+            head.userData.originalRotZ = head.rotation.z;
+            head.userData.originalRotX = head.rotation.x;
+          }
+
+          if (meltProgress > 0) {
+            head.position.y = head.userData.originalY - meltProgress * 0.45;
+            head.rotation.z = head.userData.originalRotZ + Math.sin(elapsedTime * 9.0) * 0.08 * meltProgress;
+            head.rotation.x = head.userData.originalRotX + Math.cos(elapsedTime * 7.5) * 0.06 * meltProgress;
+          } else {
+            head.position.y = head.userData.originalY;
+          }
+        }
+
+        if (hairGroupObj) {
+          if (hairGroupObj.userData.originalY === undefined) {
+            hairGroupObj.userData.originalY = hairGroupObj.position.y;
+            hairGroupObj.userData.originalRotX = hairGroupObj.rotation.x;
+          }
+
+          if (meltProgress > 0) {
+            hairGroupObj.position.y = hairGroupObj.userData.originalY - meltProgress * 0.15;
+            hairGroupObj.rotation.x = hairGroupObj.userData.originalRotX + Math.sin(elapsedTime * 6.0) * 0.04 * meltProgress;
+          } else {
+            hairGroupObj.position.y = hairGroupObj.userData.originalY;
+            hairGroupObj.rotation.x = hairGroupObj.userData.originalRotX;
+          }
+        }
+
+        if (leftArm) {
+          if (leftArm.userData.originalX === undefined) {
+            leftArm.userData.originalX = leftArm.position.x;
+            leftArm.userData.originalY = leftArm.position.y;
+            leftArm.userData.originalZ = leftArm.position.z;
+            leftArm.userData.originalRotZ = leftArm.rotation.z;
+          }
+
+          if (meltProgress > 0) {
+            leftArm.position.y = leftArm.userData.originalY - meltProgress * 0.3;
+            leftArm.position.x = leftArm.userData.originalX - meltProgress * 0.2;
+            leftArm.rotation.z = leftArm.userData.originalRotZ - meltProgress * 0.5;
+          } else {
+            leftArm.position.x = leftArm.userData.originalX;
+            leftArm.position.y = leftArm.userData.originalY;
+            leftArm.position.z = leftArm.userData.originalZ;
+          }
+        }
+
+        if (rightArm) {
+          if (rightArm.userData.originalX === undefined) {
+            rightArm.userData.originalX = rightArm.position.x;
+            rightArm.userData.originalY = rightArm.position.y;
+            rightArm.userData.originalZ = rightArm.position.z;
+            rightArm.userData.originalRotZ = rightArm.rotation.z;
+          }
+
+          if (meltProgress > 0) {
+            rightArm.position.y = rightArm.userData.originalY - meltProgress * 0.3;
+            rightArm.position.x = rightArm.userData.originalX + meltProgress * 0.2;
+            rightArm.rotation.z = rightArm.userData.originalRotZ + meltProgress * 0.5;
+          } else {
+            rightArm.position.x = rightArm.userData.originalX;
+            rightArm.position.y = rightArm.userData.originalY;
+            rightArm.position.z = rightArm.userData.originalZ;
+          }
+        }
       }
 
       if (controlsRef.current) {
@@ -671,6 +852,18 @@ export default function ThreeCanvas({
       dom.removeEventListener("mouseleave", handleMouseLeave);
       if (controlsRef.current) {
         controlsRef.current.dispose();
+      }
+      if (meltParticlesRef.current) {
+        [...meltParticlesRef.current.children].forEach((child) => {
+          const mesh = child as THREE.Mesh;
+          mesh.geometry?.dispose();
+          if (Array.isArray(mesh.material)) {
+            mesh.material.forEach((material) => material.dispose());
+          } else {
+            mesh.material?.dispose();
+          }
+        });
+        meltParticlesRef.current.clear();
       }
       if (rendererRef.current) {
         rendererRef.current.dispose();
