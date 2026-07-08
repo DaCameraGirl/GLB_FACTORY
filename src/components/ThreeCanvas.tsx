@@ -71,6 +71,51 @@ export default function ThreeCanvas({
     }
   }, [config.animationMode]);
 
+  const fitCameraToAvatar = (
+    camera: THREE.PerspectiveCamera,
+    controls: OrbitControls | null,
+    avatarGroup: THREE.Group,
+    cameraPreset: AvatarConfig["cameraPreset"] | undefined
+  ) => {
+    const bounds = new THREE.Box3().setFromObject(avatarGroup);
+    if (bounds.isEmpty()) return;
+
+    const center = bounds.getCenter(new THREE.Vector3());
+    const size = bounds.getSize(new THREE.Vector3());
+    const safeWidth = Math.max(size.x, 0.1);
+    const safeHeight = Math.max(size.y, 0.1);
+    const safeDepth = Math.max(size.z, 0.1);
+
+    const fitHeightDistance = safeHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
+    const fitWidthDistance = (safeWidth / Math.max(camera.aspect, 0.1)) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
+    const distance = Math.max(fitHeightDistance, fitWidthDistance) * 1.45 + safeDepth * 0.9;
+
+    const preset = cameraPreset || "front";
+    const direction =
+      preset === "side"
+        ? new THREE.Vector3(1, 0.2, 0)
+        : preset === "top"
+        ? new THREE.Vector3(0, 1, 0.18)
+        : preset === "isometric"
+        ? new THREE.Vector3(1, 0.75, 1)
+        : new THREE.Vector3(0, 0.18, 1);
+
+    direction.normalize();
+    camera.position.copy(center).add(direction.multiplyScalar(distance));
+    camera.near = Math.max(distance / 100, 0.1);
+    camera.far = Math.max(distance * 12, 100);
+    camera.updateProjectionMatrix();
+
+    if (controls) {
+      controls.target.copy(center);
+      controls.minDistance = Math.max(distance * 0.45, 1.5);
+      controls.maxDistance = Math.max(distance * 2.5, controls.minDistance + 1);
+      controls.update();
+    } else {
+      camera.lookAt(center);
+    }
+  };
+
   // 1. Core Scene, Camera, WebGLRenderer, Controls initialization (ONCE on mount)
   useEffect(() => {
     if (!containerRef.current || !canvasMountRef.current) return;
@@ -644,17 +689,21 @@ export default function ThreeCanvas({
       camera.updateProjectionMatrix();
 
       const cameraPreset = config.cameraPreset || "front";
-      if (cameraPreset === "side") {
-        camera.position.set(4.5, 1.5, 0);
-      } else if (cameraPreset === "top") {
-        camera.position.set(0, 5.0, 0.1);
-      } else if (cameraPreset === "isometric") {
-        camera.position.set(3.5, 3.5, 3.5);
+      if (avatarGroupRef.current) {
+        fitCameraToAvatar(camera, controlsRef.current, avatarGroupRef.current, cameraPreset);
       } else {
-        camera.position.set(0, 1.8, 4.5);
-      }
-      if (controlsRef.current) {
-        controlsRef.current.update();
+        if (cameraPreset === "side") {
+          camera.position.set(4.5, 1.5, 0);
+        } else if (cameraPreset === "top") {
+          camera.position.set(0, 5.0, 0.1);
+        } else if (cameraPreset === "isometric") {
+          camera.position.set(3.5, 3.5, 3.5);
+        } else {
+          camera.position.set(0, 1.8, 4.5);
+        }
+        if (controlsRef.current) {
+          controlsRef.current.update();
+        }
       }
     }
   }, [config.cameraFov, config.cameraPreset]);
@@ -686,6 +735,15 @@ export default function ThreeCanvas({
       const avatarGroup = buildAvatar(config, faceCanvas);
       sceneRef.current.add(avatarGroup);
       avatarGroupRef.current = avatarGroup;
+
+      if (cameraRef.current) {
+        fitCameraToAvatar(
+          cameraRef.current,
+          controlsRef.current,
+          avatarGroup,
+          config.cameraPreset
+        );
+      }
 
       if (onSceneReadyRef.current) {
         onSceneReadyRef.current(avatarGroup);
