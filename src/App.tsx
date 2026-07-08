@@ -754,9 +754,6 @@ export default function App() {
   // Tab Selection with smooth scrolling
   const handleTabSelection = (tab: "parts" | "transforms" | "materials" | "scene" | "camera") => {
     setEditorTab(tab);
-    setTimeout(() => {
-      document.getElementById("customization-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
   };
 
   const handleChaosMutation = () => {
@@ -1645,11 +1642,6 @@ export default function App() {
     setCurrentStep("ready");
     addLog(`[GALLERY] Loaded premium character blueprint: ${hero.name.toUpperCase()}`, "success");
     playSynthSound("arp");
-
-    // Smooth scroll to 3D customizer workspace
-    setTimeout(() => {
-      document.getElementById("customization-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
   };
 
   // Interactive 3D Step-by-Step Guide Stages Definition
