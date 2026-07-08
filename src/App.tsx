@@ -552,6 +552,9 @@ export default function App() {
   // Interactive 3D Step-by-Step Directives guide stage
   const [guideStage, setGuideStage] = useState<number>(0);
 
+  // Interactive documentation and workflow guide active tab
+  const [wikiTab, setWikiTab] = useState<"quickstart" | "texturing" | "rigging" | "shading" | "export">("quickstart");
+
   // Avatar Configuration
   const [config, setConfig] = useState<AvatarConfig>({
     name: "Chase",
@@ -628,6 +631,8 @@ export default function App() {
     storyFrameStyle: "none",
     bigHeadFactor: 0.0,
     colorFilterPreset: "none",
+    meltPreset: "slime",
+    meltViscosity: 0.5,
   });
 
   // Physics bounce timer trigger
@@ -651,8 +656,8 @@ export default function App() {
 
   // Visual parameters
   const [autoRotate, setAutoRotate] = useState(true);
-  const [cameraResetTrigger, setCameraResetTrigger] = useState<number>(0);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [meltActive, setMeltActive] = useState(false);
 
   // Irresistible Chaos Mutation states
   const [chaosIntensity, setChaosIntensity] = useState<number>(0.85);
@@ -693,6 +698,7 @@ export default function App() {
   // Refs for Image element and exported group
   const imageRef = useRef<HTMLImageElement | null>(null);
   const avatarGroupRef = useRef<THREE.Group | null>(null);
+  const meltdownTimerRef = useRef<number | null>(null);
 
   // 2. Logging helper
   const addLog = (text: string, type: LogEntry["type"] = "info") => {
@@ -1157,6 +1163,14 @@ export default function App() {
     return () => clearInterval(interval);
   }, [autoMutationActive, chaosIntensity]);
 
+  useEffect(() => {
+    return () => {
+      if (meltdownTimerRef.current) {
+        window.clearInterval(meltdownTimerRef.current);
+      }
+    };
+  }, []);
+
   // Save mutationVault entries to localStorage whenever they change
   useEffect(() => {
     try {
@@ -1165,15 +1179,6 @@ export default function App() {
       console.warn("Could not save to localStorage:", err);
     }
   }, [mutationVault]);
-
-  // Clean up meltdown timer on unmount
-  useEffect(() => {
-    return () => {
-      if (meltdownTimerRef.current) {
-        clearInterval(meltdownTimerRef.current);
-      }
-    };
-  }, []);
 
   // 4. File upload handlers
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1270,146 +1275,6 @@ export default function App() {
     }
   };
 
-  // Handle Snapshot / Screenshot Capture
-  const handleScreenshot = () => {
-    // Find the canvas element inside our container
-    const container = document.getElementById("3d-preview-canvas-container");
-    const canvas = container?.querySelector("canvas");
-    if (!canvas) {
-      addLog("[SNAPSHOT] Error: 3D canvas viewport not found.", "error");
-      return;
-    }
-
-    try {
-      // Trigger camera click/shutter effect using flash cover
-      setShowFlash(true);
-      setTimeout(() => setShowFlash(false), 200);
-
-      // Play camera shutter synth sound
-      playSynthSound("coin");
-
-      // Grab image URL (preserveDrawingBuffer is true in renderer, so this returns actual render)
-      const dataUrl = canvas.toDataURL("image/png");
-
-      // Generate download link
-      const link = document.createElement("a");
-      const nameSafe = characterName.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "voxel-avatar";
-      link.download = `${nameSafe}-screenshot.png`;
-      link.href = dataUrl;
-      link.click();
-
-      addLog(`[SNAPSHOT] Success: Captured 3D viewport. Saved as "${link.download}"`, "success");
-    } catch (err: any) {
-      console.error(err);
-      addLog(`[SNAPSHOT] Error capturing screenshot: ${err.message}`, "error");
-    }
-  };
-
-  // Handle Cycling Brightness Levels (Low -> Standard -> High -> Overdrive)
-  const handleCycleBrightness = () => {
-    let nextLevel: "standard" | "low" | "high" | "overdrive";
-    let ambient: number;
-    let key: number;
-
-    switch (brightnessLevel) {
-      case "low":
-        nextLevel = "standard";
-        ambient = 0.75;
-        key = 0.85;
-        break;
-      case "standard":
-        nextLevel = "high";
-        ambient = 1.35;
-        key = 1.45;
-        break;
-      case "high":
-        nextLevel = "overdrive";
-        ambient = 1.95;
-        key = 1.95;
-        break;
-      case "overdrive":
-      default:
-        nextLevel = "low";
-        ambient = 0.35;
-        key = 0.45;
-        break;
-    }
-
-    setBrightnessLevel(nextLevel);
-    setConfig((prev) => ({
-      ...prev,
-      ambientIntensity: ambient,
-      keyLightIntensity: key,
-    }));
-    playSynthSound("zap");
-    addLog(`[LIGHTING] Set brightness preset to ${nextLevel.toUpperCase()} (Ambient: ${ambient}, Key: ${key})`, "info");
-  };
-
-  // Meltdown Factory Animation States & Controller
-  const [meltActive, setMeltActive] = useState(false);
-  const meltdownTimerRef = useRef<number | null>(null);
-
-  const handleTriggerMeltdown = (preset: "slime" | "gold" | "acid" | "lava" = "slime") => {
-    if (meltdownTimerRef.current) {
-      clearInterval(meltdownTimerRef.current);
-    }
-
-    addLog(`[MELTDOWN] Viscous reactor initialized. Running style: ${preset.toUpperCase()}...`, "warning");
-    playSynthSound("boom");
-
-    // Initialize melt state
-    setConfig((prev) => ({
-      ...prev,
-      isMelting: true,
-      meltProgress: 0.0,
-      meltPreset: preset,
-    }));
-    setMeltActive(true);
-
-    let currentProgress = 0.0;
-    const stepSpeed = 0.02; // smooth melting transition speed
-
-    meltdownTimerRef.current = window.setInterval(() => {
-      currentProgress += stepSpeed;
-      if (currentProgress >= 1.0) {
-        currentProgress = 1.0;
-        if (meltdownTimerRef.current) {
-          clearInterval(meltdownTimerRef.current);
-        }
-
-        // Meltdown completes: Splices and solidifies!
-        setTimeout(() => {
-          // Play success sound
-          playSynthSound("coin");
-          
-          // Generate customized color based on preset or face mapping
-          let colorTheme = "#3B82F6"; // default blue
-          if (preset === "gold") colorTheme = "#FFD700";
-          else if (preset === "acid") colorTheme = "#39FF14";
-          else if (preset === "lava") colorTheme = "#FF4500";
-          else if (preset === "slime") colorTheme = "#10B981";
-
-          setConfig((prev) => ({
-            ...prev,
-            // Splicing complete: character takes on the molten skin and clothing color!
-            skinColor: colorTheme,
-            clothingColor: "#141414",
-            isMelting: false, // Turn off melt to solidfy!
-            meltProgress: 0.0,
-          }));
-
-          setMeltActive(false);
-          addLog("[MELTDOWN] Success: Viscous image mapping complete! Character solidified as a GLB-ready structure.", "success");
-        }, 1200); // Hold the final puddle state for 1.2s before solidifying!
-      }
-
-      setConfig((prev) => ({
-        ...prev,
-        meltProgress: currentProgress,
-      }));
-    }, 30);
-  };
-
   // 5. Trigger Face Detection API using server-side Gemini 3.5 Flash
   const handleBuildAvatar = async () => {
     if (!sourceImage) {
@@ -1421,11 +1286,6 @@ export default function App() {
     setIsSuccess(false);
     setCurrentStep("texture");
     addLog(`Running face-detection and feature extraction on ${characterName}...`, "info");
-
-    // Scroll to the preview panel viewport immediately after triggering avatar construction
-    setTimeout(() => {
-      document.getElementById("preview-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 50);
 
     try {
       const response = await fetch("/api/crop-face", {
@@ -1564,6 +1424,78 @@ export default function App() {
     } catch (err: any) {
       addLog(`Texture download failed: ${err.message}`, "error");
     }
+  };
+
+  const handleCycleBrightness = () => {
+    const sequence: Array<{
+      level: "low" | "standard" | "high" | "overdrive";
+      ambient: number;
+      key: number;
+    }> = [
+      { level: "low", ambient: 0.35, key: 0.45 },
+      { level: "standard", ambient: 0.75, key: 0.85 },
+      { level: "high", ambient: 1.35, key: 1.45 },
+      { level: "overdrive", ambient: 1.95, key: 1.95 },
+    ];
+
+    const currentIndex = sequence.findIndex((entry) => entry.level === brightnessLevel);
+    const next = sequence[(currentIndex + 1) % sequence.length];
+
+    setBrightnessLevel(next.level);
+    setConfig((prev) => ({
+      ...prev,
+      ambientIntensity: next.ambient,
+      keyLightIntensity: next.key,
+    }));
+    addLog(`[LIGHTING] Set brightness preset to ${next.level.toUpperCase()}.`, "info");
+    playSynthSound("zap");
+  };
+
+  const handleTriggerMeltdown = (preset: "slime" | "gold" | "acid" | "lava" = "slime") => {
+    if (meltdownTimerRef.current) {
+      window.clearInterval(meltdownTimerRef.current);
+    }
+
+    const viscosity = config.meltViscosity ?? 0.5;
+    const stepSpeed = 0.01 + viscosity * 0.03;
+
+    setConfig((prev) => ({
+      ...prev,
+      isMelting: true,
+      meltProgress: 0,
+      meltPreset: preset,
+    }));
+    setMeltActive(true);
+    addLog(`[MELTDOWN] Reactor engaged: ${preset.toUpperCase()} profile.`, "warning");
+    playSynthSound("boom");
+
+    let progress = 0;
+    meltdownTimerRef.current = window.setInterval(() => {
+      progress = Math.min(1, progress + stepSpeed);
+
+      setConfig((prev) => ({
+        ...prev,
+        meltProgress: progress,
+      }));
+
+      if (progress >= 1) {
+        if (meltdownTimerRef.current) {
+          window.clearInterval(meltdownTimerRef.current);
+          meltdownTimerRef.current = null;
+        }
+
+        window.setTimeout(() => {
+          setConfig((prev) => ({
+            ...prev,
+            isMelting: false,
+            meltProgress: 0,
+          }));
+          setMeltActive(false);
+          addLog("[MELTDOWN] Splice cycle complete. Geometry re-solidified.", "success");
+          playSynthSound("coin");
+        }, 700);
+      }
+    }, 30);
   };
 
   // 8. Snapchat Shutter Snap Capture & Compositer
@@ -1718,6 +1650,11 @@ export default function App() {
 
   // Reset configuration to defaults
   const handleResetDefaults = () => {
+    if (meltdownTimerRef.current) {
+      window.clearInterval(meltdownTimerRef.current);
+      meltdownTimerRef.current = null;
+    }
+
     setConfig({
       name: "Chase",
       skinColor: "#e5a65d",
@@ -1775,7 +1712,11 @@ export default function App() {
       keyLightColor: "#ffffff",
       cameraFov: 45,
       cameraPreset: "front",
+      meltPreset: "slime",
+      meltViscosity: 0.5,
     });
+    setBrightnessLevel("standard");
+    setMeltActive(false);
     setEditorTab("parts");
     addLog("Customizer configurations and workspace tabs reset to defaults.", "info");
     playSynthSound("jump");
@@ -1783,16 +1724,22 @@ export default function App() {
 
   // Load preset character template
   const handleLoadPreset = (hero: PresetHero) => {
+    if (meltdownTimerRef.current) {
+      window.clearInterval(meltdownTimerRef.current);
+      meltdownTimerRef.current = null;
+    }
+
     setCharacterName(hero.name);
     setConfig((prev) => ({
       ...prev,
       ...hero.config,
       name: hero.name,
+      isMelting: false,
+      meltProgress: 0,
     }));
-    setFaceBox(null);
-    setFaceCanvas(null);
+    setMeltActive(false);
     setIsSuccess(true);
-    setCurrentStep("ready");
+    setCurrentStep((prev) => (prev === "upload" ? "ready" : prev));
     addLog(`[GALLERY] Loaded premium character blueprint: ${hero.name.toUpperCase()}`, "success");
     playSynthSound("arp");
   };
@@ -1982,7 +1929,7 @@ export default function App() {
               <span>PREMIUM ENTERPRISE CHARACTERS & BLUEPRINTS</span>
             </h2>
             <div className="flex items-center gap-2">
-              <span className="text-[8px] font-mono bg-emerald-500 text-[#141414] px-1.5 py-0.5 font-bold uppercase">10 RIG PRESETS LOADED</span>
+              <span className="text-[8px] font-mono bg-emerald-500 text-[#141414] px-1.5 py-0.5 font-bold uppercase">5 RIG PRESETS LOADED</span>
               <span className="text-[8px] font-mono bg-[#141414] text-white px-1.5 py-0.5 font-bold uppercase">v1.0-RELEASE</span>
             </div>
           </div>
@@ -2345,61 +2292,54 @@ export default function App() {
               </section>
             )}
 
-            {/* MELTDOWN FACTORY */}
             {sourceImage && (
               <section className="bg-yellow-50/85 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_#141414]" id="meltdown-factory-panel">
                 <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-yellow-300 flex items-center justify-between">
                   <h2 className="font-sans text-[11px] font-black text-[#141414] uppercase tracking-wider flex items-center gap-1.5">
-                    <span className="text-[14px]">☣️</span>
-                    <span>MELTDOWN FACTORY // SPLICER</span>
+                    <span className="text-[14px]">☣</span>
+                    <span>Meltdown Factory</span>
                   </h2>
-                  <span className="text-[9px] font-mono font-bold bg-[#141414] text-yellow-300 px-1.5 py-0.5 uppercase tracking-tight animate-pulse">
-                    REACTOR ACTIVE
+                  <span className="text-[9px] font-mono font-bold bg-[#141414] text-yellow-300 px-1.5 py-0.5 uppercase tracking-tight">
+                    Image Splicer
                   </span>
                 </div>
 
                 <p className="text-[11px] text-[#141414]/85 leading-relaxed font-sans">
-                  The uploaded photo can be physically melted down onto the 3D character mesh. 
-                  This creates high-viscosity drips and pools, making it incredibly easy to splice your face image into a unified, GLB-ready structure!
+                  Trigger a melt pass that collapses the rig into a pooled splice effect, then solidifies it back into the avatar.
                 </p>
 
-                {/* Substance presets */}
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-mono font-bold text-[#141414]/70 uppercase">Select Melting Agent</label>
                   <div className="grid grid-cols-2 gap-2">
                     {[
-                      { id: "slime", label: "🟢 TOXIC SLIME", desc: "Radioactive plasma drip" },
-                      { id: "gold", label: "👑 LIQUID GOLD", desc: "Molten premium metal" },
-                      { id: "acid", label: "☣️ BIO ACID", desc: "Corrosive neon sludge" },
-                      { id: "lava", label: "🔥 VOLCANIC LAVA", desc: "Fiery magma puddle" }
-                    ].map((ag) => (
+                      { id: "slime", label: "Toxic Slime", desc: "Radioactive plasma drip" },
+                      { id: "gold", label: "Liquid Gold", desc: "Molten premium metal" },
+                      { id: "acid", label: "Bio Acid", desc: "Corrosive neon sludge" },
+                      { id: "lava", label: "Volcanic Lava", desc: "Fiery magma puddle" },
+                    ].map((agent) => (
                       <button
-                        key={ag.id}
+                        key={agent.id}
                         type="button"
-                        onClick={() => {
-                          setConfig((prev) => ({ ...prev, meltPreset: ag.id as any }));
-                          playSynthSound("jump");
-                        }}
+                        onClick={() => setConfig((prev) => ({ ...prev, meltPreset: agent.id as AvatarConfig["meltPreset"] }))}
                         className={`text-left p-2 rounded-none border-2 border-[#141414] transition-all duration-150 cursor-pointer ${
-                          (config.meltPreset || "slime") === ag.id
+                          (config.meltPreset || "slime") === agent.id
                             ? "bg-[#141414] text-white shadow-none"
                             : "bg-white text-[#141414] shadow-[2px_2px_0px_0px_#141414] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#141414]"
                         }`}
                       >
-                        <div className="text-[10px] font-bold uppercase">{ag.label}</div>
-                        <div className={`text-[8px] mt-0.5 ${ (config.meltPreset || "slime") === ag.id ? "text-white/60" : "text-neutral-500" }`}>
-                          {ag.desc}
+                        <div className="text-[10px] font-bold uppercase">{agent.label}</div>
+                        <div className={`text-[8px] mt-0.5 ${(config.meltPreset || "slime") === agent.id ? "text-white/60" : "text-neutral-500"}`}>
+                          {agent.desc}
                         </div>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Viscosity slider */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
-                    <span className="uppercase">REACTOR VISCOSITY / SPEED</span>
-                    <span>{config.meltViscosity ? `${Math.round(config.meltViscosity * 100)}%` : "50%"}</span>
+                    <span className="uppercase">Reactor Viscosity</span>
+                    <span>{Math.round((config.meltViscosity || 0.5) * 100)}%</span>
                   </div>
                   <input
                     type="range"
@@ -2407,37 +2347,26 @@ export default function App() {
                     max="1.0"
                     step="0.1"
                     value={config.meltViscosity || 0.5}
-                    onChange={(e) => {
-                      const val = parseFloat(e.target.value);
-                      setConfig((p) => ({ ...p, meltViscosity: val }));
-                    }}
+                    onChange={(e) => setConfig((prev) => ({ ...prev, meltViscosity: parseFloat(e.target.value) }))}
                     className="w-full accent-[#141414] h-1.5 bg-[#D4D3D0] rounded-none cursor-pointer"
                   />
                 </div>
 
-                {/* Status indicator bar if melting */}
                 {meltActive && (
                   <div className="p-3 bg-[#141414] text-white rounded-none border-2 border-[#141414] font-mono text-[10px] space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-yellow-400 font-bold uppercase tracking-wider animate-pulse flex items-center gap-1">
-                        <span>⚠️</span> MELTING GEOMETRY...
-                      </span>
+                      <span className="text-yellow-400 font-bold uppercase tracking-wider animate-pulse">Melting Geometry...</span>
                       <span>{Math.round((config.meltProgress || 0) * 100)}%</span>
                     </div>
-                    {/* Retro terminal progress bar */}
                     <div className="w-full h-2 bg-neutral-800 rounded-none overflow-hidden relative">
-                      <div 
+                      <div
                         className="h-full bg-gradient-to-r from-green-500 via-yellow-400 to-red-500 transition-all duration-100"
                         style={{ width: `${(config.meltProgress || 0) * 100}%` }}
                       />
                     </div>
-                    <div className="text-[8px] text-neutral-400 font-bold uppercase">
-                      SYSTEM: sinking vertices... dripping fluid nodes... splashing ground splats...
-                    </div>
                   </div>
                 )}
 
-                {/* Trigger button */}
                 <button
                   type="button"
                   disabled={meltActive}
@@ -2448,8 +2377,7 @@ export default function App() {
                       : "bg-red-500 text-white hover:bg-red-600 hover:translate-x-[2px] hover:translate-y-[2px] shadow-[3px_3px_0px_0px_#141414] hover:shadow-[1px_1px_0px_0px_#141414] cursor-pointer"
                   }`}
                 >
-                  <span>☢️</span>
-                  <span>{meltActive ? "Splicing in progress..." : "TRIGGER MELTDOWN TRANSITION"}</span>
+                  <span>{meltActive ? "Splicing in progress..." : "Trigger Meltdown Transition"}</span>
                 </button>
               </section>
             )}
@@ -3351,23 +3279,6 @@ export default function App() {
                         />
                       </div>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setConfig((prev) => ({
-                          ...prev,
-                          cameraPreset: "front",
-                          cameraFov: 45,
-                        }));
-                        setCameraResetTrigger((prev) => prev + 1);
-                        addLog("Camera orientation and OrbitControls target reset to front default view.", "success");
-                        playSynthSound("zap");
-                      }}
-                      className="w-full border-2 border-[#141414] bg-neutral-100 hover:bg-[#141414] hover:text-white px-3 py-2 font-bold text-[10px] uppercase tracking-wider transition-all shadow-[2px_2px_0px_0px_#141414] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_#141414] flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <span>🔄 RESET VIEWPORT CAMERA</span>
-                    </button>
                   </div>
 
                   <div className="space-y-3 border-t border-[#141414]/10 pt-3">
@@ -3672,36 +3583,25 @@ export default function App() {
                   <span>04 // 3D Render Viewport</span>
                 </h2>
 
-                <div className="flex flex-wrap items-center gap-2 text-[9px] sm:text-[10px] font-mono text-[#141414]">
-                  {/* Screenshot Button */}
-                  <button
-                    type="button"
-                    onClick={handleScreenshot}
-                    title="Capture PNG screenshot of the 3D viewport"
-                    className="flex items-center gap-1 border-2 border-[#141414] bg-[#141414] text-white hover:bg-neutral-800 px-2 py-0.5 font-bold uppercase tracking-wide select-none cursor-pointer text-[9px] shadow-[1px_1px_0px_0px_rgba(20,20,20,0.15)] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none"
-                  >
-                    <span>📸 SNAPSHOT</span>
-                  </button>
-
-                  {/* Brightness button */}
+                <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-[#141414]">
                   <button
                     type="button"
                     onClick={handleCycleBrightness}
                     title={`Cycle brightness levels (Current: ${brightnessLevel.toUpperCase()})`}
                     className="flex items-center gap-1 border-2 border-[#141414] bg-neutral-100 hover:bg-neutral-200 text-[#141414] px-2 py-0.5 font-bold uppercase tracking-wide select-none cursor-pointer text-[9px] shadow-[1px_1px_0px_0px_rgba(20,20,20,0.15)] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-none"
                   >
-                    <span>🔆 LIGHT: {brightnessLevel.toUpperCase()}</span>
+                    <span>Light: {brightnessLevel.toUpperCase()}</span>
                   </button>
 
                   {/* Auto rotate checkbox */}
-                  <label className="flex items-center gap-1 cursor-pointer text-[#141414]/80 hover:text-[#141414] font-bold uppercase select-none border-l border-[#141414]/20 pl-2">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-[#141414]/80 hover:text-[#141414] font-bold uppercase select-none">
                     <input
                       type="checkbox"
                       checked={autoRotate}
                       onChange={(e) => setAutoRotate(e.target.checked)}
                       className="accent-[#141414]"
                     />
-                    <span>Rotate</span>
+                    <span>Auto Rotate</span>
                   </label>
                 </div>
               </div>
@@ -3721,7 +3621,6 @@ export default function App() {
                     faceCanvas={faceCanvas}
                     autoRotate={autoRotate}
                     bounceTime={bounceTime}
-                    cameraResetTrigger={cameraResetTrigger}
                     onSceneReady={(group) => {
                       avatarGroupRef.current = group;
                     }}
@@ -3792,12 +3691,6 @@ export default function App() {
                 {showFlash && (
                   <div className="absolute inset-0 bg-white z-50 pointer-events-none duration-200 transition-opacity" />
                 )}
-              </div>
-
-              {/* Viewport Control Instructions */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1.5 font-mono text-[8px] text-[#141414]/60 px-1 border-t border-[#141414]/10 pt-2 bg-neutral-50/50 p-1.5">
-                <span>🖱️ CLICK & DRAG TO ORBIT  |  RIGHT-CLICK & DRAG TO PAN</span>
-                <span>⚙️ HOLD SHIFT + SCROLL TO ZOOM</span>
               </div>
 
               {/* ACTION EXPORTS PANEL */}
@@ -4483,6 +4376,263 @@ export default function App() {
             <StudioLogs logs={logs} />
           </div>
         </div>
+
+        {/* Studio guidebook and export workflow documentation */}
+        <section className="bg-white/95 border-2 border-[#141414] rounded-none p-6 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.15)] text-[#141414] space-y-4" id="documentation-section">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#141414] pb-3 gap-2">
+            <h3 className="font-serif text-[12px] text-[#141414] font-bold uppercase tracking-wide flex items-center gap-2">
+              <span className="text-base">📖</span>
+              <span>GLB Factory Guidebook: Voxel Rig Pipeline & Export Workflow</span>
+            </h3>
+            <span className="font-mono text-[11px] bg-yellow-400 border border-[#141414] px-2 py-0.5 font-bold uppercase tracking-widest shadow-[1px_1px_0px_0px_#141414] shrink-0">
+              STUDIO_DOCS // WORKFLOW_GUIDE
+            </span>
+          </div>
+
+          <p className="text-[14px] font-mono leading-relaxed normal-case text-gray-700">
+            This guide explains the core portrait, texture, rigging, shading, and export workflow used in GLB Factory. Use the sections below to review how the studio turns source images into stylized voxel-ready GLB characters.
+          </p>
+
+          {/* Interactive Documentation Sub-Tabs */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1 bg-[#141414]/5 border-2 border-[#141414] font-mono text-[11px] font-bold select-none">
+            {(["quickstart", "texturing", "rigging", "shading", "export"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setWikiTab(tab)}
+                className={`py-2 px-1 text-center transition-all cursor-pointer border ${
+                  wikiTab === tab
+                    ? "bg-[#141414] text-white border-[#141414]"
+                    : "bg-white hover:bg-[#141414]/10 text-[#141414] border-transparent"
+                }`}
+              >
+                {tab === "quickstart" && "🚀 10s Quickstart"}
+                {tab === "texturing" && "🧠 2D Canvas Math"}
+                {tab === "rigging" && "🧱 Voxel Assembly"}
+                {tab === "shading" && "✨ Shaders & Shading"}
+                {tab === "export" && "🎮 Engine Export"}
+              </button>
+            ))}
+          </div>
+
+          {/* TAB CONTENTS (Ultra-Verbose, Technical, Detailed Explanations!) */}
+          <div className="bg-[#141414]/5 border-2 border-[#141414] p-5 font-mono text-[14px] text-gray-800 leading-relaxed shadow-[inner_2px_2px_4px_rgba(0,0,0,0.05)]">
+            
+            {/* QUICKSTART TAB */}
+            {wikiTab === "quickstart" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-[#141414]/20 pb-2">
+                  <span className="font-bold uppercase text-[12px] text-gray-950 tracking-wider">[01 / 🚀 FIVE-STEP AVATAR CREATION WALKTHROUGH]</span>
+                  <span className="text-[11px] bg-green-200 text-green-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">BEGINNER FRIENDLY</span>
+                </div>
+                <p className="normal-case">
+                  Follow these step-by-step procedural instructions to generate, fine-tune, style, and retrieve a rigged, production-ready voxel character:
+                </p>
+                <div className="space-y-3 pl-2 border-l-2 border-yellow-500">
+                  <div className="space-y-1">
+                    <span className="font-bold text-gray-950 block">1. INITIAL PORTRAIT ACQUISITION & PHOTOGRAPHY RULES</span>
+                    <p className="normal-case pl-3 text-[14px] text-gray-700">
+                      Drag and drop any front-facing portrait photo into the Drag & Drop Zone. For optimal results, ensure the camera is at eye-level, the subject is facing straight forward, and has flat, uniform lighting. Shadows on half the face can affect color-picker calculations!
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="font-bold text-gray-950 block">2. PIPELINE TRIGGERING (GEMINI AI DETECTOR)</span>
+                    <p className="normal-case pl-3 text-[14px] text-gray-700">
+                      Click <strong className="text-gray-950">"Build 3D Avatar"</strong>. This activates our server-side secure proxy pipeline. The Gemini vision model analyzes your photo, locates the exact bounding coordinates of the face, and automatically detects dominant skin-tone, hair-style, and clothing pigment hashes.
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="font-bold text-gray-950 block">3. TEXTURE TUNING & SEAMLESS CANVAS FEATHERING</span>
+                    <p className="normal-case pl-3 text-[14px] text-gray-700">
+                      Check the <strong className="text-gray-950">"02 // Fine-Tune Face Texture"</strong> panel. Enable "Feather Edges" to allow our canvas shader helper to blend the edges of your photo into the synthetic skin. Use "Shift Horizontal/Vertical" and "Crop Scale" to center the eyes within the 3D model sockets perfectly!
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="font-bold text-gray-950 block">4. PARTS SELECTION AND CUSTOM TRANSFORM OVERRIDES</span>
+                    <p className="normal-case pl-3 text-[14px] text-gray-700">
+                      Access the tabbed workspace. Equip custom voxel parts (Hairstyles, Body Proportions), toggle custom 3D mesh transforms (head scale, arm offsets, leg morphing), or slide roughness/metalness parameters to achieve custom plastic, matte, or futuristic chrome textures.
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="font-bold text-gray-950 block">5. RETRIEVAL AND RETARGETING (EXPORT)</span>
+                    <p className="normal-case pl-3 text-[14px] text-gray-700">
+                      Click <strong className="text-gray-950">"Export Final GLB"</strong> to retrieve a single, highly compressed 3D GLB model containing animations, PBR materials, skin weighting, and structural bone rigs ready to be integrated into any 3D workflow!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 2D CANVAS MATH & ALIGNMENT TAB */}
+            {wikiTab === "texturing" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-[#141414]/20 pb-2">
+                  <span className="font-bold uppercase text-[12px] text-gray-950 tracking-wider">[02 / 🧠 MATHEMATICAL FRONT FACE UV TEXTURE GENERATION]</span>
+                  <span className="text-[11px] bg-blue-200 text-blue-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">ADVANCED CANVAS MATH</span>
+                </div>
+                <p className="normal-case">
+                  This engine maps flat 2D portrait pixels onto a custom 3D sphere/cube topology using an HTML5 canvas processing model:
+                </p>
+                <div className="space-y-2.5">
+                  <div className="bg-white border border-[#141414]/20 p-3 rounded text-[14px] font-mono leading-relaxed space-y-1">
+                    <span className="font-bold text-[#141414] block">How coordinates are resolved:</span>
+                    <p className="normal-case text-gray-700">
+                      Gemini returns face coordinate boundaries normalized on a 0-100% grid: <code className="bg-gray-100 text-[#141414] px-1 font-bold">[ymin, xmin, ymax, xmax]</code>. We read this data and extract a crop box around the facial region.
+                    </p>
+                    <p className="normal-case text-gray-700">
+                      Using the Canvas 2D rendering context, we draw the face into a fixed 256x256 pixel texture map, applying horizontal (<code className="bg-gray-100 text-[#141414] px-1 font-bold">cropX</code>) and vertical (<code className="bg-gray-100 text-[#141414] px-1 font-bold">cropY</code>) translation matrices alongside magnification multipliers (<code className="bg-gray-100 text-[#141414] px-1 font-bold">cropScale</code>).
+                    </p>
+                  </div>
+
+                  <div className="bg-white border border-[#141414]/20 p-3 rounded text-[14px] font-mono leading-relaxed space-y-1">
+                    <span className="font-bold text-[#141414] block">Seamless Edge Feathering Algorithm:</span>
+                    <p className="normal-case text-gray-700">
+                      To prevent jarring straight boundaries, we generate a secondary transparent radial canvas mask. We fill the canvas perimeter with the solid, computer-generated skin pigment matching the computed <code className="bg-gray-100 text-[#141414] px-1 font-bold">skinColor</code>, and overlay the photograph with an inverse gradient transparency envelope. The feathering radius governs the blur slope. This results in a seamless transition!
+                    </p>
+                  </div>
+
+                  <div className="bg-white border border-[#141414]/20 p-3 rounded text-[14px] font-mono leading-relaxed space-y-1">
+                    <span className="font-bold text-[#141414] block">2D Esthetic Overlay Filters:</span>
+                    <p className="normal-case text-gray-700">
+                      To expand the styling options beyond raw 3D meshes, you can toggle active 2D Style Overlays on the scene container. These overlays utilize high-performance CSS grid patterns and mix-blend CSS overlays to simulate physical phosphor masks (CRT), dot-matrix sub-pixels (GameBoy), vector crosshairs (Cyberpunk), and pencil/graphite textures (Sketch) in real time.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* VOXEL ASSEMBLY TAB */}
+            {wikiTab === "rigging" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-[#141414]/20 pb-2">
+                  <span className="font-bold uppercase text-[12px] text-gray-950 tracking-wider">[03 / 🧱 VOXEL GRAPH RIGGING & ROTATIONAL MATRICES]</span>
+                  <span className="text-[11px] bg-purple-200 text-purple-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">HIERARCHICAL RIGGING</span>
+                </div>
+                <p className="normal-case">
+                  Voxel character rigs are represented as a joint-hierarchy of connected meshes inside a 3D scenegraph context:
+                </p>
+                <div className="space-y-3 text-[14px] text-gray-700">
+                  <p className="normal-case">
+                    The model root container is a single <code className="bg-gray-100 text-[#141414] px-1 font-bold">THREE.Group</code> representing the character bounds. All parts are parented hierarchically, meaning translation and rotation applied to the parent automatically offsets children:
+                  </p>
+                  <div className="bg-white border border-[#141414]/20 p-3 rounded font-mono leading-relaxed">
+                    <strong className="text-gray-900 uppercase block mb-1 font-bold">CHARACTER RIG SCENEGRAPH ARB:</strong>
+                    <div className="space-y-0.5 text-[10px] font-mono text-gray-600 pl-2">
+                      <div>📁 [ROOT CONTAINER // Group]</div>
+                      <div className="pl-4">├── 📁 [PELVIS // joint]</div>
+                      <div className="pl-8">├── 📁 [TORSO // joint & mesh]</div>
+                      <div className="pl-12">├── 📁 [HEAD // joint & mesh] (Dynamic frontal face mapped)</div>
+                      <div className="pl-16">│   ├── 📁 [HAIR // mesh attachment]</div>
+                      <div className="pl-16">│   └── 📁 [GLASSES / ACCESSORIES // attachment]</div>
+                      <div className="pl-12">├── 📁 [LEFT_ARM // joint] & 📁 [RIGHT_ARM // joint]</div>
+                      <div className="pl-12">└── 📁 [LEFT_LEG // joint] & 📁 [RIGHT_LEG // joint]</div>
+                    </div>
+                  </div>
+                  <p className="normal-case">
+                    <strong>Pose Animations:</strong> Every frame inside our <code className="bg-gray-100 text-[#141414] px-1 font-bold">requestAnimationFrame</code> loop, we calculate time offsets to feed sine-wave equations. For example, during a <code className="bg-gray-100 text-[#141414] px-1 font-bold">walk</code> cycle, we rotate the left/right legs with opposite sine angles, sway the arms, and dip the pelvis height to mimic weight compression.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* SHADERS & MATERIALS */}
+            {wikiTab === "shading" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-[#141414]/20 pb-2">
+                  <span className="font-bold uppercase text-[12px] text-gray-950 tracking-wider">[04 / ✨ WEBGL PHYSICALLY-BASED MATERIALS & CYBER EMISSIVE LIGHTING]</span>
+                  <span className="text-[11px] bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">PBR PIPELINE</span>
+                </div>
+                <p className="normal-case">
+                  Every mesh uses <code className="bg-gray-100 text-[#141414] px-1 font-bold">THREE.MeshStandardMaterial</code> to achieve high-fidelity rendering:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[14px] text-gray-700">
+                  <div className="bg-white border border-[#141414]/20 p-3 rounded space-y-1">
+                    <strong className="text-gray-950 block uppercase font-bold">1. Surface Micro-Facet Roughness</strong>
+                    <p className="normal-case">
+                      Governs the scattering of incident light. Set roughness to <code className="bg-gray-100 text-[#141414] px-1 font-bold">0.8</code> for a matte, clay-like appearance. Reduce to <code className="bg-gray-100 text-[#141414] px-1 font-bold">0.1</code> to obtain sharp specular highlights resembling gloss plastic.
+                    </p>
+                  </div>
+                  <div className="bg-white border border-[#141414]/20 p-3 rounded space-y-1">
+                    <strong className="text-gray-950 block uppercase font-bold">2. Metallic Reflection</strong>
+                    <p className="normal-case">
+                      Adjusts the metal conductivity. When set to <code className="bg-gray-100 text-[#141414] px-1 font-bold">0.9</code>, the material reflects the background environment colors directly rather than absorbing them, recreating polished gold, iron, or steel armor plating.
+                    </p>
+                  </div>
+                  <div className="bg-white border border-[#141414]/20 p-3 rounded space-y-1 col-span-2">
+                    <strong className="text-gray-950 block uppercase font-bold">3. Cyber Emissive Engine (Self-Illumination)</strong>
+                    <p className="normal-case">
+                      Allows elements of the voxel structure to emit light of a specified color without relying on external scene spotlights. Toggling emissive intensity is perfect for futuristic glowing eyes, laser circuits, or fluorescent armor trims!
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* EXTERNAL ENGINE IMPORT */}
+            {wikiTab === "export" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-[#141414]/20 pb-2">
+                  <span className="font-bold uppercase text-[12px] text-gray-950 tracking-wider">[05 / 🎮 BLENDER, MIXAMO, UNITY, AND UNREAL ENGINE WORKFLOW]</span>
+                  <span className="text-[11px] bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded font-bold uppercase shrink-0">PRODUCTION READY</span>
+                </div>
+                <p className="normal-case">
+                  How to import and animate your exported GLB file in major industry-standard 3D software and games platforms:
+                </p>
+                
+                <div className="space-y-3 text-[14px] text-gray-700">
+                  <div className="bg-white border border-[#141414]/20 p-3 rounded space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-gray-950 block font-bold">🧡 BLENDER RE-RIGGING & COMPOSITION</strong>
+                      <span className="text-[8px] bg-orange-100 text-orange-700 px-1 font-mono rounded font-bold shrink-0">BLENDER</span>
+                    </div>
+                    <ol className="list-decimal pl-4 space-y-1 normal-case text-gray-600">
+                      <li>Launch Blender and go to <strong>File &gt; Import &gt; glTF 2.0 (.glb)</strong> and load your downloaded file.</li>
+                      <li>To view materials, change viewport shading mode to <strong>Material Preview</strong> or <strong>Rendered</strong>.</li>
+                      <li>Under material properties for transparent elements (e.g. glass or accessories), set <strong>Blend Mode</strong> to <strong>Alpha Blend</strong>.</li>
+                      <li>The model includes a clean bone armature hierarchy. Enter <strong>Pose Mode</strong> to manipulate joints directly!</li>
+                    </ol>
+                  </div>
+
+                  <div className="bg-white border border-[#141414]/20 p-3 rounded space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <strong className="text-gray-950 block font-bold">💃 MIXAMO AUTO-ANIMATION OVERLAYS</strong>
+                      <span className="text-[8px] bg-red-100 text-red-700 px-1 font-mono rounded font-bold shrink-0">MIXAMO</span>
+                    </div>
+                    <p className="normal-case text-gray-600">
+                      Mixamo is an outstanding free online auto-rigging and animation library. To use it with your voxel model:
+                    </p>
+                    <ol className="list-decimal pl-4 space-y-1 normal-case text-gray-600">
+                      <li>Go to <code className="bg-gray-100 text-[#141414] px-1 font-bold">mixamo.com</code> and click <strong>Upload Character</strong>.</li>
+                      <li>Select your downloaded <code className="bg-gray-100 text-[#141414] px-1 font-bold">.glb</code> file.</li>
+                      <li>Position the auto-rigging circular markers onto the corresponding parts of the model (Chin, Wrists, Elbows, Knees, Groin).</li>
+                      <li>Click next! Mixamo will process the model in seconds, auto-bind the skeleton joints, and let you select and download from over 3,000 professional animations (running, climbing, spellcasting, dancing, fighting)!</li>
+                    </ol>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white border border-[#141414]/20 p-3 rounded space-y-1">
+                      <strong className="text-gray-950 block font-bold">🎮 UNITY ENGINE IMPORT</strong>
+                      <ol className="list-decimal pl-4 space-y-1 normal-case text-gray-600">
+                        <li>Drag the `.glb` model directly into your Assets panel.</li>
+                        <li>Select the model, go to the <strong>Rig</strong> tab in import settings, and change Animation Type to <strong>Humanoid</strong>.</li>
+                        <li>Drag the avatar into your active Scene, attach an Anim Controller, and run around!</li>
+                      </ol>
+                    </div>
+
+                    <div className="bg-white border border-[#141414]/20 p-3 rounded space-y-1">
+                      <strong className="text-gray-950 block font-bold">🎮 UNREAL ENGINE 5 SETUP</strong>
+                      <ol className="list-decimal pl-4 space-y-1 normal-case text-gray-600">
+                        <li>Ensure the <strong>glTF Importer</strong> plugin is enabled in UE5.</li>
+                        <li>Drag your model into the Content Browser to generate Static Meshes and skeleton assets.</li>
+                        <li>Create an <strong>IK Rig</strong> from the imported skeleton, retarget it to Manny/Quinn, and assign to your third-person controller.</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
       </main>
 
       {/* FOOTER */}
