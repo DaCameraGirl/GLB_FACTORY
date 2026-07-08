@@ -1636,10 +1636,8 @@ export default function App() {
       ...hero.config,
       name: hero.name,
     }));
-    setFaceBox(null);
-    setFaceCanvas(null);
     setIsSuccess(true);
-    setCurrentStep("ready");
+    setCurrentStep((prev) => (prev === "upload" ? "ready" : prev));
     addLog(`[GALLERY] Loaded premium character blueprint: ${hero.name.toUpperCase()}`, "success");
     playSynthSound("arp");
   };
