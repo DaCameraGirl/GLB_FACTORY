@@ -20,6 +20,7 @@ export default function ThreeCanvas({
   bounceTime,
 }: ThreeCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const canvasMountRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -72,7 +73,7 @@ export default function ThreeCanvas({
 
   // 1. Core Scene, Camera, WebGLRenderer, Controls initialization (ONCE on mount)
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !canvasMountRef.current) return;
 
     // Create Scene
     const scene = new THREE.Scene();
@@ -133,8 +134,8 @@ export default function ThreeCanvas({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    containerRef.current.innerHTML = "";
-    containerRef.current.appendChild(renderer.domElement);
+    canvasMountRef.current.innerHTML = "";
+    canvasMountRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
     // Ambient light
@@ -629,6 +630,9 @@ export default function ThreeCanvas({
       if (rendererRef.current) {
         rendererRef.current.dispose();
       }
+      if (canvasMountRef.current) {
+        canvasMountRef.current.innerHTML = "";
+      }
     };
   }, []); // Mounts exactly once!
 
@@ -748,6 +752,8 @@ export default function ThreeCanvas({
       id="3d-preview-canvas-container"
       style={{ backgroundImage: config.twoDStyleEffect === "blueprint" ? "none" : "radial-gradient(#aaa 1px, transparent 1px)", backgroundSize: "20px 20px" }}
     >
+      <div ref={canvasMountRef} className="absolute inset-0" />
+
       {/* 2D Overlay Effects */}
       {config.twoDStyleEffect === "crt" && (
         <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
