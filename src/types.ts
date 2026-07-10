@@ -1,6 +1,12 @@
 export type HairStyle = "none" | "short" | "long" | "afro" | "ponytail" | "cap";
 export type BodyType = "normal" | "chibi" | "tall" | "athletic";
-export type HeadShape = "cube" | "rounded-cube" | "organic-smooth";
+export type HeadShape =
+  | "cube"
+  | "rounded-cube"
+  | "organic-smooth"
+  | "bean-soft"
+  | "pumpkin-round"
+  | "hero-angular";
 
 export interface AvatarConfig {
   name: string;

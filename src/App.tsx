@@ -780,7 +780,7 @@ export default function App() {
 
     const hairStyles: HairStyle[] = ["none", "short", "long", "afro", "ponytail", "cap"];
     const bodyTypes: BodyType[] = ["normal", "chibi", "athletic", "tall"];
-    const headShapes: HeadShape[] = ["cube", "rounded-cube", "organic-smooth"];
+    const headShapes: HeadShape[] = ["cube", "rounded-cube", "organic-smooth", "bean-soft", "pumpkin-round", "hero-angular"];
     const accessoryPool = ["none", "crown", "wizard-hat", "halo", "glasses", "backpack", "headphones", "cat-ears"];
 
     const chosenSkin = skinColors[Math.floor(Math.random() * skinColors.length)];
@@ -2466,6 +2466,9 @@ export default function App() {
                   <option value="organic-smooth">✪ ORGANIC HUMANOID (GAME-READY)</option>
                   <option value="rounded-cube">Rounded Cube (Smooth Voxel)</option>
                   <option value="cube">Classic Box (Retro Blocky)</option>
+                  <option value="bean-soft">Bean Soft (Portrait Friendly)</option>
+                  <option value="pumpkin-round">Pumpkin Round (Wide Toon)</option>
+                  <option value="hero-angular">Hero Angular (Strong Jaw)</option>
                 </select>
               </div>
 

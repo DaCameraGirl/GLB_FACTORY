@@ -59,7 +59,7 @@ function getBoxGeometry(width: number, height: number, depth: number): THREE.Box
 export function validateAvatarConfig(config: AvatarConfig): AvatarConfig {
   const validated = { ...config };
 
-  const validHeadShapes: HeadShape[] = ["cube", "rounded-cube", "organic-smooth"];
+  const validHeadShapes: HeadShape[] = ["cube", "rounded-cube", "organic-smooth", "bean-soft", "pumpkin-round", "hero-angular"];
   const validHairStyles: HairStyle[] = ["none", "short", "long", "afro", "ponytail", "cap"];
   const validBodyTypes: BodyType[] = ["normal", "chibi", "tall", "athletic"];
 
@@ -291,6 +291,10 @@ export function buildAvatar(
   }
 
   const radialSeg = seg(config.detailLevel);
+  const smoothOrganicShapes: HeadShape[] = ["organic-smooth", "bean-soft", "pumpkin-round"];
+  const projectedFaceShapes: HeadShape[] = ["organic-smooth", "rounded-cube", "bean-soft", "pumpkin-round", "hero-angular"];
+  const isSmoothOrganic = smoothOrganicShapes.includes(config.headShape);
+  const usesProjectedFace = projectedFaceShapes.includes(config.headShape);
 
   // Helper to dynamically inject Blender-style material adjustments
   const getMatParams = (baseRoughness: number, baseMetalness: number) => {
@@ -428,6 +432,74 @@ export function buildAvatar(
     neck.castShadow = true;
     torso.add(neck);
 
+  } else if (config.headShape === "bean-soft") {
+    const torsoGeo = getCylinderGeometry(torsoWidth / 2.45, torsoWidth / 2.05, torsoHeight * 1.04, radialSeg).clone();
+    addMorphTargets(torsoGeo, false);
+
+    torso = new THREE.Mesh(torsoGeo, clothingMaterial);
+    torso.name = "torso";
+    torso.position.y = limbLength + torsoHeight / 2;
+    torso.castShadow = true;
+    torso.receiveShadow = true;
+    group.add(torso);
+
+    torso.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
+
+    const chestTop = new THREE.Mesh(getSphereGeometry(torsoWidth / 2.3, radialSeg, radialSeg), clothingMaterial);
+    chestTop.name = "chest-top";
+    chestTop.position.y = torsoHeight / 2 - 0.02;
+    chestTop.scale.set(0.92, 0.34, torsoDepth / torsoWidth);
+    torso.add(chestTop);
+
+    const pelvis = new THREE.Mesh(getSphereGeometry(torsoWidth / 2.1, radialSeg, radialSeg), pantsMaterial);
+    pelvis.name = "pelvis";
+    pelvis.position.y = -torsoHeight / 2 + 0.02;
+    pelvis.scale.set(0.98, 0.42, torsoDepth / torsoWidth);
+    torso.add(pelvis);
+
+    neck = new THREE.Mesh(getCylinderGeometry(0.16, 0.18, 0.24, radialSeg), skinMaterial);
+    neck.name = "neck";
+    neck.position.y = torsoHeight / 2 + 0.12;
+    neck.castShadow = true;
+    torso.add(neck);
+
+  } else if (config.headShape === "pumpkin-round") {
+    const torsoGeo = getCylinderGeometry(torsoWidth / 2.1, torsoWidth / 1.85, torsoHeight * 0.96, radialSeg).clone();
+    addMorphTargets(torsoGeo, false);
+
+    torso = new THREE.Mesh(torsoGeo, clothingMaterial);
+    torso.name = "torso";
+    torso.position.y = limbLength + torsoHeight / 2;
+    torso.castShadow = true;
+    torso.receiveShadow = true;
+    group.add(torso);
+
+    torso.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
+
+    const chestTop = new THREE.Mesh(getSphereGeometry(torsoWidth / 2.05, radialSeg, radialSeg), clothingMaterial);
+    chestTop.name = "chest-top";
+    chestTop.position.y = torsoHeight / 2;
+    chestTop.scale.set(1.08, 0.42, torsoDepth / torsoWidth);
+    torso.add(chestTop);
+
+    const belly = new THREE.Mesh(getSphereGeometry(torsoWidth / 1.95, radialSeg, radialSeg), clothingMaterial);
+    belly.name = "belly";
+    belly.position.y = 0;
+    belly.scale.set(1.1, 0.58, torsoDepth / torsoWidth);
+    torso.add(belly);
+
+    const pelvis = new THREE.Mesh(getSphereGeometry(torsoWidth / 2.0, radialSeg, radialSeg), pantsMaterial);
+    pelvis.name = "pelvis";
+    pelvis.position.y = -torsoHeight / 2 + 0.03;
+    pelvis.scale.set(1.04, 0.42, torsoDepth / torsoWidth);
+    torso.add(pelvis);
+
+    neck = new THREE.Mesh(getCylinderGeometry(0.17, 0.19, 0.24, radialSeg), skinMaterial);
+    neck.name = "neck";
+    neck.position.y = torsoHeight / 2 + 0.11;
+    neck.castShadow = true;
+    torso.add(neck);
+
   } else {
     // Blocky cube torso
     const torsoGeo = getBoxGeometry(torsoWidth, torsoHeight, torsoDepth).clone();
@@ -448,6 +520,19 @@ export function buildAvatar(
     neck.name = "neck";
     neck.position.y = torsoHeight / 2 + 0.1;
     torso.add(neck);
+
+    if (config.headShape === "hero-angular") {
+      const shoulderWingGeo = getBoxGeometry(torsoWidth * 0.24, 0.18, torsoDepth * 0.7);
+      const leftShoulderWing = new THREE.Mesh(shoulderWingGeo, clothingMaterial);
+      leftShoulderWing.name = "left-shoulder-wing";
+      leftShoulderWing.position.set(-torsoWidth / 2 - torsoWidth * 0.1, torsoHeight / 2 - 0.06, 0);
+      torso.add(leftShoulderWing);
+
+      const rightShoulderWing = new THREE.Mesh(shoulderWingGeo, clothingMaterial);
+      rightShoulderWing.name = "right-shoulder-wing";
+      rightShoulderWing.position.set(torsoWidth / 2 + torsoWidth * 0.1, torsoHeight / 2 - 0.06, 0);
+      torso.add(rightShoulderWing);
+    }
   }
 
   // ==========================================
@@ -457,7 +542,7 @@ export function buildAvatar(
 
   if (clothingStyle === "hoodie") {
     // Extruded hood on back
-    const hoodGeo = config.headShape === "organic-smooth"
+    const hoodGeo = isSmoothOrganic
       ? getSphereGeometry(headSize * 0.45, radialSeg, radialSeg)
       : getBoxGeometry(headSize * 0.9, headSize * 0.9, headSize * 0.9);
     
@@ -476,7 +561,7 @@ export function buildAvatar(
     });
 
     // Chestplate overlay
-    const chestPlateGeo = config.headShape === "organic-smooth"
+    const chestPlateGeo = isSmoothOrganic
       ? getCylinderGeometry(torsoWidth / 1.95, torsoWidth / 2.25, torsoHeight * 0.85, radialSeg)
       : getBoxGeometry(torsoWidth * 1.06, torsoHeight * 0.85, torsoDepth * 1.15);
     
@@ -487,7 +572,7 @@ export function buildAvatar(
     torso.add(chestPlate);
 
     // Shoulder Pauldrons
-    const pauldronGeo = config.headShape === "organic-smooth"
+    const pauldronGeo = isSmoothOrganic
       ? getSphereGeometry(0.24, radialSeg, radialSeg)
       : getBoxGeometry(0.42, 0.26, 0.42);
 
@@ -506,7 +591,7 @@ export function buildAvatar(
   } else if (clothingStyle === "dress") {
     // Flowing elegant dress skirt
     const skirtHeight = limbLength * 0.78;
-    const skirtGeo = config.headShape === "organic-smooth"
+    const skirtGeo = isSmoothOrganic
       ? getCylinderGeometry(torsoWidth / 2, torsoWidth * 0.76, skirtHeight, radialSeg)
       : getBoxGeometry(torsoWidth * 1.12, skirtHeight, torsoDepth * 1.35);
     
@@ -567,6 +652,86 @@ export function buildAvatar(
 
     skull.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
 
+  } else if (config.headShape === "bean-soft") {
+    head = new THREE.Group() as any;
+    head.name = "head";
+    head.position.y = neck.position.y + actualHeadSize / 2 + 0.1;
+    torso.add(head);
+
+    const skullRadius = actualHeadSize * 0.48;
+
+    const skullGeo = getSphereGeometry(skullRadius, radialSeg, radialSeg).clone();
+    applyFrontProjectionUVs(skullGeo);
+    addMorphTargets(skullGeo, true);
+
+    const skull = new THREE.Mesh(skullGeo, faceMaterial);
+    skull.name = "skull";
+    skull.scale.set(0.9, 1.24, 0.98);
+    skull.castShadow = true;
+    skull.receiveShadow = true;
+    head.add(skull);
+
+    skull.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
+
+  } else if (config.headShape === "pumpkin-round") {
+    head = new THREE.Group() as any;
+    head.name = "head";
+    head.position.y = neck.position.y + actualHeadSize / 2 + 0.1;
+    torso.add(head);
+
+    const skullRadius = actualHeadSize * 0.49;
+
+    const skullGeo = getSphereGeometry(skullRadius, radialSeg, radialSeg).clone();
+    applyFrontProjectionUVs(skullGeo);
+    addMorphTargets(skullGeo, true);
+
+    const skull = new THREE.Mesh(skullGeo, faceMaterial);
+    skull.name = "skull";
+    skull.scale.set(1.16, 1.06, 1.12);
+    skull.castShadow = true;
+    skull.receiveShadow = true;
+    head.add(skull);
+
+    skull.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
+
+  } else if (config.headShape === "hero-angular") {
+    head = new THREE.Group() as any;
+    head.name = "head";
+    head.position.y = neck.position.y + actualHeadSize / 2 + 0.1;
+    torso.add(head);
+
+    const skullRadius = actualHeadSize * 0.5;
+
+    const skullGeo = getSphereGeometry(skullRadius, radialSeg, radialSeg).clone();
+    applyFrontProjectionUVs(skullGeo);
+    addMorphTargets(skullGeo, true);
+
+    const skull = new THREE.Mesh(skullGeo, faceMaterial);
+    skull.name = "skull";
+    skull.scale.set(1.02, 1.0, 0.98);
+    skull.castShadow = true;
+    skull.receiveShadow = true;
+    head.add(skull);
+
+    skull.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
+
+    const jawGeo = getBoxGeometry(actualHeadSize * 0.76, actualHeadSize * 0.28, actualHeadSize * 0.55);
+    const jaw = new THREE.Mesh(jawGeo, skinMaterial);
+    jaw.name = "jaw-plate";
+    jaw.position.set(0, -actualHeadSize * 0.22, actualHeadSize * 0.08);
+    head.add(jaw);
+
+    const cheekGeo = getBoxGeometry(actualHeadSize * 0.18, actualHeadSize * 0.18, actualHeadSize * 0.42);
+    const leftCheek = new THREE.Mesh(cheekGeo, skinMaterial);
+    leftCheek.name = "left-cheek";
+    leftCheek.position.set(-actualHeadSize * 0.33, -actualHeadSize * 0.05, actualHeadSize * 0.08);
+    head.add(leftCheek);
+
+    const rightCheek = new THREE.Mesh(cheekGeo, skinMaterial);
+    rightCheek.name = "right-cheek";
+    rightCheek.position.set(actualHeadSize * 0.33, -actualHeadSize * 0.05, actualHeadSize * 0.08);
+    head.add(rightCheek);
+
   } else {
     // Retro box head
     const headGeo = getBoxGeometry(actualHeadSize, actualHeadSize, actualHeadSize).clone();
@@ -593,10 +758,14 @@ export function buildAvatar(
   // ==========================================
   // ADD NOSE, EARS, AND CHIN MESHES (LOD & BOUNDING BOX COMPLIANT)
   // ==========================================
-  const isOrganicHead = config.headShape === "organic-smooth" || config.headShape === "rounded-cube";
-  const skullRadiusVal = isOrganicHead 
-    ? actualHeadSize * (config.headShape === "rounded-cube" ? 0.52 : 0.48)
-    : actualHeadSize * 0.5;
+  const isOrganicHead = usesProjectedFace;
+  const skullRadiusVal = config.headShape === "rounded-cube"
+    ? actualHeadSize * 0.52
+    : config.headShape === "hero-angular"
+    ? actualHeadSize * 0.5
+    : config.headShape === "pumpkin-round"
+    ? actualHeadSize * 0.49
+    : actualHeadSize * 0.48;
 
   // 1. Nose
   const noseGeo = isOrganicHead
@@ -648,8 +817,14 @@ export function buildAvatar(
   head.add(hairGroup);
 
   if (config.hairStyle !== "none") {
-    if (config.headShape === "organic-smooth" || config.headShape === "rounded-cube") {
-      const skullRadius = actualHeadSize * (config.headShape === "rounded-cube" ? 0.52 : 0.48);
+    if (usesProjectedFace) {
+      const skullRadius = config.headShape === "rounded-cube"
+        ? actualHeadSize * 0.52
+        : config.headShape === "hero-angular"
+        ? actualHeadSize * 0.5
+        : config.headShape === "pumpkin-round"
+        ? actualHeadSize * 0.49
+        : actualHeadSize * 0.48;
 
       if (config.hairStyle === "short") {
         const hairGeo = getSphereGeometry(skullRadius * 1.05, radialSeg, radialSeg);
@@ -670,7 +845,15 @@ export function buildAvatar(
 
       } else if (config.hairStyle === "afro") {
         // COLLISION CLAMP: organic-smooth caps afro scale to prevent swallowing face
-        const afroScaleMultiplier = config.headShape === "organic-smooth" ? 1.12 : 1.25;
+        const afroScaleMultiplier = config.headShape === "organic-smooth"
+          ? 1.12
+          : config.headShape === "bean-soft"
+          ? 1.18
+          : config.headShape === "pumpkin-round"
+          ? 1.3
+          : config.headShape === "hero-angular"
+          ? 1.16
+          : 1.25;
         const hairGeo = getSphereGeometry(skullRadius * afroScaleMultiplier, radialSeg, radialSeg);
         const hair = new THREE.Mesh(hairGeo, hairMaterial);
         hair.name = "hair-afro";
@@ -784,7 +967,7 @@ export function buildAvatar(
     const lensMaterial = new THREE.MeshStandardMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.65, roughness: 0.05, name: "glasses-lens" });
 
     const size = actualHeadSize * 0.22;
-    const lensGeo = config.headShape === "organic-smooth" 
+    const lensGeo = config.headShape === "organic-smooth" || config.headShape === "bean-soft" || config.headShape === "pumpkin-round"
       ? getCylinderGeometry(size, size, 0.03, radialSeg) 
       : getBoxGeometry(size * 1.4, size * 1.1, 0.03);
 
@@ -795,7 +978,7 @@ export function buildAvatar(
     glasses.add(leftLens);
 
     // Left Frame Ring
-    if (config.headShape === "organic-smooth") {
+    if (config.headShape === "organic-smooth" || config.headShape === "bean-soft" || config.headShape === "pumpkin-round") {
       const ringGeo = new THREE.TorusGeometry(size, 0.02, 8, 24);
       const leftRing = new THREE.Mesh(ringGeo, frameMaterial);
       leftRing.position.set(-actualHeadSize * 0.22, 0, 0.015);
@@ -809,7 +992,7 @@ export function buildAvatar(
     glasses.add(rightLens);
 
     // Right Frame Ring
-    if (config.headShape === "organic-smooth") {
+    if (config.headShape === "organic-smooth" || config.headShape === "bean-soft" || config.headShape === "pumpkin-round") {
       const ringGeo = new THREE.TorusGeometry(size, 0.02, 8, 24);
       const rightRing = new THREE.Mesh(ringGeo, frameMaterial);
       rightRing.position.set(actualHeadSize * 0.22, 0, 0.015);
@@ -1280,7 +1463,7 @@ export function buildAvatar(
   };
 
   // Build and mount limbs
-  const isOrganic = config.headShape === "organic-smooth";
+  const isOrganic = isSmoothOrganic;
 
   const leftArm = isOrganic ? createSkinnedLimb(true, true) : createClassicLimb(true, true);
   leftArm.name = "left-arm";
