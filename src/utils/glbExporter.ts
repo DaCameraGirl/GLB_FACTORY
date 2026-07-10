@@ -1,86 +1,74 @@
 import * as THREE from "three";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
+import { AvatarConfig } from "../types";
+import { validateExportedGLB, ExportValidationReport } from "./exportValidator";
+import { bakeMeltedAtlas } from "./textureBaker";
+import { LiveTextureAtlasController } from "./textureAtlas";
 
-/**
- * Exports a Three.js Group/Mesh to a GLB (Binary glTF) file.
- * Returns a Promise that resolves to a Blob containing the binary data.
- */
-export function exportToGLB(group: THREE.Group, characterName: string = "avatar"): Promise<Blob> {
-  // --- EXPORT SANITY CHECKS ---
-  if (!group || group.children.length === 0) {
-    return Promise.reject(new Error("Export failed: The avatar group contains no children meshes."));
-  }
+export interface ExportToGLBResult {
+  blob: Blob;
+  validation: ExportValidationReport;
+}
 
-  let meshCount = 0;
-  let hasBrokenMaterial = false;
-  let missingUVs = false;
+function createStandardExportMaterial(
+  sourceMaterial: THREE.Material | null | undefined,
+  bakedTexture: THREE.Texture
+) {
+  const material = sourceMaterial as THREE.MeshStandardMaterial | null | undefined;
+  const exportParams = sourceMaterial?.userData?.exportMaterialParams || {};
+  return new THREE.MeshStandardMaterial({
+    map: bakedTexture,
+    color: 0xffffff,
+    roughness: exportParams.roughness ?? material?.roughness ?? 0.75,
+    metalness: exportParams.metalness ?? material?.metalness ?? 0.05,
+    emissive: new THREE.Color(exportParams.emissive || "#000000"),
+    emissiveIntensity: exportParams.emissiveIntensity ?? material?.emissiveIntensity ?? 0,
+    transparent: false,
+  });
+}
 
-  group.traverse((child) => {
-    if (child instanceof THREE.Mesh) {
-      meshCount++;
-      if (!child.material) {
-        hasBrokenMaterial = true;
-      } else {
-        const materials = Array.isArray(child.material) ? child.material : [child.material];
-        for (const mat of materials) {
-          if (!mat) {
-            hasBrokenMaterial = true;
-          }
-          // Textured meshes must possess UV coordinates
-          if (mat && (mat as any).map && child.geometry && !child.geometry.attributes.uv) {
-            missingUVs = true;
-          }
-        }
-      }
-    }
+function applyBakedAtlasToClone(
+  originalGroup: THREE.Group,
+  clonedGroup: THREE.Group,
+  bakedTexture: THREE.Texture
+) {
+  const originalMeshes: THREE.Mesh[] = [];
+  const clonedMeshes: THREE.Mesh[] = [];
+
+  originalGroup.traverse((child) => {
+    if (child instanceof THREE.Mesh) originalMeshes.push(child);
+  });
+  clonedGroup.traverse((child) => {
+    if (child instanceof THREE.Mesh) clonedMeshes.push(child);
   });
 
-  if (meshCount === 0) {
-    return Promise.reject(new Error("Export failed: No valid 3D meshes found inside the avatar hierarchy."));
-  }
-  if (hasBrokenMaterial) {
-    return Promise.reject(new Error("Export failed: One or more meshes are missing valid material definitions."));
-  }
-  if (missingUVs) {
-    return Promise.reject(new Error("Export failed: Textured meshes are missing UV coordinate attributes."));
-  }
-  // -----------------------------
+  for (let i = 0; i < Math.min(originalMeshes.length, clonedMeshes.length); i++) {
+    const originalMesh = originalMeshes[i];
+    const cloneMesh = clonedMeshes[i];
+    if (!originalMesh.userData.useBakedAtlas) continue;
 
-  return new Promise((resolve, reject) => {
-    // Create a temporary parent scene to export to avoid exporting root transforms incorrectly
-    const tempScene = new THREE.Scene();
-    
-    // Add some ambient lighting so materials export with base color/roughness definitions correctly
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
-    tempScene.add(ambientLight);
-    
-    // Clone the avatar group so we do not modify the original rendering group
-    const clonedGroup = group.clone();
-    
-    // Reset position for exporting (centered on ground at 0, 0, 0)
-    clonedGroup.position.set(0, 0, 0);
-    clonedGroup.rotation.set(0, 0, 0);
-    tempScene.add(clonedGroup);
+    const materials = Array.isArray(cloneMesh.material) ? cloneMesh.material : [cloneMesh.material];
+    const originalMaterials = Array.isArray(originalMesh.material) ? originalMesh.material : [originalMesh.material];
+    const replacement = materials.map((_, materialIndex) =>
+      createStandardExportMaterial(originalMaterials[materialIndex] || originalMaterials[0], bakedTexture)
+    );
+    cloneMesh.material = replacement.length === 1 ? replacement[0] : replacement;
+  }
+}
 
+async function serializeSceneToBlob(tempScene: THREE.Scene) {
+  return new Promise<Blob>((resolve, reject) => {
     const exporter = new GLTFExporter();
-    
     exporter.parse(
       tempScene,
       (gltf) => {
         if (gltf instanceof ArrayBuffer) {
-          const blob = new Blob([gltf], { type: "model/gltf-binary" });
-          resolve(blob);
+          resolve(new Blob([gltf], { type: "model/gltf-binary" }));
         } else {
-          // If returned as JSON (should not happen with binary: true)
-          const output = JSON.stringify(gltf, null, 2);
-          const blob = new Blob([output], { type: "model/gltf+json" });
-          resolve(blob);
+          resolve(new Blob([JSON.stringify(gltf, null, 2)], { type: "model/gltf+json" }));
         }
       },
-      (error) => {
-        console.error("Error parsing glTF:", error);
-        reject(error);
-      },
+      (error) => reject(error),
       {
         binary: true,
         animations: [],
@@ -88,4 +76,65 @@ export function exportToGLB(group: THREE.Group, characterName: string = "avatar"
       }
     );
   });
+}
+
+/**
+ * Exports the current avatar to GLB, baking the live melt atlas first when available.
+ */
+export async function exportToGLB(
+  group: THREE.Group,
+  characterName: string = "avatar",
+  config?: AvatarConfig
+): Promise<ExportToGLBResult> {
+  if (!group || group.children.length === 0) {
+    throw new Error("Export failed: The avatar group contains no children meshes.");
+  }
+
+  let meshCount = 0;
+  let hasBrokenMaterial = false;
+
+  group.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+      meshCount++;
+      if (!child.material) {
+        hasBrokenMaterial = true;
+      }
+    }
+  });
+
+  if (meshCount === 0) {
+    throw new Error("Export failed: No valid 3D meshes found inside the avatar hierarchy.");
+  }
+  if (hasBrokenMaterial) {
+    throw new Error("Export failed: One or more meshes are missing valid material definitions.");
+  }
+
+  const atlasController = group.userData.atlasController as LiveTextureAtlasController | undefined;
+  const shouldBakeAtlas = !!atlasController && !!config;
+  const bakedResult = shouldBakeAtlas
+    ? bakeMeltedAtlas(atlasController, config as AvatarConfig, performance.now() / 1000)
+    : null;
+
+  const tempScene = new THREE.Scene();
+  tempScene.name = `${characterName}-export-scene`;
+  tempScene.add(new THREE.AmbientLight(0xffffff, 1.0));
+
+  const clonedGroup = group.clone(true);
+  clonedGroup.position.set(0, 0, 0);
+  clonedGroup.rotation.set(0, 0, 0);
+
+  if (bakedResult) {
+    applyBakedAtlasToClone(group, clonedGroup, bakedResult.texture);
+  }
+
+  tempScene.add(clonedGroup);
+
+  const blob = await serializeSceneToBlob(tempScene);
+  const arrayBuffer = await blob.arrayBuffer();
+  const validation = await validateExportedGLB(arrayBuffer, bakedResult?.canvas || null);
+
+  return {
+    blob,
+    validation,
+  };
 }

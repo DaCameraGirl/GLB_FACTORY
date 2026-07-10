@@ -3,10 +3,13 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { AvatarConfig } from "../types";
 import { buildAvatar } from "../utils/avatarBuilder";
+import { updateMeltMaterial } from "../shaders/meltMaterial";
+import { LiveTextureAtlasController } from "../utils/textureAtlas";
 
 interface ThreeCanvasProps {
   config: AvatarConfig;
   faceCanvas: HTMLCanvasElement | null;
+  sourceImage: string | null;
   onSceneReady?: (avatarGroup: THREE.Group) => void;
   autoRotate: boolean;
   bounceTime: number;
@@ -15,6 +18,7 @@ interface ThreeCanvasProps {
 export default function ThreeCanvas({
   config,
   faceCanvas,
+  sourceImage,
   onSceneReady,
   autoRotate,
   bounceTime,
@@ -48,10 +52,20 @@ export default function ThreeCanvas({
   const autoRotateRef = useRef(autoRotate);
   const animationModeRef = useRef(animationMode);
   const bounceTimeRef = useRef(bounceTime);
+  const faceCanvasRef = useRef(faceCanvas);
+  const sourceImageRef = useRef(sourceImage);
 
   useEffect(() => {
     configRef.current = config;
   }, [config]);
+
+  useEffect(() => {
+    faceCanvasRef.current = faceCanvas;
+  }, [faceCanvas]);
+
+  useEffect(() => {
+    sourceImageRef.current = sourceImage;
+  }, [sourceImage]);
 
   useEffect(() => {
     autoRotateRef.current = autoRotate;
@@ -268,6 +282,28 @@ export default function ThreeCanvas({
       const activeBounceTime = bounceTimeRef.current;
 
       const elapsedTime = clock.getElapsedTime();
+
+      if (avatarGroupRef.current) {
+        const atlasController = avatarGroupRef.current.userData.atlasController as LiveTextureAtlasController | undefined;
+        const projectionCanvas =
+          (avatarGroupRef.current.userData.faceProjectionCanvas as HTMLCanvasElement | null | undefined) ??
+          faceCanvasRef.current;
+
+        if (atlasController) {
+          atlasController.setSourceImageUrl(sourceImageRef.current);
+          atlasController.update(activeConfig, projectionCanvas ?? null, elapsedTime);
+        }
+
+        avatarGroupRef.current.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            if (Array.isArray(child.material)) {
+              child.material.forEach((material) => updateMeltMaterial(material, activeConfig, elapsedTime));
+            } else if (child.material) {
+              updateMeltMaterial(child.material, activeConfig, elapsedTime);
+            }
+          }
+        });
+      }
 
       // Bounce/squish dynamic soft-body calculations
       let bounceY = 0;
@@ -868,6 +904,8 @@ export default function ThreeCanvas({
       if (rendererRef.current) {
         rendererRef.current.dispose();
       }
+      const atlasController = avatarGroupRef.current?.userData.atlasController as LiveTextureAtlasController | undefined;
+      atlasController?.dispose();
       if (canvasMountRef.current) {
         canvasMountRef.current.innerHTML = "";
       }
@@ -921,11 +959,13 @@ export default function ThreeCanvas({
     try {
       // Remove old avatar group if exists
       if (avatarGroupRef.current) {
+        const oldAtlasController = avatarGroupRef.current.userData.atlasController as LiveTextureAtlasController | undefined;
+        oldAtlasController?.dispose();
         sceneRef.current.remove(avatarGroupRef.current);
       }
 
       // Build new avatar
-      const avatarGroup = buildAvatar(config, faceCanvas);
+      const avatarGroup = buildAvatar(config, faceCanvas, sourceImageRef.current);
       sceneRef.current.add(avatarGroup);
       avatarGroupRef.current = avatarGroup;
 

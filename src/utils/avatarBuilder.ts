@@ -1,5 +1,8 @@
 import * as THREE from "three";
 import { AvatarConfig, HairStyle, BodyType, HeadShape } from "../types";
+import { createMeltMaterial } from "../shaders/meltMaterial";
+import { mapGeometryUvsToAtlasRegion } from "./atlasUvMapper";
+import { ATLAS_REGIONS, AtlasRegionKey, createLiveTextureAtlas } from "./textureAtlas";
 
 // ==========================================
 // GEOMETRY REUSE CACHE
@@ -246,13 +249,16 @@ function addMorphTargets(geometry: THREE.BufferGeometry, isSkull: boolean) {
 // ==========================================
 export function buildAvatar(
   rawConfig: AvatarConfig,
-  faceTextureCanvas: HTMLCanvasElement | null
+  faceTextureCanvas: HTMLCanvasElement | null,
+  sourceImageUrl: string | null = null
 ): THREE.Group {
   // Validate config first to ensure no broken configs or garbage values
   const config = validateAvatarConfig(rawConfig);
 
   const group = new THREE.Group();
   group.name = "avatar-root";
+  const atlasController = createLiveTextureAtlas(sourceImageUrl);
+  atlasController.update(config, faceTextureCanvas, 0);
 
   // Dimensions based on body proportions
   let scaleY = 1.0;
@@ -306,6 +312,48 @@ export function buildAvatar(
       emissiveIntensity: config.materialEmissiveIntensity !== undefined ? config.materialEmissiveIntensity : 0,
     };
   };
+
+  const projectedMeshes: THREE.Mesh[] = [];
+  const registerProjectedMesh = (
+    mesh: THREE.Mesh,
+    regionKey: AtlasRegionKey,
+    baseColor: string,
+    templateMaterial?: THREE.Material | null
+  ) => {
+    mesh.userData.useBakedAtlas = true;
+    mesh.userData.atlasRegionKey = regionKey;
+    mesh.userData.baseColor = baseColor;
+    projectedMeshes.push(mesh);
+
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    materials.forEach((material) => {
+      if (!material) return;
+      material.userData.useBakedAtlas = true;
+      material.userData.atlasRegionKey = regionKey;
+      material.userData.baseColor = baseColor;
+      material.userData.exportMaterialParams = {
+        roughness: (templateMaterial as THREE.MeshStandardMaterial | null)?.roughness ?? (material as THREE.MeshStandardMaterial | any)?.roughness ?? 0.75,
+        metalness: (templateMaterial as THREE.MeshStandardMaterial | null)?.metalness ?? (material as THREE.MeshStandardMaterial | any)?.metalness ?? 0.05,
+        emissive: config.materialEmissive || "#000000",
+        emissiveIntensity: config.materialEmissiveIntensity ?? 0,
+      };
+    });
+  };
+
+  const createProjectedPartMaterial = (
+    regionKey: AtlasRegionKey,
+    baseColor: string,
+    materialName: string,
+    templateMaterial?: THREE.Material | null
+  ) =>
+    createMeltMaterial({
+      atlasTexture: atlasController.texture,
+      region: ATLAS_REGIONS[regionKey],
+      config,
+      baseColor,
+      name: materialName,
+      standardMaterialTemplate: templateMaterial,
+    });
 
   // Materials
   const skinMaterial = new THREE.MeshStandardMaterial({
@@ -387,6 +435,15 @@ export function buildAvatar(
     name: "face"
   });
 
+  atlasController.update(config, expressionCanvas, 0);
+
+  const headProjectedMaterial = createProjectedPartMaterial("head", config.skinColor, "atlas-head", faceMaterial);
+  const torsoProjectedMaterial = createProjectedPartMaterial("torso", config.clothingColor, "atlas-torso", clothingMaterial);
+  const leftArmProjectedMaterial = createProjectedPartMaterial("leftArm", config.clothingColor, "atlas-left-arm", clothingMaterial);
+  const rightArmProjectedMaterial = createProjectedPartMaterial("rightArm", config.clothingColor, "atlas-right-arm", clothingMaterial);
+  const leftLegProjectedMaterial = createProjectedPartMaterial("leftLeg", config.pantsColor, "atlas-left-leg", pantsMaterial);
+  const rightLegProjectedMaterial = createProjectedPartMaterial("rightLeg", config.pantsColor, "atlas-right-leg", pantsMaterial);
+
   // ==========================================
   // 1. TORSO & NECK (WITH CLOTHING VARIATIONS)
   // ==========================================
@@ -396,9 +453,10 @@ export function buildAvatar(
   if (config.headShape === "organic-smooth") {
     // Beautiful organic cylindrical chest
     const torsoGeo = getCylinderGeometry(torsoWidth / 2, torsoWidth / 2.3, torsoHeight, radialSeg).clone();
+    mapGeometryUvsToAtlasRegion(torsoGeo, ATLAS_REGIONS.torso);
     addMorphTargets(torsoGeo, false);
     
-    torso = new THREE.Mesh(torsoGeo, clothingMaterial);
+    torso = new THREE.Mesh(torsoGeo, torsoProjectedMaterial);
     torso.name = "torso";
     torso.position.y = limbLength + torsoHeight / 2;
     torso.castShadow = true;
@@ -407,14 +465,17 @@ export function buildAvatar(
 
     // Apply morph target influences
     torso.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
+    registerProjectedMesh(torso, "torso", config.clothingColor, clothingMaterial);
 
     // Rounded shoulders/chest top cap
-    const chestTopGeo = getSphereGeometry(torsoWidth / 2, radialSeg, radialSeg);
-    const chestTop = new THREE.Mesh(chestTopGeo, clothingMaterial);
+    const chestTopGeo = getSphereGeometry(torsoWidth / 2, radialSeg, radialSeg).clone();
+    mapGeometryUvsToAtlasRegion(chestTopGeo, ATLAS_REGIONS.torso);
+    const chestTop = new THREE.Mesh(chestTopGeo, torsoProjectedMaterial);
     chestTop.name = "chest-top";
     chestTop.position.y = torsoHeight / 2;
     chestTop.scale.set(1, 0.4, torsoDepth / torsoWidth);
     torso.add(chestTop);
+    registerProjectedMesh(chestTop, "torso", config.clothingColor, clothingMaterial);
 
     // Rounded bottom cap
     const pelvisGeo = getSphereGeometry(torsoWidth / 2.3, radialSeg, radialSeg);
@@ -434,9 +495,10 @@ export function buildAvatar(
 
   } else if (config.headShape === "bean-soft") {
     const torsoGeo = getCylinderGeometry(torsoWidth / 2.45, torsoWidth / 2.05, torsoHeight * 1.04, radialSeg).clone();
+    mapGeometryUvsToAtlasRegion(torsoGeo, ATLAS_REGIONS.torso);
     addMorphTargets(torsoGeo, false);
 
-    torso = new THREE.Mesh(torsoGeo, clothingMaterial);
+    torso = new THREE.Mesh(torsoGeo, torsoProjectedMaterial);
     torso.name = "torso";
     torso.position.y = limbLength + torsoHeight / 2;
     torso.castShadow = true;
@@ -444,12 +506,16 @@ export function buildAvatar(
     group.add(torso);
 
     torso.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
+    registerProjectedMesh(torso, "torso", config.clothingColor, clothingMaterial);
 
-    const chestTop = new THREE.Mesh(getSphereGeometry(torsoWidth / 2.3, radialSeg, radialSeg), clothingMaterial);
+    const chestTopGeo = getSphereGeometry(torsoWidth / 2.3, radialSeg, radialSeg).clone();
+    mapGeometryUvsToAtlasRegion(chestTopGeo, ATLAS_REGIONS.torso);
+    const chestTop = new THREE.Mesh(chestTopGeo, torsoProjectedMaterial);
     chestTop.name = "chest-top";
     chestTop.position.y = torsoHeight / 2 - 0.02;
     chestTop.scale.set(0.92, 0.34, torsoDepth / torsoWidth);
     torso.add(chestTop);
+    registerProjectedMesh(chestTop, "torso", config.clothingColor, clothingMaterial);
 
     const pelvis = new THREE.Mesh(getSphereGeometry(torsoWidth / 2.1, radialSeg, radialSeg), pantsMaterial);
     pelvis.name = "pelvis";
@@ -465,9 +531,10 @@ export function buildAvatar(
 
   } else if (config.headShape === "pumpkin-round") {
     const torsoGeo = getCylinderGeometry(torsoWidth / 2.1, torsoWidth / 1.85, torsoHeight * 0.96, radialSeg).clone();
+    mapGeometryUvsToAtlasRegion(torsoGeo, ATLAS_REGIONS.torso);
     addMorphTargets(torsoGeo, false);
 
-    torso = new THREE.Mesh(torsoGeo, clothingMaterial);
+    torso = new THREE.Mesh(torsoGeo, torsoProjectedMaterial);
     torso.name = "torso";
     torso.position.y = limbLength + torsoHeight / 2;
     torso.castShadow = true;
@@ -475,18 +542,25 @@ export function buildAvatar(
     group.add(torso);
 
     torso.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
+    registerProjectedMesh(torso, "torso", config.clothingColor, clothingMaterial);
 
-    const chestTop = new THREE.Mesh(getSphereGeometry(torsoWidth / 2.05, radialSeg, radialSeg), clothingMaterial);
+    const chestTopGeo = getSphereGeometry(torsoWidth / 2.05, radialSeg, radialSeg).clone();
+    mapGeometryUvsToAtlasRegion(chestTopGeo, ATLAS_REGIONS.torso);
+    const chestTop = new THREE.Mesh(chestTopGeo, torsoProjectedMaterial);
     chestTop.name = "chest-top";
     chestTop.position.y = torsoHeight / 2;
     chestTop.scale.set(1.08, 0.42, torsoDepth / torsoWidth);
     torso.add(chestTop);
+    registerProjectedMesh(chestTop, "torso", config.clothingColor, clothingMaterial);
 
-    const belly = new THREE.Mesh(getSphereGeometry(torsoWidth / 1.95, radialSeg, radialSeg), clothingMaterial);
+    const bellyGeo = getSphereGeometry(torsoWidth / 1.95, radialSeg, radialSeg).clone();
+    mapGeometryUvsToAtlasRegion(bellyGeo, ATLAS_REGIONS.torso);
+    const belly = new THREE.Mesh(bellyGeo, torsoProjectedMaterial);
     belly.name = "belly";
     belly.position.y = 0;
     belly.scale.set(1.1, 0.58, torsoDepth / torsoWidth);
     torso.add(belly);
+    registerProjectedMesh(belly, "torso", config.clothingColor, clothingMaterial);
 
     const pelvis = new THREE.Mesh(getSphereGeometry(torsoWidth / 2.0, radialSeg, radialSeg), pantsMaterial);
     pelvis.name = "pelvis";
@@ -503,9 +577,10 @@ export function buildAvatar(
   } else {
     // Blocky cube torso
     const torsoGeo = getBoxGeometry(torsoWidth, torsoHeight, torsoDepth).clone();
+    mapGeometryUvsToAtlasRegion(torsoGeo, ATLAS_REGIONS.torso);
     addMorphTargets(torsoGeo, false);
 
-    torso = new THREE.Mesh(torsoGeo, clothingMaterial);
+    torso = new THREE.Mesh(torsoGeo, torsoProjectedMaterial);
     torso.name = "torso";
     torso.position.y = limbLength + torsoHeight / 2;
     torso.castShadow = true;
@@ -513,6 +588,7 @@ export function buildAvatar(
     group.add(torso);
 
     torso.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
+    registerProjectedMesh(torso, "torso", config.clothingColor, clothingMaterial);
 
     // Blocky neck
     const neckGeo = getBoxGeometry(0.3, 0.2, 0.3);
@@ -522,16 +598,19 @@ export function buildAvatar(
     torso.add(neck);
 
     if (config.headShape === "hero-angular") {
-      const shoulderWingGeo = getBoxGeometry(torsoWidth * 0.24, 0.18, torsoDepth * 0.7);
-      const leftShoulderWing = new THREE.Mesh(shoulderWingGeo, clothingMaterial);
+      const shoulderWingGeo = getBoxGeometry(torsoWidth * 0.24, 0.18, torsoDepth * 0.7).clone();
+      mapGeometryUvsToAtlasRegion(shoulderWingGeo, ATLAS_REGIONS.torso);
+      const leftShoulderWing = new THREE.Mesh(shoulderWingGeo, torsoProjectedMaterial);
       leftShoulderWing.name = "left-shoulder-wing";
       leftShoulderWing.position.set(-torsoWidth / 2 - torsoWidth * 0.1, torsoHeight / 2 - 0.06, 0);
       torso.add(leftShoulderWing);
+      registerProjectedMesh(leftShoulderWing, "torso", config.clothingColor, clothingMaterial);
 
-      const rightShoulderWing = new THREE.Mesh(shoulderWingGeo, clothingMaterial);
+      const rightShoulderWing = new THREE.Mesh(shoulderWingGeo.clone(), torsoProjectedMaterial);
       rightShoulderWing.name = "right-shoulder-wing";
       rightShoulderWing.position.set(torsoWidth / 2 + torsoWidth * 0.1, torsoHeight / 2 - 0.06, 0);
       torso.add(rightShoulderWing);
+      registerProjectedMesh(rightShoulderWing, "torso", config.clothingColor, clothingMaterial);
     }
   }
 
@@ -562,45 +641,52 @@ export function buildAvatar(
 
     // Chestplate overlay
     const chestPlateGeo = isSmoothOrganic
-      ? getCylinderGeometry(torsoWidth / 1.95, torsoWidth / 2.25, torsoHeight * 0.85, radialSeg)
-      : getBoxGeometry(torsoWidth * 1.06, torsoHeight * 0.85, torsoDepth * 1.15);
+      ? getCylinderGeometry(torsoWidth / 1.95, torsoWidth / 2.25, torsoHeight * 0.85, radialSeg).clone()
+      : getBoxGeometry(torsoWidth * 1.06, torsoHeight * 0.85, torsoDepth * 1.15).clone();
+    mapGeometryUvsToAtlasRegion(chestPlateGeo, ATLAS_REGIONS.torso);
     
-    const chestPlate = new THREE.Mesh(chestPlateGeo, armorMaterial);
+    const chestPlate = new THREE.Mesh(chestPlateGeo, torsoProjectedMaterial);
     chestPlate.name = "chestplate";
     chestPlate.position.set(0, 0.02, 0.01);
     chestPlate.castShadow = true;
     torso.add(chestPlate);
+    registerProjectedMesh(chestPlate, "torso", config.clothingColor, armorMaterial);
 
     // Shoulder Pauldrons
     const pauldronGeo = isSmoothOrganic
-      ? getSphereGeometry(0.24, radialSeg, radialSeg)
-      : getBoxGeometry(0.42, 0.26, 0.42);
+      ? getSphereGeometry(0.24, radialSeg, radialSeg).clone()
+      : getBoxGeometry(0.42, 0.26, 0.42).clone();
+    mapGeometryUvsToAtlasRegion(pauldronGeo, ATLAS_REGIONS.torso);
 
-    const leftPauldron = new THREE.Mesh(pauldronGeo, armorMaterial);
+    const leftPauldron = new THREE.Mesh(pauldronGeo, torsoProjectedMaterial);
     leftPauldron.name = "left-pauldron";
     leftPauldron.position.set(-torsoWidth / 2 - 0.05, torsoHeight / 2, 0);
     leftPauldron.castShadow = true;
     torso.add(leftPauldron);
+    registerProjectedMesh(leftPauldron, "torso", config.clothingColor, armorMaterial);
 
-    const rightPauldron = new THREE.Mesh(pauldronGeo, armorMaterial);
+    const rightPauldron = new THREE.Mesh(pauldronGeo.clone(), torsoProjectedMaterial);
     rightPauldron.name = "right-pauldron";
     rightPauldron.position.set(torsoWidth / 2 + 0.05, torsoHeight / 2, 0);
     rightPauldron.castShadow = true;
     torso.add(rightPauldron);
+    registerProjectedMesh(rightPauldron, "torso", config.clothingColor, armorMaterial);
 
   } else if (clothingStyle === "dress") {
     // Flowing elegant dress skirt
     const skirtHeight = limbLength * 0.78;
     const skirtGeo = isSmoothOrganic
-      ? getCylinderGeometry(torsoWidth / 2, torsoWidth * 0.76, skirtHeight, radialSeg)
-      : getBoxGeometry(torsoWidth * 1.12, skirtHeight, torsoDepth * 1.35);
+      ? getCylinderGeometry(torsoWidth / 2, torsoWidth * 0.76, skirtHeight, radialSeg).clone()
+      : getBoxGeometry(torsoWidth * 1.12, skirtHeight, torsoDepth * 1.35).clone();
+    mapGeometryUvsToAtlasRegion(skirtGeo, ATLAS_REGIONS.torso);
     
-    const skirt = new THREE.Mesh(skirtGeo, clothingMaterial);
+    const skirt = new THREE.Mesh(skirtGeo, torsoProjectedMaterial);
     skirt.name = "skirt";
     skirt.position.set(0, -torsoHeight / 2 - skirtHeight / 2, 0);
     skirt.castShadow = true;
     skirt.receiveShadow = true;
     torso.add(skirt);
+    registerProjectedMesh(skirt, "torso", config.clothingColor, clothingMaterial);
   }
 
   // ==========================================
@@ -619,15 +705,16 @@ export function buildAvatar(
 
     // Single skull sphere with morph targets
     const skullGeo = getSphereGeometry(skullRadius, radialSeg, radialSeg).clone();
-    applyFrontProjectionUVs(skullGeo);
+    mapGeometryUvsToAtlasRegion(skullGeo, ATLAS_REGIONS.head);
     addMorphTargets(skullGeo, true);
 
-    const skull = new THREE.Mesh(skullGeo, faceMaterial);
+    const skull = new THREE.Mesh(skullGeo, headProjectedMaterial);
     skull.name = "skull";
     skull.scale.set(1.0, 1.15, 1.05);
     skull.castShadow = true;
     skull.receiveShadow = true;
     head.add(skull);
+    registerProjectedMesh(skull, "head", config.skinColor, faceMaterial);
 
     skull.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
 
@@ -640,15 +727,16 @@ export function buildAvatar(
     const skullRadius = actualHeadSize * 0.52;
 
     const skullGeo = getSphereGeometry(skullRadius, radialSeg, radialSeg).clone();
-    applyFrontProjectionUVs(skullGeo);
+    mapGeometryUvsToAtlasRegion(skullGeo, ATLAS_REGIONS.head);
     addMorphTargets(skullGeo, true);
 
-    const skull = new THREE.Mesh(skullGeo, faceMaterial);
+    const skull = new THREE.Mesh(skullGeo, headProjectedMaterial);
     skull.name = "skull";
     skull.scale.set(1.04, 0.96, 1.0);
     skull.castShadow = true;
     skull.receiveShadow = true;
     head.add(skull);
+    registerProjectedMesh(skull, "head", config.skinColor, faceMaterial);
 
     skull.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
 
@@ -661,15 +749,16 @@ export function buildAvatar(
     const skullRadius = actualHeadSize * 0.48;
 
     const skullGeo = getSphereGeometry(skullRadius, radialSeg, radialSeg).clone();
-    applyFrontProjectionUVs(skullGeo);
+    mapGeometryUvsToAtlasRegion(skullGeo, ATLAS_REGIONS.head);
     addMorphTargets(skullGeo, true);
 
-    const skull = new THREE.Mesh(skullGeo, faceMaterial);
+    const skull = new THREE.Mesh(skullGeo, headProjectedMaterial);
     skull.name = "skull";
     skull.scale.set(0.9, 1.24, 0.98);
     skull.castShadow = true;
     skull.receiveShadow = true;
     head.add(skull);
+    registerProjectedMesh(skull, "head", config.skinColor, faceMaterial);
 
     skull.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
 
@@ -682,15 +771,16 @@ export function buildAvatar(
     const skullRadius = actualHeadSize * 0.49;
 
     const skullGeo = getSphereGeometry(skullRadius, radialSeg, radialSeg).clone();
-    applyFrontProjectionUVs(skullGeo);
+    mapGeometryUvsToAtlasRegion(skullGeo, ATLAS_REGIONS.head);
     addMorphTargets(skullGeo, true);
 
-    const skull = new THREE.Mesh(skullGeo, faceMaterial);
+    const skull = new THREE.Mesh(skullGeo, headProjectedMaterial);
     skull.name = "skull";
     skull.scale.set(1.16, 1.06, 1.12);
     skull.castShadow = true;
     skull.receiveShadow = true;
     head.add(skull);
+    registerProjectedMesh(skull, "head", config.skinColor, faceMaterial);
 
     skull.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
 
@@ -703,54 +793,54 @@ export function buildAvatar(
     const skullRadius = actualHeadSize * 0.5;
 
     const skullGeo = getSphereGeometry(skullRadius, radialSeg, radialSeg).clone();
-    applyFrontProjectionUVs(skullGeo);
+    mapGeometryUvsToAtlasRegion(skullGeo, ATLAS_REGIONS.head);
     addMorphTargets(skullGeo, true);
 
-    const skull = new THREE.Mesh(skullGeo, faceMaterial);
+    const skull = new THREE.Mesh(skullGeo, headProjectedMaterial);
     skull.name = "skull";
     skull.scale.set(1.02, 1.0, 0.98);
     skull.castShadow = true;
     skull.receiveShadow = true;
     head.add(skull);
+    registerProjectedMesh(skull, "head", config.skinColor, faceMaterial);
 
     skull.morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
 
-    const jawGeo = getBoxGeometry(actualHeadSize * 0.76, actualHeadSize * 0.28, actualHeadSize * 0.55);
-    const jaw = new THREE.Mesh(jawGeo, skinMaterial);
+    const jawGeo = getBoxGeometry(actualHeadSize * 0.76, actualHeadSize * 0.28, actualHeadSize * 0.55).clone();
+    mapGeometryUvsToAtlasRegion(jawGeo, ATLAS_REGIONS.head);
+    const jaw = new THREE.Mesh(jawGeo, headProjectedMaterial);
     jaw.name = "jaw-plate";
     jaw.position.set(0, -actualHeadSize * 0.22, actualHeadSize * 0.08);
     head.add(jaw);
+    registerProjectedMesh(jaw, "head", config.skinColor, skinMaterial);
 
-    const cheekGeo = getBoxGeometry(actualHeadSize * 0.18, actualHeadSize * 0.18, actualHeadSize * 0.42);
-    const leftCheek = new THREE.Mesh(cheekGeo, skinMaterial);
+    const cheekGeo = getBoxGeometry(actualHeadSize * 0.18, actualHeadSize * 0.18, actualHeadSize * 0.42).clone();
+    mapGeometryUvsToAtlasRegion(cheekGeo, ATLAS_REGIONS.head);
+    const leftCheek = new THREE.Mesh(cheekGeo, headProjectedMaterial);
     leftCheek.name = "left-cheek";
     leftCheek.position.set(-actualHeadSize * 0.33, -actualHeadSize * 0.05, actualHeadSize * 0.08);
     head.add(leftCheek);
+    registerProjectedMesh(leftCheek, "head", config.skinColor, skinMaterial);
 
-    const rightCheek = new THREE.Mesh(cheekGeo, skinMaterial);
+    const rightCheek = new THREE.Mesh(cheekGeo.clone(), headProjectedMaterial);
     rightCheek.name = "right-cheek";
     rightCheek.position.set(actualHeadSize * 0.33, -actualHeadSize * 0.05, actualHeadSize * 0.08);
     head.add(rightCheek);
+    registerProjectedMesh(rightCheek, "head", config.skinColor, skinMaterial);
 
   } else {
     // Retro box head
     const headGeo = getBoxGeometry(actualHeadSize, actualHeadSize, actualHeadSize).clone();
+    mapGeometryUvsToAtlasRegion(headGeo, ATLAS_REGIONS.head);
     addMorphTargets(headGeo, true);
 
-    const headMaterials = [
-      skinMaterial, // Right
-      skinMaterial, // Left
-      skinMaterial, // Top
-      skinMaterial, // Bottom
-      faceMaterial, // Front
-      skinMaterial, // Back
-    ];
-    head = new THREE.Mesh(headGeo, headMaterials);
+    head = new THREE.Mesh(headGeo, headProjectedMaterial);
     head.name = "head";
     head.position.y = neck.position.y + actualHeadSize / 2 + 0.1;
     head.castShadow = true;
     head.receiveShadow = true;
     torso.add(head);
+    registerProjectedMesh(head as THREE.Mesh, "head", config.skinColor, faceMaterial);
 
     (head as THREE.Mesh).morphTargetInfluences = [config.morphSlender || 0, config.morphBulk || 0];
   }
@@ -1373,8 +1463,15 @@ export function buildAvatar(
     // B. SKINNED CYLINDER MESH
     const jointRadius = isArm ? 0.17 : 0.21;
     const limbMaterial = isArm ? clothingMaterial : pantsMaterial;
+    const projectedMaterial = isArm
+      ? (isLeft ? leftArmProjectedMaterial : rightArmProjectedMaterial)
+      : (isLeft ? leftLegProjectedMaterial : rightLegProjectedMaterial);
+    const atlasRegionKey: AtlasRegionKey = isArm
+      ? (isLeft ? "leftArm" : "rightArm")
+      : (isLeft ? "leftLeg" : "rightLeg");
 
     const limbGeo = getCylinderGeometry(jointRadius, jointRadius * 0.72, limbLength, radialSeg, radialSeg).clone();
+    mapGeometryUvsToAtlasRegion(limbGeo, ATLAS_REGIONS[atlasRegionKey]);
     limbGeo.translate(0, -limbLength / 2, 0);
 
     // Assign Vertex weights for seamless skeleton binding
@@ -1400,13 +1497,14 @@ export function buildAvatar(
     limbGeo.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(skinIndices, 4));
     limbGeo.setAttribute("skinWeight", new THREE.Float32BufferAttribute(skinWeights, 4));
 
-    const skinnedMesh = new THREE.SkinnedMesh(limbGeo, limbMaterial);
+    const skinnedMesh = new THREE.SkinnedMesh(limbGeo, projectedMaterial);
     skinnedMesh.name = `${isLeft ? "left" : "right"}-${isArm ? "arm" : "leg"}-mesh`;
     skinnedMesh.castShadow = true;
     skinnedMesh.receiveShadow = true;
     skinnedMesh.add(b0); // root bone
     skinnedMesh.bind(skeleton);
     pivot.add(skinnedMesh);
+    registerProjectedMesh(skinnedMesh, atlasRegionKey, isArm ? config.clothingColor : config.pantsColor, limbMaterial);
 
     // C. ATTACHMENT SOCKET ENDS (Follow skeleton terminal bone b2)
     if (isArm) {
@@ -1437,13 +1535,21 @@ export function buildAvatar(
     const pivot = new THREE.Group();
     pivot.name = `${isLeft ? "left" : "right"}-${isArm ? "arm" : "leg"}-classic`;
 
-    const limbGeo = getBoxGeometry(limbWidth, limbLength, limbWidth);
-    const limbMesh = new THREE.Mesh(limbGeo, isArm ? clothingMaterial : pantsMaterial);
+    const atlasRegionKey: AtlasRegionKey = isArm
+      ? (isLeft ? "leftArm" : "rightArm")
+      : (isLeft ? "leftLeg" : "rightLeg");
+    const limbGeo = getBoxGeometry(limbWidth, limbLength, limbWidth).clone();
+    mapGeometryUvsToAtlasRegion(limbGeo, ATLAS_REGIONS[atlasRegionKey]);
+    const limbMesh = new THREE.Mesh(
+      limbGeo,
+      isArm ? (isLeft ? leftArmProjectedMaterial : rightArmProjectedMaterial) : (isLeft ? leftLegProjectedMaterial : rightLegProjectedMaterial)
+    );
     limbMesh.name = "limb";
     limbMesh.position.y = -limbLength / 2;
     limbMesh.castShadow = true;
     limbMesh.receiveShadow = true;
     pivot.add(limbMesh);
+    registerProjectedMesh(limbMesh, atlasRegionKey, isArm ? config.clothingColor : config.pantsColor, isArm ? clothingMaterial : pantsMaterial);
 
     if (isArm) {
       const handGeo = getBoxGeometry(limbWidth + 0.02, 0.2, limbWidth + 0.02);
@@ -1649,6 +1755,10 @@ export function buildAvatar(
   }
 
   // Attach final precomputed key bounding boxes to userData for downstream verification / diagnostics
+  group.userData.atlasController = atlasController;
+  group.userData.projectedMeshes = projectedMeshes;
+  group.userData.faceProjectionCanvas = expressionCanvas;
+  group.userData.sourceImageUrl = sourceImageUrl;
   group.userData.boundingBoxes = {
     skull: skullBox,
     hairGroup: hairBox,

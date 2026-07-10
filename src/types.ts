@@ -7,6 +7,7 @@ export type HeadShape =
   | "bean-soft"
   | "pumpkin-round"
   | "hero-angular";
+export type ProjectionTarget = "face-only" | "head" | "upper-body" | "full-body";
 
 export interface AvatarConfig {
   name: string;
@@ -97,6 +98,17 @@ export interface AvatarConfig {
   meltProgress?: number; // 0 to 1
   meltPreset?: "slime" | "gold" | "acid" | "lava";
   meltViscosity?: number; // 0.1 to 1.0
+  projectionTarget?: ProjectionTarget;
+  projectionScaleX?: number;
+  projectionScaleY?: number;
+  projectionOffsetX?: number;
+  projectionOffsetY?: number;
+  projectionOpacity?: number;
+  meltSpeed?: number;
+  noiseScale?: number;
+  dripLength?: number;
+  edgeSoftness?: number;
+  previewMelt?: boolean;
 }
 
 export interface DetectionResult {

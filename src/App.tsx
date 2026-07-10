@@ -26,6 +26,7 @@ import ThreeCanvas from "./components/ThreeCanvas";
 import StudioLogs from "./components/StudioLogs";
 import { prepareFaceTexture } from "./utils/texturePreparer";
 import { exportToGLB } from "./utils/glbExporter";
+import { bakeMeltedAtlas } from "./utils/textureBaker";
 import * as THREE from "three";
 
 // ==========================================
@@ -633,6 +634,18 @@ export default function App() {
     colorFilterPreset: "none",
     meltPreset: "slime",
     meltViscosity: 0.5,
+    projectionTarget: "face-only",
+    projectionScaleX: 1,
+    projectionScaleY: 1,
+    projectionOffsetX: 0,
+    projectionOffsetY: 0,
+    projectionOpacity: 1,
+    meltProgress: 0.45,
+    meltSpeed: 1.2,
+    noiseScale: 1.4,
+    dripLength: 0.85,
+    edgeSoftness: 0.18,
+    previewMelt: false,
   });
 
   // Physics bounce timer trigger
@@ -1387,10 +1400,10 @@ export default function App() {
     }
 
     try {
-      addLog(`Packaging model and exporting GLB...`, "info");
-      const blob = await exportToGLB(avatarGroupRef.current, characterName);
+      addLog(`Baking live melt atlas and exporting GLB...`, "info");
+      const result = await exportToGLB(avatarGroupRef.current, characterName, config);
       
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(result.blob);
       const link = document.createElement("a");
       link.href = url;
       link.download = `${characterName.toLowerCase().replace(/\s+/g, "_")}.glb`;
@@ -1400,8 +1413,35 @@ export default function App() {
       URL.revokeObjectURL(url);
       
       addLog(`GLB exported and downloaded as ${characterName.toLowerCase().replace(/\s+/g, "_")}.glb!`, "success");
+      addLog(
+        `[EXPORT CHECK] parses=${result.validation.parses ? "yes" : "no"} | uv=${result.validation.texturedMeshesRetainUvs ? "yes" : "no"} | bakedTexture=${result.validation.bakedTextureExists ? "yes" : "no"} | meshes=${result.validation.meshCount} | materials=${result.validation.materialCount}`,
+        result.validation.parses && result.validation.texturedMeshesRetainUvs ? "success" : "warning"
+      );
+      result.validation.issues.forEach((issue) => addLog(`[EXPORT CHECK] ${issue}`, "warning"));
     } catch (err: any) {
       addLog(`Export failed: ${err.message}`, "error");
+    }
+  };
+
+  const handleExportCurrentMeltFrame = () => {
+    const atlasController = avatarGroupRef.current?.userData?.atlasController;
+    if (!atlasController) {
+      addLog("No live atlas controller available to bake the current melt frame.", "error");
+      return;
+    }
+
+    try {
+      const baked = bakeMeltedAtlas(atlasController, config, performance.now() / 1000);
+      const url = baked.canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${characterName.toLowerCase().replace(/\s+/g, "_")}_melt_atlas.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      addLog("Current melt frame baked and downloaded as atlas PNG.", "success");
+    } catch (err: any) {
+      addLog(`Melt frame export failed: ${err.message}`, "error");
     }
   };
 
@@ -1464,6 +1504,7 @@ export default function App() {
       isMelting: true,
       meltProgress: 0,
       meltPreset: preset,
+      previewMelt: true,
     }));
     setMeltActive(true);
     addLog(`[MELTDOWN] Reactor engaged: ${preset.toUpperCase()} profile.`, "warning");
@@ -1489,6 +1530,7 @@ export default function App() {
             ...prev,
             isMelting: false,
             meltProgress: 0,
+            previewMelt: false,
           }));
           setMeltActive(false);
           addLog("[MELTDOWN] Splice cycle complete. Geometry re-solidified.", "success");
@@ -1714,6 +1756,18 @@ export default function App() {
       cameraPreset: "front",
       meltPreset: "slime",
       meltViscosity: 0.5,
+      projectionTarget: "face-only",
+      projectionScaleX: 1,
+      projectionScaleY: 1,
+      projectionOffsetX: 0,
+      projectionOffsetY: 0,
+      projectionOpacity: 1,
+      meltProgress: 0.45,
+      meltSpeed: 1.2,
+      noiseScale: 1.4,
+      dripLength: 0.85,
+      edgeSoftness: 0.18,
+      previewMelt: false,
     });
     setBrightnessLevel("standard");
     setMeltActive(false);
@@ -2305,8 +2359,130 @@ export default function App() {
                 </div>
 
                 <p className="text-[11px] text-[#141414]/85 leading-relaxed font-sans">
-                  Trigger a melt pass that collapses the rig into a pooled splice effect, then solidifies it back into the avatar.
+                  Project the uploaded image onto the live atlas, tune the fit, and preview the real melt shader before freezing the current frame into export.
                 </p>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-mono font-bold text-[#141414]/70 uppercase">Projection Target</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: "face-only", label: "Face Only" },
+                      { id: "head", label: "Head" },
+                      { id: "upper-body", label: "Upper Body" },
+                      { id: "full-body", label: "Full Body" },
+                    ].map((target) => (
+                      <button
+                        key={target.id}
+                        type="button"
+                        onClick={() => setConfig((prev) => ({ ...prev, projectionTarget: target.id as AvatarConfig["projectionTarget"] }))}
+                        className={`text-left p-2 rounded-none border-2 border-[#141414] transition-all duration-150 cursor-pointer ${
+                          (config.projectionTarget || "face-only") === target.id
+                            ? "bg-[#141414] text-white shadow-none"
+                            : "bg-white text-[#141414] shadow-[2px_2px_0px_0px_#141414] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#141414]"
+                        }`}
+                      >
+                        <div className="text-[10px] font-bold uppercase">{target.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
+                      <span className="uppercase">Image Scale X</span>
+                      <span>{(config.projectionScaleX || 1).toFixed(2)}x</span>
+                    </div>
+                    <input type="range" min="0.4" max="1.8" step="0.01" value={config.projectionScaleX || 1} onChange={(e) => setConfig((prev) => ({ ...prev, projectionScaleX: parseFloat(e.target.value) }))} className="w-full accent-[#141414] h-1.5 bg-[#D4D3D0] rounded-none cursor-pointer" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
+                      <span className="uppercase">Image Scale Y</span>
+                      <span>{(config.projectionScaleY || 1).toFixed(2)}x</span>
+                    </div>
+                    <input type="range" min="0.4" max="1.8" step="0.01" value={config.projectionScaleY || 1} onChange={(e) => setConfig((prev) => ({ ...prev, projectionScaleY: parseFloat(e.target.value) }))} className="w-full accent-[#141414] h-1.5 bg-[#D4D3D0] rounded-none cursor-pointer" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
+                      <span className="uppercase">Image Offset X</span>
+                      <span>{(config.projectionOffsetX || 0).toFixed(2)}</span>
+                    </div>
+                    <input type="range" min="-0.5" max="0.5" step="0.01" value={config.projectionOffsetX || 0} onChange={(e) => setConfig((prev) => ({ ...prev, projectionOffsetX: parseFloat(e.target.value) }))} className="w-full accent-[#141414] h-1.5 bg-[#D4D3D0] rounded-none cursor-pointer" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
+                      <span className="uppercase">Image Offset Y</span>
+                      <span>{(config.projectionOffsetY || 0).toFixed(2)}</span>
+                    </div>
+                    <input type="range" min="-0.5" max="0.5" step="0.01" value={config.projectionOffsetY || 0} onChange={(e) => setConfig((prev) => ({ ...prev, projectionOffsetY: parseFloat(e.target.value) }))} className="w-full accent-[#141414] h-1.5 bg-[#D4D3D0] rounded-none cursor-pointer" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
+                      <span className="uppercase">Melt Progress</span>
+                      <span>{Math.round((config.meltProgress || 0) * 100)}%</span>
+                    </div>
+                    <input type="range" min="0" max="1" step="0.01" value={config.meltProgress || 0} onChange={(e) => setConfig((prev) => ({ ...prev, meltProgress: parseFloat(e.target.value) }))} className="w-full accent-[#141414] h-1.5 bg-[#D4D3D0] rounded-none cursor-pointer" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
+                      <span className="uppercase">Projection Opacity</span>
+                      <span>{Math.round((config.projectionOpacity || 1) * 100)}%</span>
+                    </div>
+                    <input type="range" min="0" max="1" step="0.01" value={config.projectionOpacity || 1} onChange={(e) => setConfig((prev) => ({ ...prev, projectionOpacity: parseFloat(e.target.value) }))} className="w-full accent-[#141414] h-1.5 bg-[#D4D3D0] rounded-none cursor-pointer" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
+                      <span className="uppercase">Melt Speed</span>
+                      <span>{(config.meltSpeed || 1.2).toFixed(2)}</span>
+                    </div>
+                    <input type="range" min="0.2" max="3" step="0.01" value={config.meltSpeed || 1.2} onChange={(e) => setConfig((prev) => ({ ...prev, meltSpeed: parseFloat(e.target.value) }))} className="w-full accent-[#141414] h-1.5 bg-[#D4D3D0] rounded-none cursor-pointer" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
+                      <span className="uppercase">Noise Scale</span>
+                      <span>{(config.noiseScale || 1.4).toFixed(2)}</span>
+                    </div>
+                    <input type="range" min="0.2" max="4" step="0.01" value={config.noiseScale || 1.4} onChange={(e) => setConfig((prev) => ({ ...prev, noiseScale: parseFloat(e.target.value) }))} className="w-full accent-[#141414] h-1.5 bg-[#D4D3D0] rounded-none cursor-pointer" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
+                      <span className="uppercase">Drip Length</span>
+                      <span>{(config.dripLength || 0.85).toFixed(2)}</span>
+                    </div>
+                    <input type="range" min="0" max="2" step="0.01" value={config.dripLength || 0.85} onChange={(e) => setConfig((prev) => ({ ...prev, dripLength: parseFloat(e.target.value) }))} className="w-full accent-[#141414] h-1.5 bg-[#D4D3D0] rounded-none cursor-pointer" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
+                      <span className="uppercase">Edge Softness</span>
+                      <span>{(config.edgeSoftness || 0.18).toFixed(2)}</span>
+                    </div>
+                    <input type="range" min="0.01" max="0.45" step="0.01" value={config.edgeSoftness || 0.18} onChange={(e) => setConfig((prev) => ({ ...prev, edgeSoftness: parseFloat(e.target.value) }))} className="w-full accent-[#141414] h-1.5 bg-[#D4D3D0] rounded-none cursor-pointer" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfig((prev) => ({ ...prev, previewMelt: !prev.previewMelt }))}
+                    className={`py-2 px-3 font-mono text-[10px] font-black tracking-wider transition-all duration-300 uppercase border-2 border-[#141414] ${
+                      config.previewMelt
+                        ? "bg-[#141414] text-white"
+                        : "bg-white text-[#141414] shadow-[2px_2px_0px_0px_#141414]"
+                    }`}
+                  >
+                    {config.previewMelt ? "Preview Melt: ON" : "Preview Melt: OFF"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportCurrentMeltFrame}
+                    className="py-2 px-3 font-mono text-[10px] font-black tracking-wider transition-all duration-300 uppercase border-2 border-[#141414] bg-white text-[#141414] shadow-[2px_2px_0px_0px_#141414] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_#141414]"
+                  >
+                    Export Current Melt Frame
+                  </button>
+                </div>
 
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-mono font-bold text-[#141414]/70 uppercase">Select Melting Agent</label>
@@ -3622,6 +3798,7 @@ export default function App() {
                   <ThreeCanvas
                     config={config}
                     faceCanvas={faceCanvas}
+                    sourceImage={sourceImage}
                     autoRotate={autoRotate}
                     bounceTime={bounceTime}
                     onSceneReady={(group) => {
