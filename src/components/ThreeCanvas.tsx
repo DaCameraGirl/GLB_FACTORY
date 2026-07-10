@@ -10,6 +10,7 @@ interface ThreeCanvasProps {
   onSceneReady?: (avatarGroup: THREE.Group) => void;
   autoRotate: boolean;
   bounceTime: number;
+  cameraResetTrigger?: number;
 }
 
 export default function ThreeCanvas({
@@ -18,9 +19,9 @@ export default function ThreeCanvas({
   onSceneReady,
   autoRotate,
   bounceTime,
+  cameraResetTrigger,
 }: ThreeCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasMountRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -31,10 +32,10 @@ export default function ThreeCanvas({
   const gridHelperRef = useRef<THREE.GridHelper | null>(null);
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
   const dirLightRef = useRef<THREE.DirectionalLight | null>(null);
-  const meltParticlesRef = useRef<THREE.Group | null>(null);
 
   // Snapchat Lenses particles state refs
   const particlesRef = useRef<THREE.Group | null>(null);
+  const meltParticlesRef = useRef<THREE.Group | null>(null);
   const particleMetaRef = useRef<{ ySpeed: number[]; rotSpeed: number[] } | null>(null);
   const lastLensRef = useRef<string | null>(null);
 
@@ -72,54 +73,9 @@ export default function ThreeCanvas({
     }
   }, [config.animationMode]);
 
-  const fitCameraToAvatar = (
-    camera: THREE.PerspectiveCamera,
-    controls: OrbitControls | null,
-    avatarGroup: THREE.Group,
-    cameraPreset: AvatarConfig["cameraPreset"] | undefined
-  ) => {
-    const bounds = new THREE.Box3().setFromObject(avatarGroup);
-    if (bounds.isEmpty()) return;
-
-    const center = bounds.getCenter(new THREE.Vector3());
-    const size = bounds.getSize(new THREE.Vector3());
-    const safeWidth = Math.max(size.x, 0.1);
-    const safeHeight = Math.max(size.y, 0.1);
-    const safeDepth = Math.max(size.z, 0.1);
-
-    const fitHeightDistance = safeHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
-    const fitWidthDistance = (safeWidth / Math.max(camera.aspect, 0.1)) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
-    const distance = Math.max(fitHeightDistance, fitWidthDistance) * 1.45 + safeDepth * 0.9;
-
-    const preset = cameraPreset || "front";
-    const direction =
-      preset === "side"
-        ? new THREE.Vector3(1, 0.2, 0)
-        : preset === "top"
-        ? new THREE.Vector3(0, 1, 0.18)
-        : preset === "isometric"
-        ? new THREE.Vector3(1, 0.75, 1)
-        : new THREE.Vector3(0, 0.18, 1);
-
-    direction.normalize();
-    camera.position.copy(center).add(direction.multiplyScalar(distance));
-    camera.near = Math.max(distance / 100, 0.1);
-    camera.far = Math.max(distance * 12, 100);
-    camera.updateProjectionMatrix();
-
-    if (controls) {
-      controls.target.copy(center);
-      controls.minDistance = Math.max(distance * 0.45, 1.5);
-      controls.maxDistance = Math.max(distance * 2.5, controls.minDistance + 1);
-      controls.update();
-    } else {
-      camera.lookAt(center);
-    }
-  };
-
   // 1. Core Scene, Camera, WebGLRenderer, Controls initialization (ONCE on mount)
   useEffect(() => {
-    if (!containerRef.current || !canvasMountRef.current) return;
+    if (!containerRef.current) return;
 
     // Create Scene
     const scene = new THREE.Scene();
@@ -132,6 +88,7 @@ export default function ThreeCanvas({
     scene.add(particlesGroup);
     particlesRef.current = particlesGroup;
 
+    // Create meltdown factory dripping particles group
     const meltParticlesGroup = new THREE.Group();
     meltParticlesGroup.name = "melt-particles-group";
     scene.add(meltParticlesGroup);
@@ -185,8 +142,8 @@ export default function ThreeCanvas({
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    canvasMountRef.current.innerHTML = "";
-    canvasMountRef.current.appendChild(renderer.domElement);
+    containerRef.current.innerHTML = "";
+    containerRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
     // Ambient light
@@ -216,12 +173,25 @@ export default function ThreeCanvas({
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.enableZoom = false; // Allow mouse scroll wheel to scroll the webpage instead of zooming the scene
+    controls.enableZoom = true; // Enabled for interactive zooming
+    controls.enablePan = true;  // Enabled for interactive panning
+    controls.enableRotate = true; // Enabled for interactive rotating
     controls.maxPolarAngle = Math.PI / 2 + 0.1;
     controls.minDistance = 2.0;
     controls.maxDistance = 10.0;
     controls.target.set(0, 1.3, 0);
     controlsRef.current = controls;
+
+    // Smart wheel scrolling: Only zoom if a modifier key (Shift/Ctrl/Alt/Meta) is pressed,
+    // which prevents the canvas from swallowing page scrolls but allows zoom.
+    const handleWheel = (e: WheelEvent) => {
+      if (e.shiftKey || e.ctrlKey || e.altKey || e.metaKey) {
+        controls.enableZoom = true;
+      } else {
+        controls.enableZoom = false;
+      }
+    };
+    renderer.domElement.addEventListener("wheel", handleWheel, { passive: true });
 
     // Resize Observer
     const resizeObserver = new ResizeObserver((entries) => {
@@ -262,7 +232,8 @@ export default function ThreeCanvas({
     const clock = new THREE.Clock();
 
     const animate = () => {
-      const activeConfig = configRef.current;
+      try {
+        const activeConfig = configRef.current;
       const activeAutoRotate = autoRotateRef.current;
       const activeAnimMode = animationModeRef.current;
       const activeBounceTime = bounceTimeRef.current;
@@ -293,26 +264,21 @@ export default function ThreeCanvas({
           }
         }
 
-        avatarGroupRef.current.position.y = bounceY;
-        let finalScaleX = squishXZ;
         let finalScaleY = squishY;
+        let finalScaleX = squishXZ;
         let finalScaleZ = squishXZ;
 
-        if (activeConfig.isMelting) {
+        // Apply visual Meltdown Factory geometry collapse
+        const isMeltActive = activeConfig.isMelting && activeConfig.meltProgress !== undefined;
+        if (isMeltActive) {
           const progress = activeConfig.meltProgress || 0;
-          finalScaleY *= 1.0 - progress * 0.75;
-          finalScaleX *= 1.0 + progress * 0.65;
-          finalScaleZ *= 1.0 + progress * 0.65;
+          finalScaleY *= (1.0 - progress * 0.75); // scales down to 25% of height
+          finalScaleX *= (1.0 + progress * 0.65); // pools outward to 165% width
+          finalScaleZ *= (1.0 + progress * 0.65); // pools outward to 165% depth
         }
 
+        avatarGroupRef.current.position.y = bounceY;
         avatarGroupRef.current.scale.set(finalScaleX, finalScaleY, finalScaleZ);
-
-        // Snapchat Dynamic Big Head Lens controller
-        const headObj = avatarGroupRef.current.getObjectByName("head") as THREE.Object3D;
-        if (headObj) {
-          const baseHeadFactor = 1.0 + (activeConfig.bigHeadFactor || 0) * 1.5;
-          headObj.scale.set(baseHeadFactor, baseHeadFactor, baseHeadFactor);
-        }
       }
 
       // --- SNAPCHAT LENS PARTICLES SYSTEM ---
@@ -436,91 +402,101 @@ export default function ThreeCanvas({
         });
       }
 
+      // --- MELTDOWN FACTORY DRIPPING PARTICLES SYSTEM ---
       if (meltParticlesRef.current) {
+        // Spawn driplets when melting is active
         const isMeltActive = activeConfig.isMelting && activeConfig.meltProgress !== undefined;
-        if (isMeltActive && Math.random() < 0.45) {
+        if (isMeltActive && Math.random() < 0.48) {
           const progress = activeConfig.meltProgress || 0;
-          let colorHex = activeConfig.skinColor || "#e5a65d";
+          
+          // Select color from the active character styling
+          let colorHex = activeConfig.skinColor || "#E0A96D";
           const selector = Math.random();
-
           if (selector < 0.25) colorHex = activeConfig.hairColor || "#141414";
-          else if (selector < 0.55) colorHex = activeConfig.clothingColor || "#3b82f6";
-          else if (selector < 0.75) colorHex = activeConfig.pantsColor || "#111827";
+          else if (selector < 0.55) colorHex = activeConfig.clothingColor || "#3B82F6";
+          else if (selector < 0.75) colorHex = activeConfig.pantsColor || "#10B981";
 
-          if (activeConfig.meltPreset === "gold") colorHex = "#ffd700";
-          else if (activeConfig.meltPreset === "acid") colorHex = "#39ff14";
-          else if (activeConfig.meltPreset === "lava") colorHex = "#ff4500";
-          else if (activeConfig.meltPreset === "slime") colorHex = "#4ade80";
+          if (activeConfig.meltPreset === "gold") colorHex = "#FFD700";
+          else if (activeConfig.meltPreset === "acid") colorHex = "#39FF14";
+          else if (activeConfig.meltPreset === "lava") colorHex = "#FF4500";
+          else if (activeConfig.meltPreset === "slime") colorHex = "#4ADE80";
 
-          const viscosity = activeConfig.meltViscosity ?? 0.5;
-          const dropSize = 0.03 + Math.random() * 0.04;
-          const drop = new THREE.Mesh(
-            new THREE.SphereGeometry(dropSize, 5, 5),
-            new THREE.MeshStandardMaterial({
-              color: new THREE.Color(colorHex),
-              roughness: 0.15,
-              metalness: activeConfig.meltPreset === "gold" ? 0.9 : 0.08,
-              emissive:
-                activeConfig.meltPreset === "lava" || activeConfig.meltPreset === "acid"
-                  ? new THREE.Color(colorHex)
-                  : new THREE.Color(0, 0, 0),
-              emissiveIntensity: activeConfig.meltPreset === "lava" ? 1.2 : activeConfig.meltPreset === "acid" ? 0.7 : 0,
-            })
-          );
+          // Sphere droplet geometry
+          const dropSize = 0.035 + Math.random() * 0.045;
+          const dropGeom = new THREE.SphereGeometry(dropSize, 4, 4);
+          const dropMat = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(colorHex),
+            roughness: 0.1,
+            metalness: activeConfig.meltPreset === "gold" ? 0.9 : 0.1,
+            emissive: (activeConfig.meltPreset === "lava" || activeConfig.meltPreset === "acid") ? new THREE.Color(colorHex) : new THREE.Color(0, 0, 0),
+            emissiveIntensity: activeConfig.meltPreset === "lava" ? 1.5 : activeConfig.meltPreset === "acid" ? 0.8 : 0,
+          });
+          const drop = new THREE.Mesh(dropGeom, dropMat);
 
-          const baseHeight = activeConfig.bodyType === "tall" ? 2.0 : activeConfig.bodyType === "chibi" ? 0.9 : 1.45;
+          const characterHeight = activeConfig.bodyType === "tall" ? 2.0 : activeConfig.bodyType === "chibi" ? 0.9 : 1.45;
           drop.position.set(
             (Math.random() - 0.5) * 0.7 * (progress + 0.5),
-            baseHeight * (1.0 - progress * 0.45) + (Math.random() - 0.5) * 0.15,
+            characterHeight * (1.0 - progress * 0.45) + (Math.random() - 0.5) * 0.15,
             (Math.random() - 0.5) * 0.6 * (progress + 0.5)
           );
+
           drop.userData = {
-            vy: -(0.012 + (1 - viscosity) * 0.03 + Math.random() * 0.02),
+            vy: -0.015 - Math.random() * 0.025,
             vx: (Math.random() - 0.5) * 0.01,
             vz: (Math.random() - 0.5) * 0.01,
             life: 1.0,
-            hasLanded: false,
+            hasLanded: false
           };
+
           meltParticlesRef.current.add(drop);
         }
 
-        [...meltParticlesRef.current.children].forEach((child) => {
+        // Animate droplets safely using a shallow copy of children to avoid removal-by-index mutation issues
+        const droplets = [...meltParticlesRef.current.children];
+        droplets.forEach((child) => {
           const drop = child as THREE.Mesh;
-          const meta = drop.userData;
-          if (!meta || meta.hasLanded === undefined) return;
+          const ud = drop.userData;
 
-          if (!meta.hasLanded) {
-            drop.position.y += meta.vy;
-            drop.position.x += meta.vx;
-            drop.position.z += meta.vz;
-            meta.vy -= 0.0012;
-            const speed = Math.abs(meta.vy);
+          if (!ud || ud.hasLanded === undefined) return; // Prevent any property access on unexpected children
+
+          if (!ud.hasLanded) {
+            drop.position.y += ud.vy;
+            drop.position.x += ud.vx;
+            drop.position.z += ud.vz;
+            ud.vy -= 0.0012; // simulated gravity acceleration
+
+            // Stretch droplet along motion vector
+            const speed = Math.abs(ud.vy);
             drop.scale.set(1.0, Math.min(2.5, 1.0 + speed * 4.5), 1.0);
 
+            // Floor land check (grid is at Y = -0.01)
             if (drop.position.y <= 0) {
               drop.position.y = 0;
-              meta.hasLanded = true;
-              meta.vy = 0;
-              meta.vx = 0;
-              meta.vz = 0;
+              ud.hasLanded = true;
+              ud.vy = 0;
+              ud.vx = 0;
+              ud.vz = 0;
+              // Splash flat
               drop.scale.set(2.4, 0.05, 2.4);
             }
           } else {
+            // Splash spreading and fading
             drop.scale.x += 0.035;
             drop.scale.z += 0.035;
-            meta.life -= 0.032;
+            ud.life -= 0.032;
 
-            if (!Array.isArray(drop.material)) {
+            if (drop.material instanceof THREE.Material) {
               drop.material.transparent = true;
-              drop.material.opacity = Math.max(0, meta.life);
+              drop.material.opacity = Math.max(0, ud.life);
             }
           }
 
-          if (meta.life <= 0 || drop.position.y < -0.4) {
-            drop.geometry.dispose();
+          // Disposal / clean up
+          if (ud.life <= 0 || drop.position.y < -0.4) {
+            if (drop.geometry) drop.geometry.dispose();
             if (Array.isArray(drop.material)) {
-              drop.material.forEach((material) => material.dispose());
-            } else {
+              drop.material.forEach((m) => m && m.dispose());
+            } else if (drop.material) {
               drop.material.dispose();
             }
             meltParticlesRef.current?.remove(drop);
@@ -608,7 +584,11 @@ export default function ThreeCanvas({
         const leftLeg = avatarGroupRef.current.getObjectByName("left-leg") as THREE.Object3D;
         const rightLeg = avatarGroupRef.current.getObjectByName("right-leg") as THREE.Object3D;
 
-        const baseHeight = activeConfig.bodyType === "chibi" ? 0.8 : activeConfig.bodyType === "tall" ? 1.6 : 1.35;
+        const baseHeight = activeConfig.bodyType === "chibi" 
+          ? 1.3 
+          : activeConfig.bodyType === "tall" 
+          ? 2.5 
+          : 2.05;
 
         if (activeAnimMode === "custom") {
           if (head) {
@@ -749,75 +729,77 @@ export default function ThreeCanvas({
           }
         }
 
-        const meltProgress = activeConfig.isMelting ? activeConfig.meltProgress || 0 : 0;
-        const hairGroupObj = avatarGroupRef.current.getObjectByName("hairGroup") as THREE.Object3D | null;
+        // --- POST-PROCESSING OVERRIDES (Snapchat Big Head, Meltdown Factory, etc.) ---
+        // We run this at the very end of the rigging animations so it overrides/blends cleanly and never deforms into the pelvis.
+        const isMeltActive = activeConfig.isMelting && activeConfig.meltProgress !== undefined;
+        const progress = activeConfig.meltProgress || 0;
 
         if (head) {
           if (head.userData.originalY === undefined) {
             head.userData.originalY = head.position.y;
+            head.userData.originalZ = head.position.z;
             head.userData.originalRotZ = head.rotation.z;
             head.userData.originalRotX = head.rotation.x;
           }
-
-          if (meltProgress > 0) {
-            head.position.y = head.userData.originalY - meltProgress * 0.45;
-            head.rotation.z = head.userData.originalRotZ + Math.sin(elapsedTime * 9.0) * 0.08 * meltProgress;
-            head.rotation.x = head.userData.originalRotX + Math.cos(elapsedTime * 7.5) * 0.06 * meltProgress;
+          const baseHeadFactor = 1.0 + (activeConfig.bigHeadFactor || 0) * 1.5;
+          head.scale.set(baseHeadFactor, baseHeadFactor, baseHeadFactor);
+          
+          if (isMeltActive) {
+            head.position.y = head.userData.originalY - progress * 0.45;
+            head.rotation.z = head.userData.originalRotZ + Math.sin(elapsedTime * 9.0) * 0.08 * progress;
+            head.rotation.x = head.userData.originalRotX + Math.cos(elapsedTime * 7.5) * 0.06 * progress;
           } else {
             head.position.y = head.userData.originalY;
           }
         }
 
-        if (hairGroupObj) {
-          if (hairGroupObj.userData.originalY === undefined) {
-            hairGroupObj.userData.originalY = hairGroupObj.position.y;
-            hairGroupObj.userData.originalRotX = hairGroupObj.rotation.x;
-          }
-
-          if (meltProgress > 0) {
-            hairGroupObj.position.y = hairGroupObj.userData.originalY - meltProgress * 0.15;
-            hairGroupObj.rotation.x = hairGroupObj.userData.originalRotX + Math.sin(elapsedTime * 6.0) * 0.04 * meltProgress;
-          } else {
-            hairGroupObj.position.y = hairGroupObj.userData.originalY;
-            hairGroupObj.rotation.x = hairGroupObj.userData.originalRotX;
-          }
+        const hairGroupObj = avatarGroupRef.current.getObjectByName("hairGroup") as THREE.Object3D;
+        if (hairGroupObj && hairGroupObj.userData.originalY === undefined) {
+          hairGroupObj.userData.originalY = hairGroupObj.position.y;
+          hairGroupObj.userData.originalRotX = hairGroupObj.rotation.x;
         }
 
-        if (leftArm) {
-          if (leftArm.userData.originalX === undefined) {
-            leftArm.userData.originalX = leftArm.position.x;
-            leftArm.userData.originalY = leftArm.position.y;
-            leftArm.userData.originalZ = leftArm.position.z;
-            leftArm.userData.originalRotZ = leftArm.rotation.z;
+        if (isMeltActive) {
+          if (leftArm) {
+            if (leftArm.userData.originalX === undefined) {
+              leftArm.userData.originalX = leftArm.position.x;
+              leftArm.userData.originalY = leftArm.position.y;
+              leftArm.userData.originalZ = leftArm.position.z;
+              leftArm.userData.originalRotZ = leftArm.rotation.z;
+            }
+            leftArm.position.y = leftArm.userData.originalY - progress * 0.3;
+            leftArm.position.x = leftArm.userData.originalX - progress * 0.2;
+            leftArm.rotation.z = leftArm.userData.originalRotZ - progress * 0.5;
           }
-
-          if (meltProgress > 0) {
-            leftArm.position.y = leftArm.userData.originalY - meltProgress * 0.3;
-            leftArm.position.x = leftArm.userData.originalX - meltProgress * 0.2;
-            leftArm.rotation.z = leftArm.userData.originalRotZ - meltProgress * 0.5;
-          } else {
+          if (rightArm) {
+            if (rightArm.userData.originalX === undefined) {
+              rightArm.userData.originalX = rightArm.position.x;
+              rightArm.userData.originalY = rightArm.position.y;
+              rightArm.userData.originalZ = rightArm.position.z;
+              rightArm.userData.originalRotZ = rightArm.rotation.z;
+            }
+            rightArm.position.y = rightArm.userData.originalY - progress * 0.3;
+            rightArm.position.x = rightArm.userData.originalX + progress * 0.2;
+            rightArm.rotation.z = rightArm.userData.originalRotZ + progress * 0.5;
+          }
+          if (hairGroupObj) {
+            hairGroupObj.position.y = hairGroupObj.userData.originalY - progress * 0.15;
+            hairGroupObj.rotation.x = hairGroupObj.userData.originalRotX + Math.sin(elapsedTime * 6.0) * 0.04 * progress;
+          }
+        } else {
+          if (leftArm && leftArm.userData.originalX !== undefined) {
             leftArm.position.x = leftArm.userData.originalX;
             leftArm.position.y = leftArm.userData.originalY;
             leftArm.position.z = leftArm.userData.originalZ;
           }
-        }
-
-        if (rightArm) {
-          if (rightArm.userData.originalX === undefined) {
-            rightArm.userData.originalX = rightArm.position.x;
-            rightArm.userData.originalY = rightArm.position.y;
-            rightArm.userData.originalZ = rightArm.position.z;
-            rightArm.userData.originalRotZ = rightArm.rotation.z;
-          }
-
-          if (meltProgress > 0) {
-            rightArm.position.y = rightArm.userData.originalY - meltProgress * 0.3;
-            rightArm.position.x = rightArm.userData.originalX + meltProgress * 0.2;
-            rightArm.rotation.z = rightArm.userData.originalRotZ + meltProgress * 0.5;
-          } else {
+          if (rightArm && rightArm.userData.originalX !== undefined) {
             rightArm.position.x = rightArm.userData.originalX;
             rightArm.position.y = rightArm.userData.originalY;
             rightArm.position.z = rightArm.userData.originalZ;
+          }
+          if (hairGroupObj && hairGroupObj.userData.originalY !== undefined) {
+            hairGroupObj.position.y = hairGroupObj.userData.originalY;
+            hairGroupObj.rotation.x = hairGroupObj.userData.originalRotX;
           }
         }
       }
@@ -832,11 +814,14 @@ export default function ThreeCanvas({
         controlsRef.current.update();
       }
 
-      if (rendererRef.current && sceneRef.current && cameraRef.current) {
-        rendererRef.current.render(sceneRef.current, cameraRef.current);
+        if (rendererRef.current && sceneRef.current && cameraRef.current) {
+          rendererRef.current.render(sceneRef.current, cameraRef.current);
+        }
+      } catch (err) {
+        console.error("ThreeJS animate frame error:", err);
+      } finally {
+        animationFrameIdRef.current = requestAnimationFrame(animate);
       }
-
-      animationFrameIdRef.current = requestAnimationFrame(animate);
     };
 
     animate();
@@ -850,26 +835,12 @@ export default function ThreeCanvas({
       dom.removeEventListener("mouseenter", handleMouseMove);
       dom.removeEventListener("mouseenter", handleMouseEnter);
       dom.removeEventListener("mouseleave", handleMouseLeave);
+      dom.removeEventListener("wheel", handleWheel);
       if (controlsRef.current) {
         controlsRef.current.dispose();
       }
-      if (meltParticlesRef.current) {
-        [...meltParticlesRef.current.children].forEach((child) => {
-          const mesh = child as THREE.Mesh;
-          mesh.geometry?.dispose();
-          if (Array.isArray(mesh.material)) {
-            mesh.material.forEach((material) => material.dispose());
-          } else {
-            mesh.material?.dispose();
-          }
-        });
-        meltParticlesRef.current.clear();
-      }
       if (rendererRef.current) {
         rendererRef.current.dispose();
-      }
-      if (canvasMountRef.current) {
-        canvasMountRef.current.innerHTML = "";
       }
     };
   }, []); // Mounts exactly once!
@@ -881,25 +852,52 @@ export default function ThreeCanvas({
       camera.fov = config.cameraFov !== undefined ? config.cameraFov : 45;
       camera.updateProjectionMatrix();
 
-      const cameraPreset = config.cameraPreset || "front";
-      if (avatarGroupRef.current) {
-        fitCameraToAvatar(camera, controlsRef.current, avatarGroupRef.current, cameraPreset);
+      const isChibi = config.bodyType === "chibi";
+      const isTall = config.bodyType === "tall";
+
+      // Calculate heights and target center based on body type
+      let targetY = 2.0;
+      let dist = 4.2;
+
+      if (isChibi) {
+        targetY = 1.4;
+        dist = 3.2; // Zoom in for shorter chibi
+      } else if (isTall) {
+        targetY = 2.5;
+        dist = 4.8; // Zoom out slightly for taller
       } else {
-        if (cameraPreset === "side") {
-          camera.position.set(4.5, 1.5, 0);
-        } else if (cameraPreset === "top") {
-          camera.position.set(0, 5.0, 0.1);
-        } else if (cameraPreset === "isometric") {
-          camera.position.set(3.5, 3.5, 3.5);
-        } else {
-          camera.position.set(0, 1.8, 4.5);
-        }
-        if (controlsRef.current) {
-          controlsRef.current.update();
-        }
+        targetY = 2.0;
+        dist = 4.0;
+      }
+
+      // Adjust for tall accessories
+      const accs = config.accessories || [];
+      const hasTallAcc = accs.includes("wizard-hat") || accs.includes("crown") || accs.includes("halo");
+      if (hasTallAcc) {
+        targetY += 0.15;
+        dist += 0.5; // Zoom out to fit high hats/halos
+      }
+
+      if (controlsRef.current) {
+        controlsRef.current.target.set(0, targetY, 0);
+      }
+
+      const cameraPreset = config.cameraPreset || "front";
+      if (cameraPreset === "side") {
+        camera.position.set(dist, targetY, 0);
+      } else if (cameraPreset === "top") {
+        camera.position.set(0, dist * 1.2, 0.1);
+      } else if (cameraPreset === "isometric") {
+        camera.position.set(dist * 0.7, targetY + dist * 0.5, dist * 0.7);
+      } else {
+        // Front
+        camera.position.set(0, targetY + 0.2, dist);
+      }
+      if (controlsRef.current) {
+        controlsRef.current.update();
       }
     }
-  }, [config.cameraFov, config.cameraPreset]);
+  }, [config.cameraFov, config.cameraPreset, config.bodyType, config.accessories]);
 
   // 3. Separate dynamic effect to update grid visibility
   useEffect(() => {
@@ -907,6 +905,40 @@ export default function ThreeCanvas({
       gridHelperRef.current.visible = config.showGrid !== false;
     }
   }, [config.showGrid]);
+
+  // cameraResetTrigger effect to force-reset OrbitControls target and camera position to defaults
+  useEffect(() => {
+    if (cameraResetTrigger && cameraResetTrigger > 0) {
+      const camera = cameraRef.current;
+      const controls = controlsRef.current;
+      if (camera && controls) {
+        const isChibi = config.bodyType === "chibi";
+        const isTall = config.bodyType === "tall";
+
+        let targetY = 2.0;
+        let dist = 4.0;
+
+        if (isChibi) {
+          targetY = 1.4;
+          dist = 3.2;
+        } else if (isTall) {
+          targetY = 2.5;
+          dist = 4.8;
+        }
+
+        const accs = config.accessories || [];
+        if (accs.includes("wizard-hat") || accs.includes("crown") || accs.includes("halo")) {
+          targetY += 0.15;
+          dist += 0.5;
+        }
+
+        // Force back to perfectly framed front view
+        camera.position.set(0, targetY + 0.2, dist);
+        controls.target.set(0, targetY, 0);
+        controls.update();
+      }
+    }
+  }, [cameraResetTrigger]);
 
   // 4. Stable callback ref for onSceneReady
   const onSceneReadyRef = useRef(onSceneReady);
@@ -921,7 +953,31 @@ export default function ThreeCanvas({
     try {
       // Remove old avatar group if exists
       if (avatarGroupRef.current) {
-        sceneRef.current.remove(avatarGroupRef.current);
+        const oldGroup = avatarGroupRef.current;
+        avatarGroupRef.current = null; // Set to null FIRST to prevent animate() from touching it during reconstruction!
+        sceneRef.current.remove(oldGroup);
+        // Dispose old geometries and materials to prevent memory leaks
+        oldGroup.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            // CRITICAL BUGFIX: Do NOT dispose of child.geometry here.
+            // All avatar geometries are fetched from a shared global `geometryCache` in avatarBuilder.ts.
+            // Disposing them here destroys the cached template references, which makes subsequent 
+            // renders fail with WebGL errors and turns the preview page entirely white.
+            // if (child.geometry) child.geometry.dispose();
+            
+            if (child.material) {
+              const mats = Array.isArray(child.material) ? child.material : [child.material];
+              mats.forEach((mat) => {
+                if (mat) {
+                  if ((mat as any).map) {
+                    (mat as any).map.dispose();
+                  }
+                  mat.dispose();
+                }
+              });
+            }
+          }
+        });
       }
 
       // Build new avatar
@@ -929,13 +985,45 @@ export default function ThreeCanvas({
       sceneRef.current.add(avatarGroup);
       avatarGroupRef.current = avatarGroup;
 
-      if (cameraRef.current) {
-        fitCameraToAvatar(
-          cameraRef.current,
-          controlsRef.current,
-          avatarGroup,
-          config.cameraPreset
-        );
+      // Ensure camera is perfectly framed on rebuild so the head and feet are never cut off
+      const camera = cameraRef.current;
+      const controls = controlsRef.current;
+      if (camera && controls) {
+        const isChibi = config.bodyType === "chibi";
+        const isTall = config.bodyType === "tall";
+
+        let targetY = 2.0;
+        let dist = 4.0;
+
+        if (isChibi) {
+          targetY = 1.4;
+          dist = 3.2;
+        } else if (isTall) {
+          targetY = 2.5;
+          dist = 4.8;
+        }
+
+        const accs = config.accessories || [];
+        if (accs.includes("wizard-hat") || accs.includes("crown") || accs.includes("halo")) {
+          targetY += 0.15;
+          dist += 0.5;
+        }
+
+        controls.target.set(0, targetY, 0);
+
+        const cameraPreset = config.cameraPreset || "front";
+        if (cameraPreset === "side") {
+          camera.position.set(dist, targetY, 0);
+        } else if (cameraPreset === "top") {
+          camera.position.set(0, dist * 1.2, 0.1);
+        } else if (cameraPreset === "isometric") {
+          camera.position.set(dist * 0.7, targetY + dist * 0.5, dist * 0.7);
+        } else {
+          // Front
+          camera.position.set(0, targetY + 0.2, dist);
+        }
+        
+        controls.update();
       }
 
       if (onSceneReadyRef.current) {
@@ -991,7 +1079,7 @@ export default function ThreeCanvas({
   return (
     <div
       ref={containerRef}
-      className={`w-full h-full min-h-[350px] md:min-h-[500px] rounded-none overflow-hidden relative border-2 border-[#141414] transition-all duration-300 ${
+      className={`w-full h-full min-h-[350px] md:min-h-[440px] rounded-none overflow-hidden relative border-2 border-[#141414] transition-all duration-300 ${
         config.twoDStyleEffect === "gameboy"
           ? "bg-[#8b956d] contrast-[1.1] saturate-[0.9]"
           : config.twoDStyleEffect === "blueprint"
@@ -1003,8 +1091,6 @@ export default function ThreeCanvas({
       id="3d-preview-canvas-container"
       style={{ backgroundImage: config.twoDStyleEffect === "blueprint" ? "none" : "radial-gradient(#aaa 1px, transparent 1px)", backgroundSize: "20px 20px" }}
     >
-      <div ref={canvasMountRef} className="absolute inset-0" />
-
       {/* 2D Overlay Effects */}
       {config.twoDStyleEffect === "crt" && (
         <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
