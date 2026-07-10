@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
+import * as SkeletonUtils from "three/addons/utils/SkeletonUtils.js";
 import { AvatarConfig } from "../types";
 import { validateExportedGLB, ExportValidationReport } from "./exportValidator";
 import { bakeMeltedAtlas } from "./textureBaker";
@@ -119,7 +120,7 @@ export async function exportToGLB(
   tempScene.name = `${characterName}-export-scene`;
   tempScene.add(new THREE.AmbientLight(0xffffff, 1.0));
 
-  const clonedGroup = group.clone(true);
+  const clonedGroup = SkeletonUtils.clone(group) as THREE.Group;
   clonedGroup.position.set(0, 0, 0);
   clonedGroup.rotation.set(0, 0, 0);
 
