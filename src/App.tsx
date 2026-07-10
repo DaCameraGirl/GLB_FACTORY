@@ -1842,10 +1842,6 @@ export default function App() {
     addLog(`[GALLERY] Loaded premium character blueprint: ${hero.name.toUpperCase()}`, "success");
     playSynthSound("arp");
 
-    // Standardized scroll behavior ensuring #preview-panel remains visible, preventing page jumps or white spaces
-    setTimeout(() => {
-      document.getElementById("preview-panel")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, 50);
   };
 
   // Interactive 3D Step-by-Step Guide Stages Definition
@@ -4473,7 +4469,7 @@ export default function App() {
             {/* RIGHT PANEL: LIVE 3D PREVIEW */}
             <div 
               style={{ width: isLgScreen ? `calc(${100 - leftWidth}% - 12px)` : undefined }}
-              className={`w-full lg:shrink-0 lg:grow-0 lg:pl-3 lg:sticky lg:top-4 lg:self-start ${
+              className={`w-full lg:shrink-0 lg:grow-0 lg:pl-3 ${
                 isResizing ? "pointer-events-none select-none" : ""
               }`}
             >
