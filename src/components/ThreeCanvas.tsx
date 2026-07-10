@@ -1139,9 +1139,9 @@ export default function ThreeCanvas({
 
       {/* Floating viewport details */}
       <div className="absolute top-3 left-3 bg-[#141414] border border-[#141414] text-[10px] px-2.5 py-1.5 rounded-none text-[#E4E3E0] font-mono select-none z-10 font-bold uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(20,20,20,0.15)] leading-tight">
-        VIEWPORT: PERSPECTIVE_3D<br/>
-        RENDER: LIVE_MESH<br/>
-        ORBIT_CONTROLS: ENABLED
+        VIEW: {(config.cameraPreset || "front").toUpperCase()}<br/>
+        PROJECTION: {(config.projectionTarget || "face-only").replace("-", "_").toUpperCase()}<br/>
+        SHADER: {config.previewMelt ? "LIVE_MELT" : "ATLAS_READY"}
       </div>
 
       {/* Floating Animation / Pose Controller */}

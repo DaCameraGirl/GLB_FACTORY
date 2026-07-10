@@ -24,9 +24,11 @@ import {
 import { AvatarConfig, DetectionResult, LogEntry, HairStyle, BodyType, HeadShape } from "./types";
 import ThreeCanvas from "./components/ThreeCanvas";
 import StudioLogs from "./components/StudioLogs";
+import ViewportTelemetryPanel from "./components/ViewportTelemetryPanel";
 import { prepareFaceTexture } from "./utils/texturePreparer";
 import { exportToGLB } from "./utils/glbExporter";
 import { bakeMeltedAtlas } from "./utils/textureBaker";
+import { inspectSceneGraph, SceneInspectionStats } from "./utils/sceneInspector";
 import * as THREE from "three";
 
 // ==========================================
@@ -546,6 +548,7 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState<"upload" | "texture" | "mesh" | "glb" | "ready">("upload");
   const [showFlash, setShowFlash] = useState(false);
   const [brightnessLevel, setBrightnessLevel] = useState<"standard" | "low" | "high" | "overdrive">("standard");
+  const [sceneStats, setSceneStats] = useState<SceneInspectionStats | null>(null);
 
   // Blender-style Workspace active tab
   const [editorTab, setEditorTab] = useState<"parts" | "transforms" | "materials" | "scene" | "camera">("parts");
@@ -2099,7 +2102,6 @@ export default function App() {
                 </button>
               </div>
             </section>
-
             {/* CHARACTER IDENTITY & PHOTO UPLOAD */}
             <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]" id="upload-panel">
               <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#D4D3D0]">
@@ -3803,6 +3805,7 @@ export default function App() {
                     bounceTime={bounceTime}
                     onSceneReady={(group) => {
                       avatarGroupRef.current = group;
+                      setSceneStats(inspectSceneGraph(group));
                     }}
                   />
                 </div>
@@ -3977,6 +3980,19 @@ export default function App() {
             {/* ==========================================
                 📊 ENTERPRISE RIG TELEMETRY & SYSTEM ANALYTICS
                ========================================== */}
+            <ViewportTelemetryPanel
+              stats={sceneStats}
+              config={config}
+              brightnessLevel={brightnessLevel}
+              hasSourceImage={!!sourceImage}
+              hasFaceTexture={!!faceCanvas}
+              onSetCameraPreset={(preset) => setConfig((prev) => ({ ...prev, cameraPreset: preset }))}
+              onToggleGrid={() => setConfig((prev) => ({ ...prev, showGrid: !(prev.showGrid !== false) }))}
+              onCycleBrightness={handleCycleBrightness}
+              onTakeSnap={handleTakeSnap}
+            />
+
+            {false && (
             <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]" id="telemetry-panel">
               <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#D4D3D0] flex items-center justify-between">
                 <h2 className="font-serif text-[11px] italic text-[#141414]/80 uppercase font-bold tracking-wider flex items-center gap-2">
@@ -4090,6 +4106,7 @@ export default function App() {
                 <div>EXPORTER VER: CJS-BUNDLED v1.1</div>
               </div>
             </section>
+            )}
 
             {/* ==========================================
                 🧪 INTERACTIVE RIG QA & MUTATION TOOLS (BLENDER BUSTER)
