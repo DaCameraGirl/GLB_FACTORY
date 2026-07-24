@@ -10,18 +10,25 @@
   <img src="https://img.shields.io/badge/Tailwind_v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind v4"/>
 </p>
 
-<p align="center">
-  <img src="docs/assets/voxel-mutation.svg" alt="Animated voxel character cycling through mutation palettes" width="420"/>
-</p>
+Upload a portrait. Get back a rigged, textured, exportable **`.glb`** — blocky, organic, or a full-on creature. GLB_FACTORY is a browser-based procedural avatar studio built entirely out of primitive 3D shapes (cylinders, boxes, spheres) in the spirit of Minecraft/Roblox-style voxel characters — no Blender, no manual UV unwrapping, no waiting for a bake.
 
-Upload a portrait. Get back a rigged, textured, exportable **`.glb`** — blocky, organic, or somewhere delightfully in between. GLB_FACTORY is a browser-based procedural avatar studio: no Blender, no manual UV unwrapping, no waiting for a bake.
+### 🎭 Live from the Mesh Style dropdown — actual in-app renders, not concept art
+
+<table align="center">
+<tr>
+<td align="center"><img src="docs/assets/rotations/gator.gif" width="200"/><br/><b>🐊 Alligator</b><br/><sub>animated chomping jaw</sub></td>
+<td align="center"><img src="docs/assets/rotations/monster.gif" width="200"/><br/><b>👹 Monster</b><br/><sub>warts &amp; fangs</sub></td>
+<td align="center"><img src="docs/assets/rotations/clown.gif" width="200"/><br/><b>🤡 Evil Clown</b><br/><sub>because someone asked</sub></td>
+<td align="center"><img src="docs/assets/rotations/lionfish.gif" width="200"/><br/><b>🦁🐟 Lionfish</b><br/><sub>venomous spike rays</sub></td>
+</tr>
+</table>
 
 ---
 
 ## 🚀 Dual-Mode Architecture
 
-1. **AI-Powered Mode (Cloud Hosting)** — When running on a full Node/Express container (local dev, Cloud Run), the app talks to a backend proxy wired to **Gemini 3.5 Flash**, which locates the face bounding box and extracts skin, hair, and clothing colors automatically.
-2. **Static Fallback Mode (GitHub Pages)** — With no backend available, the app detects this and switches to **client-side face analysis**: an HTML5 canvas sampler reads the portrait pixel data directly in-browser, zero network requests.
+1. **AI-Powered Mode** — When a backend is available (local dev, or a self-hosted deployment with your own `GEMINI_API_KEY`), the app calls the Gemini API to locate the face and extract skin/hair/clothing colors automatically. **This is not active on the live GitHub Pages demo above** — GitHub Pages serves static files only, there's no backend to call.
+2. **Static Fallback Mode (what the live demo actually runs)** — An HTML5 canvas sampler reads the portrait pixel data directly in-browser and estimates the same colors client-side. Zero network requests, zero API key required.
 
 ---
 
@@ -29,14 +36,15 @@ Upload a portrait. Get back a rigged, textured, exportable **`.glb`** — blocky
 
 | Category | Options |
 |---|---|
-| **Mesh style** | Organic Humanoid, Rounded Cube (voxel), Classic Box (retro blocky) |
-| **Creature parts** | Fins 🐟, Tail 🦎, Snout 🐽, Whiskers 🐱, Mushroom Cap 🍄 |
+| **Base mesh style** | Organic Humanoid, Rounded Cube (voxel), Classic Box (retro blocky) |
+| **Creature mesh styles** | 🧌 Gremlin, 👹 Monster, 🐊 Alligator, 🦝 Raccoon, 🐱 Cat, 🐶 Dog, 🦎 Lizard, 🐀 Possum, 🐠 Tiger Fish, 🦁🐟 Lionfish, 🤡 Evil Clown — each with its own head geometry (jaws, masks, fins, spikes, floppy ears — not just a recolor) |
+| **Individual creature parts** | Fins 🐟, Tail 🦎, Snout 🐽, Whiskers 🐱, Mushroom Cap 🍄 (mix onto any base mesh style) |
 | **Gear** | Blaster 🔫, Knife 🗡️, Herb Pouch 🌿, plus Glasses, Wings, Horns, Crown, Halo, Cyber Visor, Cape |
 | **Poses & rig** | Idle, Walk, Dance, Zombie, Spin, Ninja, or fully custom bone-by-bone armature control |
 | **Snap Studio** | 3D particle lenses, big-head lens, VHS/Cyber/Sepia/Glitch color filters, custom caption overlay |
 | **Mutation Lab** | One click generates a new proportional/palette variant, ranked from `COMMON` up to the elusive `CHAOTIC-DIVINE` |
 
-More creature parts (raccoon, gator, tiger-fish, turtle-flavored preset bundles) are in the pipeline.
+More species (turtle, snake) and a moving-tentacle octopus variant are actively in progress.
 
 ---
 
@@ -59,7 +67,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Optional, for Gemini-powered face detection instead of the client-side fallback — create `.env.local`:
+Optional, to enable Gemini-powered face detection locally instead of the client-side fallback — create `.env.local`:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
@@ -73,18 +81,18 @@ GEMINI_API_KEY=your_gemini_api_key_here
 - **React 19 + Vite 6** — SPA runtime & build
 - **Tailwind CSS v4** — utility-first styling
 - **Lucide React** — icons
-- **Express + Google GenAI SDK** — backend proxy for Gemini orchestration
+- **Express + Google GenAI SDK** — optional backend proxy for Gemini orchestration (self-hosted only, not used by the GitHub Pages demo)
 
 ---
 
-## 🏆 Why GLB_FACTORY beats Blender for rapid avatar rigging
+## 🏆 Highlights
 
-1. **One-Click Procedural Chaos Mutation Lab** 🌀 — Tap **Mutate Skeletal DNA Now** for instant palette/proportion variants instead of manually rescaling hierarchies and repainting textures. Tune the Chaos Regulator, or let the Chrono-Loop auto-cycle generations. Genomic rank flashes from `COMMON` to `CHAOTIC-DIVINE`.
-2. **Real-Time Client-Side UV Mapping** 🎨 — Drag a photo in; color harvesting and feather-edge facial blending happen live, no manual seam placement or hand-painting.
-3. **Enterprise Rig QA Drop & Squish Test** 🦘 — One click runs a stretch-and-squash collision stress check with 8-bit sound design, instead of hand-configuring rigid body physics.
-4. **Instant 2D Style Overlays** 👾 — Retro CRT, Cyberpunk HUD, Blueprint, Pencil Sketch, or Gameboy dither, toggled live instead of built through compositor node graphs.
-5. **Direct Bone Joint Controllers** 🦴 — Slide Head Yaw/Pitch, arm rotation, or leg kicks directly, no Pose Mode gizmo hunting.
-6. **Web Audio Soundboard** 🔊 — Real oscillator-driven 8-bit sound on rig actions. Blender ships silent.
+1. **One-Click Procedural Chaos Mutation Lab** 🌀 — Tap **Mutate Skeletal DNA Now** for instant palette/proportion variants instead of manually rescaling hierarchies and repainting textures by hand. Tune the Chaos Regulator, or let the Chrono-Loop auto-cycle generations. Genomic rank flashes from `COMMON` to `CHAOTIC-DIVINE`.
+2. **Live Client-Side Texture Blending** 🎨 — Drag a photo in; color harvesting and feather-edge facial blending onto the head texture happen live in-browser. (The UV coordinates themselves are a fixed projection computed at mesh-build time — what's live is the texture painted onto them, not the mapping itself.)
+3. **Rig QA Drop & Squish Test** 🦘 — One click runs a stretch-and-squash stress check on the live rig, with 8-bit sound design.
+4. **Instant 2D Style Overlays** 👾 — Retro CRT, Cyberpunk HUD, Blueprint, Pencil Sketch, or Gameboy dither, toggled live.
+5. **Direct Bone Joint Controllers** 🦴 — Slide Head Yaw/Pitch, arm rotation, or leg kicks directly.
+6. **Web Audio Soundboard** 🔊 — Real oscillator-driven 8-bit sound on rig actions, shutter clicks, and meltdowns.
 
 ---
 
