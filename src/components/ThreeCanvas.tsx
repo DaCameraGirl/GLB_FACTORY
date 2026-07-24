@@ -289,6 +289,15 @@ export default function ThreeCanvas({
 
       const elapsedTime = clock.getElapsedTime();
 
+      // Alligator jaw: chomp open/shut on a loop
+      if (avatarGroupRef.current && activeConfig.creatureVariant === "gator") {
+        const jawPivot = avatarGroupRef.current.getObjectByName("gator-jaw-pivot");
+        if (jawPivot) {
+          const chompCycle = Math.max(0, Math.sin(elapsedTime * 1.6));
+          jawPivot.rotation.x = chompCycle * 0.5;
+        }
+      }
+
       // Bounce/squish dynamic soft-body calculations
       let bounceY = 0;
       let squishY = 1.0;

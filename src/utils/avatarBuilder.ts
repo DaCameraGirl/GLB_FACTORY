@@ -67,7 +67,7 @@ export function validateAvatarConfig(config: AvatarConfig): AvatarConfig {
   if (!validHairStyles.includes(validated.hairStyle)) validated.hairStyle = "short";
   if (!validBodyTypes.includes(validated.bodyType)) validated.bodyType = "normal";
 
-  const validCreatureVariants = ["none", "gremlin", "monster", "gator", "raccoon", "cat", "dog", "lizard", "possum", "tigerfish", "lionfish"];
+  const validCreatureVariants = ["none", "gremlin", "monster", "gator", "raccoon", "cat", "dog", "lizard", "possum", "tigerfish", "lionfish", "clown"];
   if (!validated.creatureVariant || !validCreatureVariants.includes(validated.creatureVariant)) {
     validated.creatureVariant = "none";
   }
@@ -710,29 +710,47 @@ export function buildAvatar(
 
   if (config.creatureVariant === "gator") {
     // A long flat jaw with teeth is what actually reads as "alligator" instead of a round green blob.
+    // The lower jaw hangs off a named hinge pivot so ThreeCanvas can animate it open/shut.
     const jawMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#365314", roughness: 0.8, name: "gator-jaw" });
+    const toothMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f4, roughness: 0.2, metalness: 0.05, name: "gator-tooth" });
+    const toothGeo = new THREE.ConeGeometry(actualHeadSize * 0.04, actualHeadSize * 0.12, 6);
+
     const upperJaw = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.52, actualHeadSize * 0.24, actualHeadSize * 0.85), jawMat);
     upperJaw.name = "gator-upper-jaw";
     upperJaw.position.set(0, actualHeadSize * 0.02, actualHeadSize * 0.62);
     upperJaw.castShadow = true;
     head.add(upperJaw);
 
+    // Upper teeth: fixed to the skull, hanging down from the upper jaw's underside
+    for (let i = 0; i < 2; i++) {
+      const toothZ = actualHeadSize * (0.45 + i * 0.3);
+      const tooth = new THREE.Mesh(toothGeo, toothMat);
+      tooth.name = `gator-upper-tooth-${i}`;
+      tooth.rotation.x = Math.PI;
+      tooth.position.set((i % 2 === 0 ? -1 : 1) * actualHeadSize * 0.16, -actualHeadSize * 0.11, toothZ);
+      head.add(tooth);
+    }
+
+    const jawHingeY = -actualHeadSize * 0.07;
+    const jawHingeZ = actualHeadSize * 0.19;
+    const jawPivot = new THREE.Group();
+    jawPivot.name = "gator-jaw-pivot";
+    jawPivot.position.set(0, jawHingeY, jawHingeZ);
+    head.add(jawPivot);
+
     const lowerJaw = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.46, actualHeadSize * 0.14, actualHeadSize * 0.78), jawMat);
     lowerJaw.name = "gator-lower-jaw";
-    lowerJaw.position.set(0, -actualHeadSize * 0.16, actualHeadSize * 0.58);
+    lowerJaw.position.set(0, -actualHeadSize * 0.02, actualHeadSize * 0.39);
     lowerJaw.castShadow = true;
-    head.add(lowerJaw);
+    jawPivot.add(lowerJaw);
 
-    const toothMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f4, roughness: 0.4, name: "gator-tooth" });
-    const toothGeo = new THREE.ConeGeometry(actualHeadSize * 0.035, actualHeadSize * 0.1, 6);
-    for (let i = 0; i < 4; i++) {
-      const t = i / 3;
-      const toothZ = actualHeadSize * (0.32 + t * 0.62);
+    // Lower teeth: attached to the moving jaw pivot, pointing up
+    for (let i = 0; i < 2; i++) {
+      const toothZ = actualHeadSize * (0.26 + i * 0.3);
       const tooth = new THREE.Mesh(toothGeo, toothMat);
-      tooth.name = `gator-tooth-${i}`;
-      tooth.rotation.x = Math.PI;
-      tooth.position.set((i % 2 === 0 ? -1 : 1) * actualHeadSize * 0.2, -actualHeadSize * 0.08, toothZ);
-      head.add(tooth);
+      tooth.name = `gator-lower-tooth-${i}`;
+      tooth.position.set((i % 2 === 0 ? 1 : -1) * actualHeadSize * 0.16, actualHeadSize * 0.02, toothZ);
+      jawPivot.add(tooth);
     }
 
     const eyeRidgeMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#365314", roughness: 0.7, name: "gator-eye-ridge" });
@@ -809,6 +827,134 @@ export function buildAvatar(
         head.add(spike);
       }
     }
+  }
+
+  if (config.creatureVariant === "dog") {
+    const muzzleMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#92400e", roughness: 0.75, name: "dog-muzzle" });
+    const muzzle = new THREE.Mesh(getCylinderGeometry(actualHeadSize * 0.14, actualHeadSize * 0.17, actualHeadSize * 0.36, radialSeg), muzzleMat);
+    muzzle.name = "dog-muzzle";
+    muzzle.rotation.x = Math.PI / 2;
+    muzzle.position.set(0, -actualHeadSize * 0.1, actualHeadSize * 0.48);
+    muzzle.castShadow = true;
+    head.add(muzzle);
+
+    const noseMat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.3, name: "dog-nose" });
+    const nose = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.075, 8, 8), noseMat);
+    nose.name = "dog-nose";
+    nose.position.set(0, -actualHeadSize * 0.1, actualHeadSize * 0.66);
+    head.add(nose);
+
+    // Floppy ears: droopy teardrop shapes, not the pointy cat-ears
+    const earMat = new THREE.MeshStandardMaterial({ color: config.hairColor || "#451a03", roughness: 0.8, name: "dog-ear" });
+    [-1, 1].forEach((side) => {
+      const ear = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.16, 10, 10), earMat);
+      ear.name = `dog-ear-${side}`;
+      ear.scale.set(0.55, 1.3, 0.35);
+      ear.rotation.z = side * 0.25;
+      ear.position.set(side * actualHeadSize * 0.46, -actualHeadSize * 0.08, actualHeadSize * 0.05);
+      ear.castShadow = true;
+      head.add(ear);
+    });
+  }
+
+  if (config.creatureVariant === "lizard") {
+    // A flat wedge-shaped snout reads as reptilian; a round nub reads as a pig
+    const snoutMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#4d7c0f", roughness: 0.6, name: "lizard-snout" });
+    const snout = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.4, actualHeadSize * 0.16, actualHeadSize * 0.42), snoutMat);
+    snout.name = "lizard-snout";
+    snout.position.set(0, -actualHeadSize * 0.08, actualHeadSize * 0.48);
+    snout.castShadow = true;
+    head.add(snout);
+
+    const nostrilMat = new THREE.MeshStandardMaterial({ color: 0x14290a, roughness: 0.5, name: "lizard-nostril" });
+    [-1, 1].forEach((side) => {
+      const nostril = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.025, 6, 6), nostrilMat);
+      nostril.name = `lizard-nostril-${side}`;
+      nostril.position.set(side * actualHeadSize * 0.1, -actualHeadSize * 0.03, actualHeadSize * 0.68);
+      head.add(nostril);
+    });
+
+    // Frill ridge spikes down the back of the head
+    const frillMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#4d7c0f", roughness: 0.6, name: "lizard-frill" });
+    for (let i = 0; i < 3; i++) {
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.05, actualHeadSize * 0.16, 4), frillMat);
+      spike.name = `lizard-frill-${i}`;
+      spike.position.set(0, actualHeadSize * 0.42, -actualHeadSize * (0.05 + i * 0.14));
+      head.add(spike);
+    }
+  }
+
+  if (config.creatureVariant === "possum") {
+    const snoutMat = new THREE.MeshStandardMaterial({ color: 0xf5d0c5, roughness: 0.6, name: "possum-snout" });
+    const snout = new THREE.Mesh(getCylinderGeometry(actualHeadSize * 0.08, actualHeadSize * 0.15, actualHeadSize * 0.3, radialSeg), snoutMat);
+    snout.name = "possum-snout";
+    snout.rotation.x = Math.PI / 2;
+    snout.position.set(0, -actualHeadSize * 0.06, actualHeadSize * 0.46);
+    snout.castShadow = true;
+    head.add(snout);
+
+    const noseMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.3, name: "possum-nose" });
+    const nose = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.05, 8, 8), noseMat);
+    nose.name = "possum-nose";
+    nose.position.set(0, -actualHeadSize * 0.06, actualHeadSize * 0.6);
+    head.add(nose);
+
+    const earMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, roughness: 0.6, name: "possum-ear" });
+    [-1, 1].forEach((side) => {
+      const ear = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.14, 10, 10), earMat);
+      ear.name = `possum-ear-${side}`;
+      ear.scale.set(1.0, 1.0, 0.3);
+      ear.position.set(side * actualHeadSize * 0.4, actualHeadSize * 0.3, -actualHeadSize * 0.05);
+      head.add(ear);
+    });
+  }
+
+  if (config.creatureVariant === "clown") {
+    // Big red ball nose
+    const noseMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.25, emissive: new THREE.Color(0x7f1d1d), emissiveIntensity: 0.3, name: "clown-nose" });
+    const nose = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.13, 12, 12), noseMat);
+    nose.name = "clown-nose";
+    nose.position.set(0, -actualHeadSize * 0.02, actualHeadSize * 0.46);
+    nose.castShadow = true;
+    head.add(nose);
+
+    // Wide unsettling painted grin, stretched ear to ear, with sharp teeth peeking through
+    const grinMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.4, name: "clown-grin" });
+    const grin = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.6, actualHeadSize * 0.08, actualHeadSize * 0.06), grinMat);
+    grin.name = "clown-grin";
+    grin.position.set(0, -actualHeadSize * 0.28, actualHeadSize * 0.42);
+    grin.rotation.z = 0;
+    head.add(grin);
+
+    // Upturned grin corners for a manic look
+    [-1, 1].forEach((side) => {
+      const corner = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.14, actualHeadSize * 0.08, actualHeadSize * 0.06), grinMat);
+      corner.name = `clown-grin-corner-${side}`;
+      corner.rotation.z = -side * 0.6;
+      corner.position.set(side * actualHeadSize * 0.32, -actualHeadSize * 0.2, actualHeadSize * 0.38);
+      head.add(corner);
+    });
+
+    const fangMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f4, roughness: 0.2, name: "clown-fang" });
+    const fangGeo = new THREE.ConeGeometry(actualHeadSize * 0.03, actualHeadSize * 0.1, 6);
+    [-1, 1].forEach((side) => {
+      const fang = new THREE.Mesh(fangGeo, fangMat);
+      fang.name = `clown-fang-${side}`;
+      fang.rotation.x = Math.PI;
+      fang.position.set(side * actualHeadSize * 0.22, -actualHeadSize * 0.22, actualHeadSize * 0.44);
+      head.add(fang);
+    });
+
+    // Dark sunken eye makeup, diamond-shaped
+    const eyeMakeupMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.5, name: "clown-eye-makeup" });
+    [-1, 1].forEach((side) => {
+      const patch = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.13, 10, 10), eyeMakeupMat);
+      patch.name = `clown-eye-makeup-${side}`;
+      patch.scale.set(0.7, 1.3, 0.4);
+      patch.rotation.z = side * 0.3;
+      patch.position.set(side * actualHeadSize * 0.22, actualHeadSize * 0.08, actualHeadSize * 0.4);
+      head.add(patch);
+    });
   }
 
   // ==========================================
