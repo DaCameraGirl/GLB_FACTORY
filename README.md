@@ -1,100 +1,93 @@
-# GLB_FACTORY 🎨🤖
+<p align="center">
+  <img src="docs/assets/readme-hero.svg" alt="GLB_FACTORY — Photo to Procedural 3D Avatar Pipeline" width="100%"/>
+</p>
 
-Welcome to **GLB_FACTORY**! This application is an interactive **3D Photo-to-Avatar Studio**. It allows users to upload a portrait photo and automatically generate, customize, and export fully functional 3D blocky models in standard **GLB** format, ready for game engines or 3D viewports.
+<p align="center">
+  <a href="https://dacameragirl.github.io/GLB_FACTORY/"><img src="https://img.shields.io/badge/🌐_Live_Demo-22d3ee?style=for-the-badge&labelColor=141414" alt="Live demo"/></a>
+  <img src="https://img.shields.io/badge/Three.js-000000?style=for-the-badge&logo=three.js&logoColor=white" alt="Three.js"/>
+  <img src="https://img.shields.io/badge/React_19-149ECA?style=for-the-badge&logo=react&logoColor=white" alt="React 19"/>
+  <img src="https://img.shields.io/badge/Vite_6-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite 6"/>
+  <img src="https://img.shields.io/badge/Tailwind_v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind v4"/>
+</p>
 
-View the application live on GitHub Pages: [dacameragirl.github.io/GLB_FACTORY/](https://dacameragirl.github.io/GLB_FACTORY/)
+<p align="center">
+  <img src="docs/assets/voxel-mutation.svg" alt="Animated voxel character cycling through mutation palettes" width="420"/>
+</p>
+
+Upload a portrait. Get back a rigged, textured, exportable **`.glb`** — blocky, organic, or somewhere delightfully in between. GLB_FACTORY is a browser-based procedural avatar studio: no Blender, no manual UV unwrapping, no waiting for a bake.
 
 ---
 
 ## 🚀 Dual-Mode Architecture
 
-This application is built with a highly resilient **hybrid architecture**:
+1. **AI-Powered Mode (Cloud Hosting)** — When running on a full Node/Express container (local dev, Cloud Run), the app talks to a backend proxy wired to **Gemini 3.5 Flash**, which locates the face bounding box and extracts skin, hair, and clothing colors automatically.
+2. **Static Fallback Mode (GitHub Pages)** — With no backend available, the app detects this and switches to **client-side face analysis**: an HTML5 canvas sampler reads the portrait pixel data directly in-browser, zero network requests.
 
-1. **AI-Powered Mode (Cloud Hosting)**:
-   - When running on a full-stack Node/Express container environment (like local development or Cloud Run), the app communicates with a backend proxy connected to the **Gemini 3.5 Flash** API.
-   - Gemini automatically locates the face bounding box, extracts skin tones, hair colors, clothing colors, and recommends fitting hairstyle types with high visual precision.
+---
 
-2. **Static Fallback Mode (GitHub Pages)**:
-   - When deployed statically on **GitHub Pages**, where no custom backend server runs, the app **automatically detects the environment** and switches to **Client-Side Face Analysis**.
-   - It utilizes a lightweight HTML5 canvas sampler to analyze the pixel data of the loaded portrait, extracting the representative skin, hair, and clothing colors directly in the browser with zero external network requests!
+## 🧬 What you can build
+
+| Category | Options |
+|---|---|
+| **Mesh style** | Organic Humanoid, Rounded Cube (voxel), Classic Box (retro blocky) |
+| **Creature parts** | Fins 🐟, Tail 🦎, Snout 🐽, Whiskers 🐱, Mushroom Cap 🍄 |
+| **Gear** | Blaster 🔫, Knife 🗡️, Herb Pouch 🌿, plus Glasses, Wings, Horns, Crown, Halo, Cyber Visor, Cape |
+| **Poses & rig** | Idle, Walk, Dance, Zombie, Spin, Ninja, or fully custom bone-by-bone armature control |
+| **Snap Studio** | 3D particle lenses, big-head lens, VHS/Cyber/Sepia/Glitch color filters, custom caption overlay |
+| **Mutation Lab** | One click generates a new proportional/palette variant, ranked from `COMMON` up to the elusive `CHAOTIC-DIVINE` |
+
+More creature parts (raccoon, gator, tiger-fish, turtle-flavored preset bundles) are in the pipeline.
 
 ---
 
 ## ⚡ GitHub Pages Deployment
 
-The repository is equipped with an automated GitHub Actions workflow (`.github/workflows/deploy.yml`) that builds and publishes the application dynamically on every commit to the `main` branch.
+An automated GitHub Actions workflow (`.github/workflows/deploy.yml`) builds and publishes the app on every push to `main`.
 
-### How to Activate GitHub Pages in Your Repository:
-1. Go to your repository on GitHub: `https://github.com/DaCameraGirl/GLB_FACTORY`.
-2. Click on the **Settings** tab.
-3. In the left sidebar, navigate to **Pages** under the *Code and automation* section.
-4. Under **Build and deployment**:
-   - For **Source**, select **GitHub Actions** from the dropdown.
-5. Once selected, your automated workflow will automatically build and publish the static app.
-6. The deployment progress can be monitored under the **Actions** tab.
+To activate it on a fork: **Settings → Pages → Build and deployment → Source: GitHub Actions.** Progress shows under the **Actions** tab.
 
 ---
 
 ## 🛠️ Local Development
 
-### Prerequisites
-- Node.js (v18+)
-- npm
+**Prerequisites:** Node.js 18+, npm
 
-### Installation & Run
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
+```bash
+npm install
+npm run dev
+```
 
-2. Configure environment variables (optional for Gemini server features):
-   Create a `.env.local` or `.env` file in the root:
-   ```env
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
+Open [http://localhost:3000](http://localhost:3000).
 
-3. Start the developmental server:
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+Optional, for Gemini-powered face detection instead of the client-side fallback — create `.env.local`:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+```
 
 ---
 
 ## 🏗️ Technologies Used
-- **Three.js** (WebGL 3D Rendering & Procedural Avatar Mesh Construction)
-- **React 19** + **Vite 6** (Modern SPA runtime & high-speed builder)
-- **Tailwind CSS v4** (Modern utility-first responsive layout styling)
-- **Lucide React** (Premium, lightweight icon pairings)
-- **Express + Google GenAI SDK** (Lightweight backend proxy handling Gemini API orchestration)
+
+- **Three.js** — WebGL rendering & procedural mesh construction
+- **React 19 + Vite 6** — SPA runtime & build
+- **Tailwind CSS v4** — utility-first styling
+- **Lucide React** — icons
+- **Express + Google GenAI SDK** — backend proxy for Gemini orchestration
 
 ---
 
-## 🏆 Why GLB_FACTORY is Better Than Blender (For Rapid Avatar Rigging)
+## 🏆 Why GLB_FACTORY beats Blender for rapid avatar rigging
 
-GLB_FACTORY is not a generic, raw polygon modeler; it is a specialized, rapid-prototype pipeline crafted to make character creation instantaneous. Here is how it outperforms Blender:
+1. **One-Click Procedural Chaos Mutation Lab** 🌀 — Tap **Mutate Skeletal DNA Now** for instant palette/proportion variants instead of manually rescaling hierarchies and repainting textures. Tune the Chaos Regulator, or let the Chrono-Loop auto-cycle generations. Genomic rank flashes from `COMMON` to `CHAOTIC-DIVINE`.
+2. **Real-Time Client-Side UV Mapping** 🎨 — Drag a photo in; color harvesting and feather-edge facial blending happen live, no manual seam placement or hand-painting.
+3. **Enterprise Rig QA Drop & Squish Test** 🦘 — One click runs a stretch-and-squash collision stress check with 8-bit sound design, instead of hand-configuring rigid body physics.
+4. **Instant 2D Style Overlays** 👾 — Retro CRT, Cyberpunk HUD, Blueprint, Pencil Sketch, or Gameboy dither, toggled live instead of built through compositor node graphs.
+5. **Direct Bone Joint Controllers** 🦴 — Slide Head Yaw/Pitch, arm rotation, or leg kicks directly, no Pose Mode gizmo hunting.
+6. **Web Audio Soundboard** 🔊 — Real oscillator-driven 8-bit sound on rig actions. Blender ships silent.
 
-1. **One-Click Procedural Chaos Mutation Lab V2** 🌀:
-   - *In Blender*: To make a new model, you must manually rescale parent hierarchies, repaint texture maps, change material parameters, and re-equip armature slots.
-   - *In GLB_FACTORY*: Tap **Mutate Skeletal DNA Now** to instantly spin up endless unique characters with harmonious retro palettes, proportional scaling mutations, hairstyles, and accessories in microseconds. Adjust the **Chaos Regulator Slider** (from Balanced Retro up to Glitch Mayhem) or engage the **Chrono-Loop (Auto-Rave screensaver)** to cycle generations automatically! Check genomic status on the real-time **DNA Decoder readout** (featuring ranks from COMMON to the ultimate flashing CHAOTIC-DIVINE).
+---
 
-2. **Real-Time Client-Side UV Mapping & Texturing** 🎨:
-   - *In Blender*: Creating a realistic or retro head from a flat portrait requires tedious seam placement, UV unwrapping, color matching, and hand-painting.
-   - *In GLB_FACTORY*: Drag and drop a picture; the AI or Client-Side Pixel Analyzer automatically handles color harvesting and applies real-time facial cropping with feather-edge blending directly onto the 3D mesh.
-
-3. **Enterprise Rig QA Drop & Collision Test** 🦘:
-   - *In Blender*: Setting up a soft-body landing drop test requires adding rigid body physics, defining mesh collision margins, adjusting stiffness coefficients, and waiting for the bake timeline to compile.
-   - *In GLB_FACTORY*: Click **Physical Jump & Squish Test** to instantly execute an interactive stretch-and-squash stress check on the 3D rig, coupled with dynamic 8-bit sound design.
-
-4. **Instant 2D Style Compositing Overlays** 👾:
-   - *In Blender*: Post-processing effects require setting up Node Groups, compositor filters, or waiting for Cycles/Eevee render blocks.
-   - *In GLB_FACTORY*: Toggle between clean WebGL, Retro CRT scanlines, Cyan/Magenta Cyberpunk HUDs, Blueprint schematics, charcoal Pencil Sketch outlines, or monochrome Gameboy LCD dither matrix overlays in real-time.
-
-5. **Direct Bone Joint Armature Controllers** 🦴:
-   - *In Blender*: Tilting the head or lifting an arm means expanding nested armature bones, switching to Pose Mode, selecting the rotation gizmo, and manually tweaking Euler coordinates.
-   - *In GLB_FACTORY*: Select **Pose: Custom** and slide direct sliders for Head Yaw, Pitch, Arm Rotations, or Leg Kicks inside a single dashboard.
-
-6. **Web Audio Sound Synthesizer Soundboard** 🔊:
-   - *In Blender*: Sound design is completely detached and quiet.
-   - *In GLB_FACTORY*: Real-time frequency generators use browser oscillator Nodes to synthesize immersive 8-bit audio on clicks and rigging drops, raising the workspace charm to 98%.
-
+<p align="center">
+  <sub>Built by <a href="https://github.com/DaCameraGirl">DaCameraGirl</a> — bug reports and creature requests welcome.</sub>
+</p>

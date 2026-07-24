@@ -536,7 +536,7 @@ export default function App() {
   };
 
   // 1. App State
-  const [characterName, setCharacterName] = useState("Chase");
+  const [characterName, setCharacterName] = useState("");
   const [sourceImage, setSourceImage] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>("image/jpeg");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -558,7 +558,7 @@ export default function App() {
 
   // Avatar Configuration
   const [config, setConfig] = useState<AvatarConfig>({
-    name: "Chase",
+    name: "",
     skinColor: "#e5a65d",
     hairColor: "#211510",
     clothingColor: "#1e3a8a",
@@ -1402,13 +1402,13 @@ export default function App() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${characterName.toLowerCase().replace(/\s+/g, "_")}.glb`;
+      link.download = `${(characterName || "specimen").toLowerCase().replace(/\s+/g, "_")}.glb`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      addLog(`GLB exported and downloaded as ${characterName.toLowerCase().replace(/\s+/g, "_")}.glb!`, "success");
+      addLog(`GLB exported and downloaded as ${(characterName || "specimen").toLowerCase().replace(/\s+/g, "_")}.glb!`, "success");
     } catch (err: any) {
       addLog(`Export failed: ${err.message}`, "error");
     }
@@ -1425,7 +1425,7 @@ export default function App() {
       const url = faceCanvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${characterName.toLowerCase()}_face_texture.png`;
+      link.download = `${(characterName || "specimen").toLowerCase()}_face_texture.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1625,7 +1625,7 @@ export default function App() {
         ctx.fillStyle = "#fbbf24"; // yellow subtitles font
         ctx.font = `bold ${Math.round(h * 0.032)}px Courier, monospace`;
         ctx.textAlign = "center";
-        ctx.fillText(`[VOX-RIG SYSTEM // MODEL: ${characterName.toUpperCase()}]`, w / 2, h - barH * 0.45);
+        ctx.fillText(`[VOX-RIG SYSTEM // MODEL: ${(characterName || "specimen").toUpperCase()}]`, w / 2, h - barH * 0.45);
       }
 
       // Draw Caption Bar
@@ -1656,7 +1656,7 @@ export default function App() {
 
       // Auto download composite canvas
       const link = document.createElement("a");
-      const safeName = characterName.toLowerCase().replace(/\s+/g, "_");
+      const safeName = (characterName || "specimen").toLowerCase().replace(/\s+/g, "_");
       link.download = `${safeName}_snap.png`;
       link.href = compositeCanvas.toDataURL("image/png");
       document.body.appendChild(link);
@@ -1677,7 +1677,7 @@ export default function App() {
     }
 
     setConfig({
-      name: "Chase",
+      name: "",
       skinColor: "#e5a65d",
       hairColor: "#211510",
       clothingColor: "#1e3a8a",
@@ -3718,7 +3718,7 @@ export default function App() {
           {/* RIGHT PANEL: LIVE 3D PREVIEW AND EXPORT TERMINAL (LG: 7 cols) */}
           <div className="lg:col-span-7 space-y-6">
             {/* 3D PREVIEW BLOCK */}
-            <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 relative shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)] lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto" id="preview-panel">
+            <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 relative shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)] lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:z-20" id="preview-panel">
               <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#D4D3D0] flex items-center justify-between">
                 <h2 className="font-serif text-[11px] italic text-[#141414]/80 uppercase font-bold tracking-wider flex items-center gap-2">
                   <Layers className="w-3.5 h-3.5" />
@@ -3774,7 +3774,7 @@ export default function App() {
                   <div className="absolute inset-0 border-[20px] border-white pointer-events-none flex flex-col justify-end select-none z-10">
                     <div className="bg-white h-14 -mx-[20px] -mb-[20px] border-t border-[#141414]/10 flex flex-col items-center justify-center">
                       <span className="font-serif italic text-xs text-gray-800 tracking-wider font-bold">
-                        {characterName || "Chase"}
+                        {characterName || "Specimen"}
                       </span>
                       <span className="text-[6px] text-gray-400 font-mono tracking-widest mt-0.5">
                         POLAROID ORIGINAL // 1984
@@ -3807,7 +3807,7 @@ export default function App() {
                     <div className="bg-black h-8 w-full border-b border-white/5" />
                     <div className="bg-black h-8 w-full border-t border-white/5 flex items-center justify-center">
                       <span className="text-yellow-400 font-mono text-[8px] tracking-wider uppercase font-bold">
-                        [VOX-RIG LAB v2.0 // SPECIMEN: {characterName?.toUpperCase()}]
+                        [VOX-RIG LAB v2.0 // SPECIMEN: {(characterName || "unnamed").toUpperCase()}]
                       </span>
                     </div>
                   </div>
