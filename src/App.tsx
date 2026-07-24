@@ -44,6 +44,9 @@ interface CreatureVariantPreset {
   skinColor: string;
   hairColor: string;
   bodyType?: BodyType;
+  hairStyle?: HairStyle;
+  clothingColor?: string;
+  pantsColor?: string;
   accessories: NonNullable<AvatarConfig["accessories"]>;
 }
 
@@ -53,11 +56,20 @@ const CREATURE_VARIANTS: Record<string, CreatureVariantPreset> = {
   gator: { label: "🐊 Alligator", skinColor: "#365314", hairColor: "#1a2e05", accessories: ["tail"] },
   raccoon: { label: "🦝 Raccoon", skinColor: "#78716c", hairColor: "#1c1917", accessories: ["tail", "whiskers", "cat-ears"] },
   cat: { label: "🐱 Cat", skinColor: "#ea9a3e", hairColor: "#78350f", accessories: ["cat-ears", "tail", "whiskers"] },
-  dog: { label: "🐶 Dog", skinColor: "#92400e", hairColor: "#451a03", accessories: ["tail", "snout"] },
-  lizard: { label: "🦎 Lizard", skinColor: "#4d7c0f", hairColor: "#1a2e05", accessories: ["tail", "snout"] },
-  possum: { label: "🐀 Possum", skinColor: "#d6d3d1", hairColor: "#57534e", accessories: ["tail", "whiskers", "snout"] },
+  dog: { label: "🐶 Dog", skinColor: "#92400e", hairColor: "#451a03", accessories: ["tail"] },
+  lizard: { label: "🦎 Lizard", skinColor: "#4d7c0f", hairColor: "#1a2e05", accessories: ["tail"] },
+  possum: { label: "🐀 Possum", skinColor: "#d6d3d1", hairColor: "#57534e", accessories: ["tail", "whiskers"] },
   tigerfish: { label: "🐠 Tiger Fish", skinColor: "#ea580c", hairColor: "#1c1917", accessories: ["fins", "tail"] },
   lionfish: { label: "🦁🐟 Lionfish", skinColor: "#fde68a", hairColor: "#b91c1c", accessories: ["fins"] },
+  clown: {
+    label: "🤡 Evil Clown",
+    skinColor: "#f5f5f4",
+    hairColor: "#16a34a",
+    hairStyle: "afro",
+    clothingColor: "#7f1d1d",
+    pantsColor: "#111827",
+    accessories: [],
+  },
 };
 
 const PRESET_HEROES: PresetHero[] = [
@@ -2513,8 +2525,10 @@ export default function App() {
                         creatureVariant: val as AvatarConfig["creatureVariant"],
                         skinColor: preset.skinColor,
                         hairColor: preset.hairColor,
-                        hairStyle: "none",
+                        hairStyle: preset.hairStyle || "none",
                         bodyType: preset.bodyType || prev.bodyType,
+                        clothingColor: preset.clothingColor || prev.clothingColor,
+                        pantsColor: preset.pantsColor || prev.pantsColor,
                         accessories: preset.accessories,
                       }));
                       addLog(`Mesh style set to ${preset.label.replace(/^\S+\s/, "").toUpperCase()}. Skin, colors, and accessories auto-equipped.`, "success");
