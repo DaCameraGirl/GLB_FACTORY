@@ -18,7 +18,7 @@ export interface AvatarConfig {
   cropY: number; // percentage offset
   cropScale: number; // magnification
   detailLevel: "low" | "medium" | "high";
-  accessories?: ("glasses" | "backpack" | "headphones" | "halo" | "crown" | "cat-ears" | "wizard-hat" | "wings" | "horns" | "cyber-visor" | "cape")[];
+  accessories?: ("glasses" | "backpack" | "headphones" | "halo" | "crown" | "cat-ears" | "wizard-hat" | "wings" | "horns" | "cyber-visor" | "cape" | "fins" | "tail" | "snout" | "whiskers" | "mushroom-cap" | "gun" | "knife" | "herb-pouch")[];
   clothingStyle?: "tshirt" | "hoodie" | "armor" | "dress";
   expression?: "neutral" | "happy" | "angry" | "sad" | "surprised";
   morphSlender?: number; // 0 to 1

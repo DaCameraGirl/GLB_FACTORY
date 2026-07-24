@@ -26,6 +26,7 @@ import ThreeCanvas from "./components/ThreeCanvas";
 import StudioLogs from "./components/StudioLogs";
 import { prepareFaceTexture } from "./utils/texturePreparer";
 import { exportToGLB } from "./utils/glbExporter";
+import genieMascotIcon from "./assets/genie-mascot.png";
 import * as THREE from "three";
 
 // ==========================================
@@ -699,6 +700,7 @@ export default function App() {
   const imageRef = useRef<HTMLImageElement | null>(null);
   const avatarGroupRef = useRef<THREE.Group | null>(null);
   const meltdownTimerRef = useRef<number | null>(null);
+  const genieMascotImgRef = useRef<HTMLImageElement | null>(null);
 
   // 2. Logging helper
   const addLog = (text: string, type: LogEntry["type"] = "info") => {
@@ -1132,6 +1134,13 @@ export default function App() {
       addLog(`Error preparing texture: ${err.message}`, "error");
     }
   };
+
+  // Preload genie mascot caption image so it's ready to bake into snap exports
+  useEffect(() => {
+    const img = new Image();
+    img.src = genieMascotIcon;
+    genieMascotImgRef.current = img;
+  }, []);
 
   // Re-run texture builder if dependencies change
   useEffect(() => {
@@ -1629,8 +1638,20 @@ export default function App() {
         ctx.fillStyle = "#FFFFFF";
         ctx.font = `bold ${Math.round(barH * 0.40)}px sans-serif`;
         ctx.textAlign = "center";
-        const captionText = `${config.photoCaptionEmoji || ""} ${config.photoCaption}`.trim();
-        ctx.fillText(captionText, w / 2, barY + barH * 0.62);
+
+        const isGenieMascot = config.photoCaptionEmoji === "GENIE_MASCOT";
+        const emojiPrefix = config.photoCaptionEmoji && !isGenieMascot ? `${config.photoCaptionEmoji} ` : "";
+        const captionText = `${emojiPrefix}${config.photoCaption}`.trim();
+
+        if (isGenieMascot && genieMascotImgRef.current?.complete) {
+          const iconSize = barH * 0.55;
+          const textWidth = ctx.measureText(captionText).width;
+          const groupHalfWidth = textWidth / 2 + iconSize * 0.7;
+          ctx.drawImage(genieMascotImgRef.current, w / 2 - groupHalfWidth, barY + barH * 0.22, iconSize, iconSize);
+          ctx.fillText(captionText, w / 2 + iconSize * 0.35, barY + barH * 0.62);
+        } else {
+          ctx.fillText(captionText, w / 2, barY + barH * 0.62);
+        }
       }
 
       // Auto download composite canvas
@@ -2733,6 +2754,126 @@ export default function App() {
                     />
                     <span className="text-[#1d4ed8] font-bold">🧙 Wizard Spellcaster Hat</span>
                   </label>
+
+                  {/* Fins */}
+                  <label className="flex items-center gap-1.5 cursor-pointer bg-white/50 border-2 border-[#141414] px-2 py-1.5 text-xs font-mono select-none shadow-[1px_1px_0px_0px_#141414] hover:bg-white transition-all duration-200">
+                    <input
+                      type="checkbox"
+                      checked={config.accessories?.includes("fins") || false}
+                      onChange={(e) => {
+                        const cur = config.accessories || [];
+                        const next = e.target.checked ? [...cur, "fins" as const] : cur.filter((x) => x !== "fins");
+                        setConfig((prev) => ({ ...prev, accessories: next }));
+                      }}
+                      className="accent-[#141414]"
+                    />
+                    <span className="text-[#0284c7]">🐟 Fins</span>
+                  </label>
+
+                  {/* Tail */}
+                  <label className="flex items-center gap-1.5 cursor-pointer bg-white/50 border-2 border-[#141414] px-2 py-1.5 text-xs font-mono select-none shadow-[1px_1px_0px_0px_#141414] hover:bg-white transition-all duration-200">
+                    <input
+                      type="checkbox"
+                      checked={config.accessories?.includes("tail") || false}
+                      onChange={(e) => {
+                        const cur = config.accessories || [];
+                        const next = e.target.checked ? [...cur, "tail" as const] : cur.filter((x) => x !== "tail");
+                        setConfig((prev) => ({ ...prev, accessories: next }));
+                      }}
+                      className="accent-[#141414]"
+                    />
+                    <span>🦎 Tail</span>
+                  </label>
+
+                  {/* Snout */}
+                  <label className="flex items-center gap-1.5 cursor-pointer bg-white/50 border-2 border-[#141414] px-2 py-1.5 text-xs font-mono select-none shadow-[1px_1px_0px_0px_#141414] hover:bg-white transition-all duration-200">
+                    <input
+                      type="checkbox"
+                      checked={config.accessories?.includes("snout") || false}
+                      onChange={(e) => {
+                        const cur = config.accessories || [];
+                        const next = e.target.checked ? [...cur, "snout" as const] : cur.filter((x) => x !== "snout");
+                        setConfig((prev) => ({ ...prev, accessories: next }));
+                      }}
+                      className="accent-[#141414]"
+                    />
+                    <span>🐽 Snout</span>
+                  </label>
+
+                  {/* Whiskers */}
+                  <label className="flex items-center gap-1.5 cursor-pointer bg-white/50 border-2 border-[#141414] px-2 py-1.5 text-xs font-mono select-none shadow-[1px_1px_0px_0px_#141414] hover:bg-white transition-all duration-200">
+                    <input
+                      type="checkbox"
+                      checked={config.accessories?.includes("whiskers") || false}
+                      onChange={(e) => {
+                        const cur = config.accessories || [];
+                        const next = e.target.checked ? [...cur, "whiskers" as const] : cur.filter((x) => x !== "whiskers");
+                        setConfig((prev) => ({ ...prev, accessories: next }));
+                      }}
+                      className="accent-[#141414]"
+                    />
+                    <span>🐱 Whiskers</span>
+                  </label>
+
+                  {/* Mushroom Cap */}
+                  <label className="flex items-center gap-1.5 cursor-pointer bg-white/50 border-2 border-[#141414] px-2 py-1.5 text-xs font-mono select-none shadow-[1px_1px_0px_0px_#141414] hover:bg-white transition-all duration-200">
+                    <input
+                      type="checkbox"
+                      checked={config.accessories?.includes("mushroom-cap") || false}
+                      onChange={(e) => {
+                        const cur = config.accessories || [];
+                        const next = e.target.checked ? [...cur, "mushroom-cap" as const] : cur.filter((x) => x !== "mushroom-cap");
+                        setConfig((prev) => ({ ...prev, accessories: next }));
+                      }}
+                      className="accent-[#141414]"
+                    />
+                    <span className="text-[#dc2626] font-bold">🍄 Mushroom Cap</span>
+                  </label>
+
+                  {/* Gun */}
+                  <label className="flex items-center gap-1.5 cursor-pointer bg-white/50 border-2 border-[#141414] px-2 py-1.5 text-xs font-mono select-none shadow-[1px_1px_0px_0px_#141414] hover:bg-white transition-all duration-200">
+                    <input
+                      type="checkbox"
+                      checked={config.accessories?.includes("gun") || false}
+                      onChange={(e) => {
+                        const cur = config.accessories || [];
+                        const next = e.target.checked ? [...cur, "gun" as const] : cur.filter((x) => x !== "gun");
+                        setConfig((prev) => ({ ...prev, accessories: next }));
+                      }}
+                      className="accent-[#141414]"
+                    />
+                    <span>🔫 Blaster</span>
+                  </label>
+
+                  {/* Knife */}
+                  <label className="flex items-center gap-1.5 cursor-pointer bg-white/50 border-2 border-[#141414] px-2 py-1.5 text-xs font-mono select-none shadow-[1px_1px_0px_0px_#141414] hover:bg-white transition-all duration-200">
+                    <input
+                      type="checkbox"
+                      checked={config.accessories?.includes("knife") || false}
+                      onChange={(e) => {
+                        const cur = config.accessories || [];
+                        const next = e.target.checked ? [...cur, "knife" as const] : cur.filter((x) => x !== "knife");
+                        setConfig((prev) => ({ ...prev, accessories: next }));
+                      }}
+                      className="accent-[#141414]"
+                    />
+                    <span>🗡️ Knife</span>
+                  </label>
+
+                  {/* Herb Pouch */}
+                  <label className="flex items-center gap-1.5 cursor-pointer bg-white/50 border-2 border-[#141414] px-2 py-1.5 text-xs font-mono select-none shadow-[1px_1px_0px_0px_#141414] hover:bg-white transition-all duration-200">
+                    <input
+                      type="checkbox"
+                      checked={config.accessories?.includes("herb-pouch") || false}
+                      onChange={(e) => {
+                        const cur = config.accessories || [];
+                        const next = e.target.checked ? [...cur, "herb-pouch" as const] : cur.filter((x) => x !== "herb-pouch");
+                        setConfig((prev) => ({ ...prev, accessories: next }));
+                      }}
+                      className="accent-[#141414]"
+                    />
+                    <span>🌿 Herb Pouch</span>
+                  </label>
                 </div>
               </div>
 
@@ -3554,6 +3695,7 @@ export default function App() {
                         <option value="💯">💯 Real</option>
                         <option value="✨">✨ Magic</option>
                         <option value="💀">💀 Ded</option>
+                        <option value="GENIE_MASCOT">🧞 Genie Mascot</option>
                       </select>
                     </div>
                   </div>
@@ -3576,7 +3718,7 @@ export default function App() {
           {/* RIGHT PANEL: LIVE 3D PREVIEW AND EXPORT TERMINAL (LG: 7 cols) */}
           <div className="lg:col-span-7 space-y-6">
             {/* 3D PREVIEW BLOCK */}
-            <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 relative shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]" id="preview-panel">
+            <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 relative shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)] lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto" id="preview-panel">
               <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#D4D3D0] flex items-center justify-between">
                 <h2 className="font-serif text-[11px] italic text-[#141414]/80 uppercase font-bold tracking-wider flex items-center gap-2">
                   <Layers className="w-3.5 h-3.5" />
@@ -3674,7 +3816,11 @@ export default function App() {
                 {/* Snapchat Black Caption Bar */}
                 {config.photoCaption && (
                   <div className="absolute bottom-[20%] left-0 w-full bg-black/60 py-2 px-3 text-center z-10 text-white text-[10px] font-bold font-sans select-none border-y border-white/5 shadow-md flex items-center justify-center gap-1">
-                    {config.photoCaptionEmoji && <span className="text-xs">{config.photoCaptionEmoji}</span>}
+                    {config.photoCaptionEmoji === "GENIE_MASCOT" ? (
+                      <img src={genieMascotIcon} alt="Genie mascot" className="w-4 h-4 rounded-full object-cover" />
+                    ) : (
+                      config.photoCaptionEmoji && <span className="text-xs">{config.photoCaptionEmoji}</span>
+                    )}
                     <span>{config.photoCaption}</span>
                   </div>
                 )}
