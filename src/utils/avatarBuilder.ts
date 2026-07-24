@@ -744,6 +744,73 @@ export function buildAvatar(
     });
   }
 
+  if (config.creatureVariant === "tigerfish" || config.creatureVariant === "lionfish") {
+    // Bulging fish eyes on the sides of the head, not human eyes on the front
+    const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.15, name: "fish-eye-white" });
+    const pupilMat = new THREE.MeshStandardMaterial({ color: 0x0c0a09, roughness: 0.1, name: "fish-eye-pupil" });
+    [-1, 1].forEach((side) => {
+      const eyeWhite = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.15, 10, 10), eyeWhiteMat);
+      eyeWhite.name = `fish-eye-${side}`;
+      eyeWhite.position.set(side * actualHeadSize * 0.4, actualHeadSize * 0.06, actualHeadSize * 0.22);
+      head.add(eyeWhite);
+
+      const pupil = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.075, 8, 8), pupilMat);
+      pupil.name = `fish-pupil-${side}`;
+      pupil.position.set(side * actualHeadSize * 0.47, actualHeadSize * 0.06, actualHeadSize * 0.28);
+      head.add(pupil);
+    });
+
+    // Small round pouty fish mouth instead of a human mouth
+    const mouthMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.5, name: "fish-mouth" });
+    const mouth = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.1, 10, 10), mouthMat);
+    mouth.name = "fish-mouth";
+    mouth.scale.set(1.3, 0.55, 0.6);
+    mouth.position.set(0, -actualHeadSize * 0.24, actualHeadSize * 0.42);
+    head.add(mouth);
+
+    // Gill slits
+    const gillMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.6, name: "fish-gill" });
+    [-1, 1].forEach((side) => {
+      for (let i = 0; i < 3; i++) {
+        const gill = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.03, actualHeadSize * 0.16, actualHeadSize * 0.03), gillMat);
+        gill.name = `fish-gill-${side}-${i}`;
+        gill.rotation.z = side * 0.35;
+        gill.position.set(side * actualHeadSize * 0.44, -actualHeadSize * (0.05 + i * 0.1), actualHeadSize * (0.05 - i * 0.06));
+        head.add(gill);
+      }
+    });
+
+    // Banded stripes wrapping the torso: orange/black for Tiger Fish, red/white for Lionfish
+    const stripeColors = config.creatureVariant === "lionfish"
+      ? ["#b91c1c", "#fef2f2", "#1c1917"]
+      : ["#1c1917", "#1c1917", "#1c1917"];
+    for (let i = 0; i < 4; i++) {
+      const stripeMat = new THREE.MeshStandardMaterial({ color: stripeColors[i % stripeColors.length], roughness: 0.6, name: `stripe-band-${i}` });
+      const stripeRadius = torsoWidth * (0.52 - i * 0.01);
+      const stripeGeo = getCylinderGeometry(stripeRadius, stripeRadius, torsoHeight * 0.09, radialSeg);
+      const stripe = new THREE.Mesh(stripeGeo, stripeMat);
+      stripe.name = `stripe-band-${i}`;
+      stripe.position.set(0, torsoHeight * (0.32 - i * 0.24), 0);
+      torso.add(stripe);
+    }
+
+    if (config.creatureVariant === "lionfish") {
+      // Long venomous spike rays fanning out from the shoulders and head
+      const spikeMat = new THREE.MeshStandardMaterial({ color: 0xfca5a5, roughness: 0.3, name: "lionfish-spike" });
+      const spikeGeo = new THREE.ConeGeometry(actualHeadSize * 0.025, actualHeadSize * 0.6, 6);
+      for (let i = 0; i < 7; i++) {
+        const t = i / 6;
+        const spike = new THREE.Mesh(spikeGeo, spikeMat);
+        spike.name = `lionfish-spike-${i}`;
+        const angle = -Math.PI * 0.35 + t * Math.PI * 0.7;
+        spike.position.set(Math.sin(angle) * actualHeadSize * 0.35, actualHeadSize * 0.55, -actualHeadSize * 0.15 + Math.cos(angle) * actualHeadSize * 0.1);
+        spike.rotation.z = -angle * 0.6;
+        spike.rotation.x = Math.PI * 0.08;
+        head.add(spike);
+      }
+    }
+  }
+
   // ==========================================
   // 3. HAIR STYLE (WITH COLLISION CLAMP INORGANICS)
   // ==========================================
