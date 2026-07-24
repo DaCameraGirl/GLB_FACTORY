@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 300" role="img" aria-label="Animated voxel character mutating through color palettes">
+  <defs>
+    <radialGradient id="stage" cx="50%" cy="55%" r="65%">
+      <stop offset="0%" stop-color="#1c1c1c"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </radialGradient>
+    <pattern id="floorGrid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M 28 0 L 0 0 0 28" fill="none" stroke="#2a2a2a" stroke-width="1" opacity="0.6"/>
+    </pattern>
+    <clipPath id="stageRound">
+      <rect width="420" height="300" rx="18"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#stageRound)">
+    <rect width="420" height="300" fill="url(#stage)"/>
+    <rect y="210" width="420" height="90" fill="url(#floorGrid)" opacity="0.8"/>
+    <rect y="210" width="420" height="2" fill="#3a3a3a"/>
+
+    <!-- Mutation glow pulse behind the character -->
+    <circle cx="210" cy="150" r="70" fill="#22d3ee" opacity="0.16">
+      <animate attributeName="r" values="60;92;60" dur="3.6s" repeatCount="indefinite"/>
+      <animate attributeName="fill" values="#22d3ee;#db2777;#fbbf24;#22d3ee" dur="7.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.10;0.22;0.10" dur="3.6s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Idle-bouncing voxel character -->
+    <g>
+      <animateTransform attributeName="transform" type="translate" values="0 0; 0 -8; 0 0" dur="1.6s" repeatCount="indefinite"/>
+
+      <!-- shadow -->
+      <ellipse cx="210" cy="222" rx="38" ry="8" fill="#000000" opacity="0.5"/>
+
+      <!-- legs -->
+      <rect x="188" y="176" width="16" height="42" fill="#1e293b"/>
+      <rect x="216" y="176" width="16" height="42" fill="#1e293b"/>
+
+      <!-- torso, color-cycles through mutation palettes -->
+      <rect x="178" y="112" width="64" height="66" rx="4" fill="#4338ca">
+        <animate attributeName="fill" values="#4338ca;#0ea5e9;#dc2626;#4338ca" dur="4.8s" repeatCount="indefinite"/>
+      </rect>
+
+      <!-- arms -->
+      <rect x="156" y="118" width="16" height="52" rx="6" fill="#f2c9a0"/>
+      <rect x="248" y="118" width="16" height="52" rx="6" fill="#f2c9a0"/>
+
+      <!-- head -->
+      <rect x="182" y="64" width="56" height="52" rx="8" fill="#f2c9a0"/>
+      <rect x="194" y="84" width="8" height="8" fill="#141414"/>
+      <rect x="218" y="84" width="8" height="8" fill="#141414"/>
+
+      <!-- mutating accessory: a little horn/antenna that swaps each cycle -->
+      <g>
+        <rect x="206" y="46" width="8" height="20" fill="#fbbf24">
+          <animate attributeName="fill" values="#fbbf24;#22d3ee;#db2777;#fbbf24" dur="4.8s" repeatCount="indefinite"/>
+        </rect>
+        <circle cx="210" cy="44" r="5" fill="#fbbf24">
+          <animate attributeName="fill" values="#fbbf24;#22d3ee;#db2777;#fbbf24" dur="4.8s" repeatCount="indefinite"/>
+          <animate attributeName="opacity" values="0.6;1;0.6" dur="1.2s" repeatCount="indefinite"/>
+        </circle>
+      </g>
+    </g>
+
+    <!-- orbiting DNA-strand dots -->
+    <g fill="#4ade80">
+      <circle cx="210" cy="150" r="3" opacity="0.8">
+        <animateMotion dur="5s" repeatCount="indefinite" path="M 0,0 a 90,50 0 1,0 0.1,0 z"/>
+      </circle>
+      <circle cx="210" cy="150" r="2.4" fill="#22d3ee" opacity="0.75">
+        <animateMotion dur="5s" repeatCount="indefinite" path="M 0,0 a 90,50 0 1,1 0.1,0 z"/>
+      </circle>
+    </g>
+
+    <g font-family="Consolas, 'Courier New', monospace" font-size="11" font-weight="700" fill="#8a8a85">
+      <text x="210" y="270" text-anchor="middle">MUTATE SKELETAL DNA // LIVE PREVIEW</text>
+      <text x="210" y="288" text-anchor="middle" fill="#4ade80" opacity="0.85">CHAOTIC-DIVINE RARITY UNLOCKED</text>
+    </g>
+  </g>
+</svg>

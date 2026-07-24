@@ -63,9 +63,10 @@ export function prepareFaceTexture(
   const tempCtx = tempCanvas.getContext("2d");
   if (!tempCtx) return canvas;
 
-  // Draw cropped face into a beautifully centered region
-  // Base face size is 120x120, which maps perfectly onto the front of the head sphere without horizontal stretching
-  const faceSizeOnCanvas = 120;
+  // Draw cropped face into a beautifully centered region.
+  // featherRadius doubles as the coverage control: higher values grow the drawn
+  // face toward filling the entire 256x256 head texture, not just a small fixed circle.
+  const faceSizeOnCanvas = 100 + (featherRadius / 100) * 140; // 100..240
   const targetX = (256 - faceSizeOnCanvas) / 2;
   const targetY = (256 - faceSizeOnCanvas) / 2;
 
@@ -87,12 +88,13 @@ export function prepareFaceTexture(
   maskCanvas.height = 256;
   const maskCtx = maskCanvas.getContext("2d");
   if (maskCtx) {
-    const maxRadius = faceSizeOnCanvas / 2; // 60
-    
+    const maxRadius = faceSizeOnCanvas / 2;
+
     if (featherEdges) {
-      // Smooth feathered radial gradient mask
-      const innerRadius = maxRadius * (featherRadius / 100) * 0.45;
-      const outerRadius = maxRadius * (featherRadius / 100) * 0.95;
+      // Smooth feathered radial gradient mask: fixed fractions of the (now dynamic) radius,
+      // so the feather band stays proportionally thin as coverage grows.
+      const innerRadius = maxRadius * 0.82;
+      const outerRadius = maxRadius * 0.99;
 
       const gradient = maskCtx.createRadialGradient(
         128, 128, innerRadius,
