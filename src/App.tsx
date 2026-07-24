@@ -2480,14 +2480,64 @@ export default function App() {
               <div className="space-y-1.5 pb-2 border-b border-[#141414]/10">
                 <label className="font-mono text-[10px] uppercase font-bold text-[#141414]/85">MESH STYLE / MODEL SHAPE</label>
                 <select
-                  value={config.headShape}
-                  onChange={(e) => setConfig((prev) => ({ ...prev, headShape: e.target.value as HeadShape }))}
+                  value={config.creatureVariant && config.creatureVariant !== "none" ? config.creatureVariant : config.headShape}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "gremlin") {
+                      setConfig((prev) => ({
+                        ...prev,
+                        headShape: "organic-smooth",
+                        creatureVariant: "gremlin",
+                        skinColor: "#3f6212",
+                        hairColor: "#1a2e05",
+                        hairStyle: "none",
+                        accessories: ["horns", "tail", "cat-ears"],
+                      }));
+                      addLog("🧌 Mesh style set to GREMLIN. Skin, horns, tail, and ears equipped.", "success");
+                    } else if (val === "monster") {
+                      setConfig((prev) => ({
+                        ...prev,
+                        headShape: "organic-smooth",
+                        creatureVariant: "monster",
+                        skinColor: "#57534e",
+                        hairColor: "#1c1917",
+                        hairStyle: "none",
+                        bodyType: "athletic",
+                        accessories: ["horns", "tail", "snout"],
+                      }));
+                      addLog("👹 Mesh style set to MONSTER. Warts, fangs, horns, tail, and snout equipped.", "success");
+                    } else {
+                      setConfig((prev) => {
+                        const wasCreature = prev.creatureVariant && prev.creatureVariant !== "none";
+                        return {
+                          ...prev,
+                          headShape: val as HeadShape,
+                          creatureVariant: "none",
+                          ...(wasCreature
+                            ? {
+                                skinColor: "#e5a65d",
+                                hairColor: "#211510",
+                                hairStyle: "short" as const,
+                                accessories: [],
+                              }
+                            : {}),
+                        };
+                      });
+                    }
+                  }}
                   className="w-full bg-white/70 border-2 border-[#141414] px-3 py-2 text-xs text-[#141414] font-mono font-bold focus:outline-none focus:bg-white shadow-[2px_2px_0px_0px_#141414]"
                 >
                   <option value="organic-smooth">✪ ORGANIC HUMANOID (GAME-READY)</option>
                   <option value="rounded-cube">Rounded Cube (Smooth Voxel)</option>
                   <option value="cube">Classic Box (Retro Blocky)</option>
+                  <option value="gremlin">🧌 Gremlin (Creature)</option>
+                  <option value="monster">👹 Monster (Chaotic)</option>
                 </select>
+                {config.creatureVariant && config.creatureVariant !== "none" && (
+                  <p className="text-[8px] text-[#141414]/60 italic">
+                    Creature variants build on the Organic Humanoid mesh with matching skin, proportions, and accessories auto-equipped. Tweak any of it below.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
