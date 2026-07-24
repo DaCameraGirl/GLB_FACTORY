@@ -39,6 +39,27 @@ interface PresetHero {
   config: Partial<AvatarConfig>;
 }
 
+interface CreatureVariantPreset {
+  label: string;
+  skinColor: string;
+  hairColor: string;
+  bodyType?: BodyType;
+  accessories: NonNullable<AvatarConfig["accessories"]>;
+}
+
+const CREATURE_VARIANTS: Record<string, CreatureVariantPreset> = {
+  gremlin: { label: "🧌 Gremlin (Creature)", skinColor: "#3f6212", hairColor: "#1a2e05", accessories: ["horns", "tail", "cat-ears"] },
+  monster: { label: "👹 Monster (Chaotic)", skinColor: "#57534e", hairColor: "#1c1917", bodyType: "athletic", accessories: ["horns", "tail", "snout"] },
+  gator: { label: "🐊 Alligator", skinColor: "#365314", hairColor: "#1a2e05", accessories: ["snout", "tail"] },
+  raccoon: { label: "🦝 Raccoon", skinColor: "#78716c", hairColor: "#1c1917", accessories: ["tail", "whiskers", "cat-ears"] },
+  cat: { label: "🐱 Cat", skinColor: "#ea9a3e", hairColor: "#78350f", accessories: ["cat-ears", "tail", "whiskers"] },
+  dog: { label: "🐶 Dog", skinColor: "#92400e", hairColor: "#451a03", accessories: ["tail", "snout"] },
+  lizard: { label: "🦎 Lizard", skinColor: "#4d7c0f", hairColor: "#1a2e05", accessories: ["tail", "snout"] },
+  possum: { label: "🐀 Possum", skinColor: "#d6d3d1", hairColor: "#57534e", accessories: ["tail", "whiskers", "snout"] },
+  tigerfish: { label: "🐠 Tiger Fish", skinColor: "#ea580c", hairColor: "#1c1917", accessories: ["fins", "tail"] },
+  lionfish: { label: "🦁🐟 Lionfish", skinColor: "#fde68a", hairColor: "#b91c1c", accessories: ["fins", "whiskers"] },
+};
+
 const PRESET_HEROES: PresetHero[] = [
   {
     name: "Nexus Zero",
@@ -1207,11 +1228,12 @@ export default function App() {
     const reader = new FileReader();
     reader.onload = () => {
       setSourceImage(reader.result as string);
-      // Reset crops and box
+      // Reset crop/box state so the new photo doesn't inherit the previous one's manual framing
       setFaceBox(null);
       setFaceCanvas(null);
       setIsSuccess(false);
       setCurrentStep("texture");
+      setConfig((prev) => ({ ...prev, cropX: 0, cropY: 0, cropScale: 1.0 }));
       addLog(`Loaded image: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`, "success");
       addLog("Ready to build. Click 'BUILD AVATAR' to let Gemini auto-detect the face features.", "info");
     };
@@ -2483,29 +2505,19 @@ export default function App() {
                   value={config.creatureVariant && config.creatureVariant !== "none" ? config.creatureVariant : config.headShape}
                   onChange={(e) => {
                     const val = e.target.value;
-                    if (val === "gremlin") {
+                    const preset = CREATURE_VARIANTS[val];
+                    if (preset) {
                       setConfig((prev) => ({
                         ...prev,
                         headShape: "organic-smooth",
-                        creatureVariant: "gremlin",
-                        skinColor: "#3f6212",
-                        hairColor: "#1a2e05",
+                        creatureVariant: val as AvatarConfig["creatureVariant"],
+                        skinColor: preset.skinColor,
+                        hairColor: preset.hairColor,
                         hairStyle: "none",
-                        accessories: ["horns", "tail", "cat-ears"],
+                        bodyType: preset.bodyType || prev.bodyType,
+                        accessories: preset.accessories,
                       }));
-                      addLog("🧌 Mesh style set to GREMLIN. Skin, horns, tail, and ears equipped.", "success");
-                    } else if (val === "monster") {
-                      setConfig((prev) => ({
-                        ...prev,
-                        headShape: "organic-smooth",
-                        creatureVariant: "monster",
-                        skinColor: "#57534e",
-                        hairColor: "#1c1917",
-                        hairStyle: "none",
-                        bodyType: "athletic",
-                        accessories: ["horns", "tail", "snout"],
-                      }));
-                      addLog("👹 Mesh style set to MONSTER. Warts, fangs, horns, tail, and snout equipped.", "success");
+                      addLog(`Mesh style set to ${preset.label.replace(/^\S+\s/, "").toUpperCase()}. Skin, colors, and accessories auto-equipped.`, "success");
                     } else {
                       setConfig((prev) => {
                         const wasCreature = prev.creatureVariant && prev.creatureVariant !== "none";
@@ -2530,8 +2542,9 @@ export default function App() {
                   <option value="organic-smooth">✪ ORGANIC HUMANOID (GAME-READY)</option>
                   <option value="rounded-cube">Rounded Cube (Smooth Voxel)</option>
                   <option value="cube">Classic Box (Retro Blocky)</option>
-                  <option value="gremlin">🧌 Gremlin (Creature)</option>
-                  <option value="monster">👹 Monster (Chaotic)</option>
+                  {Object.entries(CREATURE_VARIANTS).map(([key, preset]) => (
+                    <option key={key} value={key}>{preset.label}</option>
+                  ))}
                 </select>
                 {config.creatureVariant && config.creatureVariant !== "none" && (
                   <p className="text-[8px] text-[#141414]/60 italic">
