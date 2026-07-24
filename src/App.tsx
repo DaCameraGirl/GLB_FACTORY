@@ -57,7 +57,7 @@ const CREATURE_VARIANTS: Record<string, CreatureVariantPreset> = {
   lizard: { label: "🦎 Lizard", skinColor: "#4d7c0f", hairColor: "#1a2e05", accessories: ["tail", "snout"] },
   possum: { label: "🐀 Possum", skinColor: "#d6d3d1", hairColor: "#57534e", accessories: ["tail", "whiskers", "snout"] },
   tigerfish: { label: "🐠 Tiger Fish", skinColor: "#ea580c", hairColor: "#1c1917", accessories: ["fins", "tail"] },
-  lionfish: { label: "🦁🐟 Lionfish", skinColor: "#fde68a", hairColor: "#b91c1c", accessories: ["fins", "whiskers"] },
+  lionfish: { label: "🦁🐟 Lionfish", skinColor: "#fde68a", hairColor: "#b91c1c", accessories: ["fins"] },
 };
 
 const PRESET_HEROES: PresetHero[] = [
