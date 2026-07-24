@@ -709,25 +709,34 @@ export function buildAvatar(
   }
 
   if (config.creatureVariant === "gator") {
-    // A long flat jaw with teeth is what actually reads as "alligator" instead of a round green blob.
+    // A long jaw tapering to a point, with big bright teeth, is what actually reads as
+    // "alligator" instead of a round green blob with a wide flat bill.
     // The lower jaw hangs off a named hinge pivot so ThreeCanvas can animate it open/shut.
     const jawMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#365314", roughness: 0.8, name: "gator-jaw" });
-    const toothMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f4, roughness: 0.2, metalness: 0.05, name: "gator-tooth" });
-    const toothGeo = new THREE.ConeGeometry(actualHeadSize * 0.04, actualHeadSize * 0.12, 6);
+    const toothMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, metalness: 0.05, name: "gator-tooth" });
+    const toothGeo = new THREE.ConeGeometry(actualHeadSize * 0.055, actualHeadSize * 0.17, 6);
 
-    const upperJaw = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.52, actualHeadSize * 0.24, actualHeadSize * 0.85), jawMat);
-    upperJaw.name = "gator-upper-jaw";
-    upperJaw.position.set(0, actualHeadSize * 0.02, actualHeadSize * 0.62);
-    upperJaw.castShadow = true;
-    head.add(upperJaw);
+    const upperJawBase = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.5, actualHeadSize * 0.22, actualHeadSize * 0.5), jawMat);
+    upperJawBase.name = "gator-upper-jaw";
+    upperJawBase.position.set(0, actualHeadSize * 0.02, actualHeadSize * 0.42);
+    upperJawBase.castShadow = true;
+    head.add(upperJawBase);
 
-    // Upper teeth: fixed to the skull, hanging down from the upper jaw's underside
-    for (let i = 0; i < 2; i++) {
-      const toothZ = actualHeadSize * (0.45 + i * 0.3);
+    const upperJawTip = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.24, actualHeadSize * 0.7, 4), jawMat);
+    upperJawTip.name = "gator-upper-jaw-tip";
+    upperJawTip.rotation.x = Math.PI / 2;
+    upperJawTip.rotation.y = Math.PI / 4;
+    upperJawTip.position.set(0, actualHeadSize * 0.02, actualHeadSize * 1.03);
+    upperJawTip.castShadow = true;
+    head.add(upperJawTip);
+
+    // Upper teeth: fixed to the skull, hanging down along the jaw's underside
+    for (let i = 0; i < 3; i++) {
+      const toothZ = actualHeadSize * (0.42 + i * 0.28);
       const tooth = new THREE.Mesh(toothGeo, toothMat);
       tooth.name = `gator-upper-tooth-${i}`;
       tooth.rotation.x = Math.PI;
-      tooth.position.set((i % 2 === 0 ? -1 : 1) * actualHeadSize * 0.16, -actualHeadSize * 0.11, toothZ);
+      tooth.position.set((i % 2 === 0 ? -1 : 1) * actualHeadSize * 0.15, -actualHeadSize * 0.12, toothZ);
       head.add(tooth);
     }
 
@@ -738,18 +747,26 @@ export function buildAvatar(
     jawPivot.position.set(0, jawHingeY, jawHingeZ);
     head.add(jawPivot);
 
-    const lowerJaw = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.46, actualHeadSize * 0.14, actualHeadSize * 0.78), jawMat);
-    lowerJaw.name = "gator-lower-jaw";
-    lowerJaw.position.set(0, -actualHeadSize * 0.02, actualHeadSize * 0.39);
-    lowerJaw.castShadow = true;
-    jawPivot.add(lowerJaw);
+    const lowerJawBase = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.44, actualHeadSize * 0.13, actualHeadSize * 0.44), jawMat);
+    lowerJawBase.name = "gator-lower-jaw";
+    lowerJawBase.position.set(0, -actualHeadSize * 0.02, actualHeadSize * 0.22);
+    lowerJawBase.castShadow = true;
+    jawPivot.add(lowerJawBase);
+
+    const lowerJawTip = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.2, actualHeadSize * 0.62, 4), jawMat);
+    lowerJawTip.name = "gator-lower-jaw-tip";
+    lowerJawTip.rotation.x = Math.PI / 2;
+    lowerJawTip.rotation.y = Math.PI / 4;
+    lowerJawTip.position.set(0, -actualHeadSize * 0.02, actualHeadSize * 0.75);
+    lowerJawTip.castShadow = true;
+    jawPivot.add(lowerJawTip);
 
     // Lower teeth: attached to the moving jaw pivot, pointing up
-    for (let i = 0; i < 2; i++) {
-      const toothZ = actualHeadSize * (0.26 + i * 0.3);
+    for (let i = 0; i < 3; i++) {
+      const toothZ = actualHeadSize * (0.14 + i * 0.28);
       const tooth = new THREE.Mesh(toothGeo, toothMat);
       tooth.name = `gator-lower-tooth-${i}`;
-      tooth.position.set((i % 2 === 0 ? 1 : -1) * actualHeadSize * 0.16, actualHeadSize * 0.02, toothZ);
+      tooth.position.set((i % 2 === 0 ? 1 : -1) * actualHeadSize * 0.15, actualHeadSize * 0.03, toothZ);
       jawPivot.add(tooth);
     }
 
@@ -760,6 +777,28 @@ export function buildAvatar(
       ridge.position.set(side * actualHeadSize * 0.2, actualHeadSize * 0.34, actualHeadSize * 0.22);
       head.add(ridge);
     });
+
+    // Long tail flowing out behind the body, not hanging straight down under it
+    const gatorTailMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#365314", roughness: 0.75, name: "gator-tail" });
+    const gatorTailGroup = new THREE.Group();
+    gatorTailGroup.name = "gator-tail";
+    let gatorTailRadius = torsoWidth * 0.22;
+    let gatorTailZ = -torsoDepth * 0.55;
+    let gatorTailY = -torsoHeight * 0.1;
+    for (let i = 0; i < 8; i++) {
+      const segLength = torsoHeight * 0.28;
+      const nextRadius = gatorTailRadius * 0.78;
+      const segGeo = getCylinderGeometry(gatorTailRadius, nextRadius, segLength, 8);
+      const seg = new THREE.Mesh(segGeo, gatorTailMat);
+      seg.rotation.x = -Math.PI / 2;
+      seg.position.set(0, gatorTailY, gatorTailZ - segLength / 2);
+      seg.castShadow = true;
+      gatorTailGroup.add(seg);
+      gatorTailZ -= segLength;
+      gatorTailY -= segLength * 0.06; // gentle downward droop as it extends
+      gatorTailRadius = nextRadius;
+    }
+    torso.add(gatorTailGroup);
   }
 
   if (config.creatureVariant === "tigerfish" || config.creatureVariant === "lionfish") {
