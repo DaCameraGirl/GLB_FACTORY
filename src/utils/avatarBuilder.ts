@@ -67,7 +67,7 @@ export function validateAvatarConfig(config: AvatarConfig): AvatarConfig {
   if (!validHairStyles.includes(validated.hairStyle)) validated.hairStyle = "short";
   if (!validBodyTypes.includes(validated.bodyType)) validated.bodyType = "normal";
 
-  const validCreatureVariants = ["none", "gremlin", "monster"];
+  const validCreatureVariants = ["none", "gremlin", "monster", "gator", "raccoon", "cat", "dog", "lizard", "possum", "tigerfish", "lionfish"];
   if (!validated.creatureVariant || !validCreatureVariants.includes(validated.creatureVariant)) {
     validated.creatureVariant = "none";
   }
@@ -171,10 +171,10 @@ function drawExpressionOverlay(
     ctx.arc(cx + width * 0.2, cy - height * 0.14, width * 0.08, Math.PI * 1.25, Math.PI * 1.75);
     ctx.stroke();
 
-    // Open O mouth
+    // Open O mouth: a tall oval gasp, not a small dot
     ctx.fillStyle = "#141414";
     ctx.beginPath();
-    ctx.arc(cx, cy + height * 0.14, width * 0.07, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy + height * 0.15, width * 0.08, height * 0.12, 0, 0, Math.PI * 2);
     ctx.fill();
 
   } else {
@@ -718,12 +718,14 @@ export function buildAvatar(
         hairGroup.add(hair);
 
       } else if (config.hairStyle === "afro") {
-        // COLLISION CLAMP: organic-smooth caps afro scale to prevent swallowing face
-        const afroScaleMultiplier = config.headShape === "organic-smooth" ? 1.12 : 1.25;
+        // Big rounded puff, flattened slightly front-to-back and shifted up/back so it
+        // frames the face instead of swallowing it.
+        const afroScaleMultiplier = config.headShape === "organic-smooth" ? 1.45 : 1.55;
         const hairGeo = getSphereGeometry(skullRadius * afroScaleMultiplier, radialSeg, radialSeg);
         const hair = new THREE.Mesh(hairGeo, hairMaterial);
         hair.name = "hair-afro";
-        hair.position.set(0, skullRadius * 0.24, -skullRadius * 0.05);
+        hair.scale.set(1.0, 1.0, 0.82);
+        hair.position.set(0, skullRadius * 0.32, -skullRadius * 0.22);
         hair.castShadow = true;
         hairGroup.add(hair);
 
@@ -778,10 +780,10 @@ export function buildAvatar(
         hairGroup.add(hair);
 
       } else if (config.hairStyle === "afro") {
-        const hairGeo = getBoxGeometry(actualHeadSize * 1.25, actualHeadSize * 1.2, actualHeadSize * 1.15);
+        const hairGeo = getBoxGeometry(actualHeadSize * 1.55, actualHeadSize * 1.5, actualHeadSize * 1.3);
         const hair = new THREE.Mesh(hairGeo, hairMaterial);
         hair.name = "hair-block-afro";
-        hair.position.set(0, actualHeadSize * 0.2, -actualHeadSize * 0.05);
+        hair.position.set(0, actualHeadSize * 0.35, -actualHeadSize * 0.15);
         hair.castShadow = true;
         hairGroup.add(hair);
 

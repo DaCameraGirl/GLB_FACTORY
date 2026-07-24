@@ -32,6 +32,7 @@ export default function ThreeCanvas({
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
   const dirLightRef = useRef<THREE.DirectionalLight | null>(null);
   const meltParticlesRef = useRef<THREE.Group | null>(null);
+  const meltPuddleRef = useRef<THREE.Mesh | null>(null);
 
   // Snapchat Lenses particles state refs
   const particlesRef = useRef<THREE.Group | null>(null);
@@ -136,6 +137,25 @@ export default function ThreeCanvas({
     meltParticlesGroup.name = "melt-particles-group";
     scene.add(meltParticlesGroup);
     meltParticlesRef.current = meltParticlesGroup;
+
+    // Large ground puddle: gives each meltdown preset an unmistakable identity
+    // (a pool of lava/gold/slime/acid) instead of relying only on sparse drip particles.
+    const puddleGeo = new THREE.CircleGeometry(1, 32);
+    const puddleMat = new THREE.MeshStandardMaterial({
+      color: "#4ade80",
+      roughness: 0.15,
+      metalness: 0.08,
+      transparent: true,
+      opacity: 0,
+      side: THREE.DoubleSide,
+    });
+    const puddleMesh = new THREE.Mesh(puddleGeo, puddleMat);
+    puddleMesh.name = "melt-puddle";
+    puddleMesh.rotation.x = -Math.PI / 2;
+    puddleMesh.position.y = 0.001;
+    puddleMesh.scale.set(0.001, 0.001, 0.001);
+    scene.add(puddleMesh);
+    meltPuddleRef.current = puddleMesh;
 
     // Add grid helper
     const gridHelper = new THREE.GridHelper(10, 20, "#141414", "#888888");
@@ -434,6 +454,28 @@ export default function ThreeCanvas({
             mesh.position.z = (Math.random() - 0.5) * 2.5;
           }
         });
+      }
+
+      if (meltPuddleRef.current) {
+        const progress = activeConfig.isMelting ? activeConfig.meltProgress || 0 : 0;
+        const puddleMat = meltPuddleRef.current.material as THREE.MeshStandardMaterial;
+
+        let puddleColor = "#4ade80";
+        let puddleMetalness = 0.08;
+        let puddleEmissive = 0;
+        if (activeConfig.meltPreset === "gold") { puddleColor = "#ffd700"; puddleMetalness = 0.9; }
+        else if (activeConfig.meltPreset === "acid") { puddleColor = "#39ff14"; puddleEmissive = 0.6; }
+        else if (activeConfig.meltPreset === "lava") { puddleColor = "#ff4500"; puddleEmissive = 1.0; }
+        else if (activeConfig.meltPreset === "slime") { puddleColor = "#4ade80"; puddleEmissive = 0.15; }
+
+        puddleMat.color.set(puddleColor);
+        puddleMat.metalness = puddleMetalness;
+        puddleMat.emissive.set(puddleColor);
+        puddleMat.emissiveIntensity = puddleEmissive;
+        puddleMat.opacity = Math.min(0.92, progress * 1.3);
+
+        const puddleScale = 0.001 + progress * 1.35;
+        meltPuddleRef.current.scale.set(puddleScale, puddleScale, puddleScale);
       }
 
       if (meltParticlesRef.current) {

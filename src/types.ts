@@ -12,7 +12,7 @@ export interface AvatarConfig {
   hairStyle: HairStyle;
   bodyType: BodyType;
   headShape: HeadShape;
-  creatureVariant?: "none" | "gremlin" | "monster";
+  creatureVariant?: "none" | "gremlin" | "monster" | "gator" | "raccoon" | "cat" | "dog" | "lizard" | "possum" | "tigerfish" | "lionfish";
   featherEdges: boolean;
   featherRadius: number; // 0 to 100
   cropX: number; // percentage offset
