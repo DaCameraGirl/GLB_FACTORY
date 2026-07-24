@@ -1159,6 +1159,138 @@ export function buildAvatar(
     torso.add(cape);
   }
 
+  // --- CREATURE / EXOTIC ANIMAL FEATURES ---
+  if (accessories.includes("snout")) {
+    const snout = new THREE.Group();
+    snout.name = "snout";
+    const snoutMat = skinMaterial;
+
+    const muzzleGeo = config.headShape === "organic-smooth"
+      ? getCylinderGeometry(actualHeadSize * 0.22, actualHeadSize * 0.16, actualHeadSize * 0.4, radialSeg)
+      : getBoxGeometry(actualHeadSize * 0.34, actualHeadSize * 0.24, actualHeadSize * 0.4);
+    const muzzle = new THREE.Mesh(muzzleGeo, snoutMat);
+    muzzle.rotation.x = Math.PI / 2;
+    muzzle.position.set(0, -actualHeadSize * 0.08, actualHeadSize * 0.52);
+    muzzle.castShadow = true;
+    snout.add(muzzle);
+
+    const noseMat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.4, name: "nose-tip" });
+    const noseGeo = getSphereGeometry(actualHeadSize * 0.09, 8, 8);
+    const nose = new THREE.Mesh(noseGeo, noseMat);
+    nose.position.set(0, -actualHeadSize * 0.08, actualHeadSize * 0.72);
+    snout.add(nose);
+
+    head.add(snout);
+  }
+
+  if (accessories.includes("whiskers")) {
+    const whiskers = new THREE.Group();
+    whiskers.name = "whiskers";
+    const whiskerMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f4, roughness: 0.5, name: "whisker" });
+    const whiskerGeo = getCylinderGeometry(0.008, 0.003, actualHeadSize * 0.5, 6);
+
+    const snoutZ = accessories.includes("snout") ? actualHeadSize * 0.62 : actualHeadSize * 0.42;
+    [-1, 1].forEach((side) => {
+      [-1, 0, 1].forEach((row) => {
+        const whisker = new THREE.Mesh(whiskerGeo, whiskerMat);
+        whisker.position.set(side * actualHeadSize * 0.3, -actualHeadSize * 0.08 + row * 0.05, snoutZ);
+        whisker.rotation.z = Math.PI / 2;
+        whisker.rotation.y = side * (Math.PI / 2 - 0.35) + row * 0.12;
+        whiskers.add(whisker);
+      });
+    });
+
+    head.add(whiskers);
+  }
+
+  if (accessories.includes("mushroom-cap")) {
+    const mushroom = new THREE.Group();
+    mushroom.name = "mushroom-cap";
+    const capMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.6, name: "mushroom-cap-mat" });
+    const spotMat = new THREE.MeshStandardMaterial({ color: 0xfefce8, roughness: 0.5, name: "mushroom-spot" });
+    const stemMat = new THREE.MeshStandardMaterial({ color: 0xfefce8, roughness: 0.7, name: "mushroom-stem" });
+
+    const stemGeo = getCylinderGeometry(actualHeadSize * 0.3, actualHeadSize * 0.34, actualHeadSize * 0.22, radialSeg);
+    const stem = new THREE.Mesh(stemGeo, stemMat);
+    stem.position.set(0, actualHeadSize * 0.42, 0);
+    mushroom.add(stem);
+
+    const capGeo = new THREE.SphereGeometry(actualHeadSize * 0.62, radialSeg, radialSeg, 0, Math.PI * 2, 0, Math.PI * 0.55);
+    const cap = new THREE.Mesh(capGeo, capMat);
+    cap.position.set(0, actualHeadSize * 0.5, 0);
+    cap.castShadow = true;
+    mushroom.add(cap);
+
+    for (let i = 0; i < 5; i++) {
+      const angle = (i / 5) * Math.PI * 2;
+      const spotGeo = getSphereGeometry(actualHeadSize * 0.07, 8, 8);
+      const spot = new THREE.Mesh(spotGeo, spotMat);
+      const r = actualHeadSize * 0.4;
+      spot.position.set(Math.cos(angle) * r, actualHeadSize * 0.68, Math.sin(angle) * r);
+      mushroom.add(spot);
+    }
+
+    head.add(mushroom);
+  }
+
+  if (accessories.includes("fins")) {
+    const fins = new THREE.Group();
+    fins.name = "fins";
+    const finMat = new THREE.MeshStandardMaterial({
+      color: 0x0ea5e9,
+      roughness: 0.2,
+      metalness: 0.1,
+      transparent: true,
+      opacity: 0.75,
+      side: THREE.DoubleSide,
+      name: "fin-material",
+    });
+
+    const dorsalGeo = new THREE.ConeGeometry(actualHeadSize * 0.34, actualHeadSize * 0.7, 3);
+    const dorsal = new THREE.Mesh(dorsalGeo, finMat);
+    dorsal.position.set(0, torsoHeight * 0.55, -torsoDepth * 0.4);
+    dorsal.rotation.set(Math.PI * 0.06, Math.PI / 6, 0);
+    dorsal.castShadow = true;
+    fins.add(dorsal);
+
+    const sideFinGeo = getBoxGeometry(torsoWidth * 0.7, 0.03, torsoDepth * 0.55);
+    const leftFin = new THREE.Mesh(sideFinGeo, finMat);
+    leftFin.position.set(-torsoWidth * 0.7, torsoHeight * 0.05, 0);
+    leftFin.rotation.z = Math.PI * 0.08;
+    fins.add(leftFin);
+
+    const rightFin = new THREE.Mesh(sideFinGeo, finMat);
+    rightFin.position.set(torsoWidth * 0.7, torsoHeight * 0.05, 0);
+    rightFin.rotation.z = -Math.PI * 0.08;
+    fins.add(rightFin);
+
+    torso.add(fins);
+  }
+
+  if (accessories.includes("tail")) {
+    const tail = new THREE.Group();
+    tail.name = "tail";
+    const tailMat = skinMaterial;
+
+    const segments = 5;
+    let prevRadius = torsoWidth * 0.18;
+    let anchor = new THREE.Vector3(0, -torsoHeight * 0.3, -torsoDepth * 0.45);
+    for (let i = 0; i < segments; i++) {
+      const segLength = torsoHeight * 0.22;
+      const radius = prevRadius * 0.82;
+      const segGeo = getCylinderGeometry(prevRadius, radius, segLength, 8);
+      const seg = new THREE.Mesh(segGeo, tailMat);
+      seg.position.set(anchor.x, anchor.y - segLength * 0.5, anchor.z - i * 0.02);
+      seg.rotation.x = Math.PI / 2 + i * 0.12;
+      seg.castShadow = true;
+      tail.add(seg);
+      anchor = anchor.clone().setY(anchor.y - segLength);
+      prevRadius = radius;
+    }
+
+    torso.add(tail);
+  }
+
   // ==========================================
   // 5. SKINNED MESH RIGGED LIMBS (SKELETON)
   // ==========================================
@@ -1301,6 +1433,90 @@ export function buildAvatar(
   rightLeg.name = "right-leg";
   rightLeg.position.set(torsoWidth / 4, -torsoHeight / 2, 0);
   torso.add(rightLeg);
+
+  // --- HAND-HELD & BELT ITEMS ---
+  const rightHand = rightArm.getObjectByName(isOrganic ? "right-hand" : "hand");
+
+  if (accessories.includes("gun")) {
+    const gun = new THREE.Group();
+    gun.name = "gun";
+    const gunMat = new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.3, metalness: 0.8, name: "gun-metal" });
+    const gunGlowMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(config.materialEmissive || "#00f0ff"),
+      emissive: new THREE.Color(config.materialEmissive || "#00f0ff"),
+      emissiveIntensity: 1.4,
+      roughness: 0.2,
+      name: "gun-glow",
+    });
+
+    const body = new THREE.Mesh(getBoxGeometry(0.12, 0.16, 0.32), gunMat);
+    gun.add(body);
+
+    const barrel = new THREE.Mesh(getCylinderGeometry(0.03, 0.03, 0.28, 8), gunMat);
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0, 0.02, 0.28);
+    gun.add(barrel);
+
+    const grip = new THREE.Mesh(getBoxGeometry(0.09, 0.18, 0.1), gunMat);
+    grip.position.set(0, -0.15, -0.08);
+    grip.rotation.x = -0.25;
+    gun.add(grip);
+
+    const glowTip = new THREE.Mesh(getCylinderGeometry(0.035, 0.035, 0.03, 8), gunGlowMat);
+    glowTip.rotation.x = Math.PI / 2;
+    glowTip.position.set(0, 0.02, 0.42);
+    gun.add(glowTip);
+
+    gun.rotation.set(0, Math.PI / 2, 0);
+    (rightHand || rightArm).add(gun);
+  }
+
+  if (accessories.includes("knife")) {
+    const knife = new THREE.Group();
+    knife.name = "knife";
+    const bladeMat = new THREE.MeshStandardMaterial({ color: 0xd4d4d8, roughness: 0.15, metalness: 0.9, name: "blade-steel" });
+    const hiltMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.7, name: "hilt-wood" });
+
+    const bladeGeo = new THREE.ConeGeometry(0.05, 0.34, 4);
+    const blade = new THREE.Mesh(bladeGeo, bladeMat);
+    blade.rotation.x = Math.PI;
+    blade.position.set(0, 0.32, 0);
+    knife.add(blade);
+
+    const guard = new THREE.Mesh(getBoxGeometry(0.14, 0.03, 0.04), hiltMat);
+    guard.position.set(0, 0.14, 0);
+    knife.add(guard);
+
+    const grip = new THREE.Mesh(getCylinderGeometry(0.025, 0.03, 0.16, 8), hiltMat);
+    grip.position.set(0, 0.06, 0);
+    knife.add(grip);
+
+    knife.rotation.set(0, 0, Math.PI);
+    (rightHand || rightArm).add(knife);
+  }
+
+  if (accessories.includes("herb-pouch")) {
+    const pouch = new THREE.Group();
+    pouch.name = "herb-pouch";
+    const pouchMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.85, name: "pouch-leather" });
+    const herbMat = new THREE.MeshStandardMaterial({ color: 0x4d7c0f, roughness: 0.6, name: "herb-sprig" });
+
+    const bagGeo = getBoxGeometry(torsoWidth * 0.3, torsoHeight * 0.24, torsoDepth * 0.28);
+    const bag = new THREE.Mesh(bagGeo, pouchMat);
+    bag.castShadow = true;
+    pouch.add(bag);
+
+    for (let i = 0; i < 3; i++) {
+      const sprigGeo = new THREE.ConeGeometry(0.03, 0.14, 6);
+      const sprig = new THREE.Mesh(sprigGeo, herbMat);
+      sprig.position.set((i - 1) * 0.06, torsoHeight * 0.14, 0);
+      sprig.rotation.z = (i - 1) * 0.3;
+      pouch.add(sprig);
+    }
+
+    pouch.position.set(torsoWidth * 0.55, -torsoHeight * 0.15, torsoDepth * 0.3);
+    torso.add(pouch);
+  }
 
   // ==========================================
   // MANUAL BLENDER-STYLE PART TRANSFORMS
