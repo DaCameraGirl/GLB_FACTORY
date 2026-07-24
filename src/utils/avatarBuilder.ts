@@ -689,6 +689,61 @@ export function buildAvatar(
     });
   }
 
+  if (config.creatureVariant === "raccoon") {
+    // The bandit eye mask is what actually reads as "raccoon" rather than generic rodent.
+    const maskMat = new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.7, name: "raccoon-mask" });
+    [-1, 1].forEach((side) => {
+      const mask = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.13, 10, 10), maskMat);
+      mask.name = `raccoon-mask-${side}`;
+      mask.scale.set(1.15, 0.7, 0.5);
+      mask.position.set(side * actualHeadSize * 0.19, actualHeadSize * 0.04, actualHeadSize * 0.42);
+      head.add(mask);
+    });
+
+    const muzzleMat = new THREE.MeshStandardMaterial({ color: 0xe7e5e4, roughness: 0.6, name: "raccoon-muzzle" });
+    const muzzle = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.16, 10, 10), muzzleMat);
+    muzzle.name = "raccoon-muzzle";
+    muzzle.scale.set(1.0, 0.75, 0.6);
+    muzzle.position.set(0, -actualHeadSize * 0.14, actualHeadSize * 0.46);
+    head.add(muzzle);
+  }
+
+  if (config.creatureVariant === "gator") {
+    // A long flat jaw with teeth is what actually reads as "alligator" instead of a round green blob.
+    const jawMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#365314", roughness: 0.8, name: "gator-jaw" });
+    const upperJaw = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.52, actualHeadSize * 0.24, actualHeadSize * 0.85), jawMat);
+    upperJaw.name = "gator-upper-jaw";
+    upperJaw.position.set(0, actualHeadSize * 0.02, actualHeadSize * 0.62);
+    upperJaw.castShadow = true;
+    head.add(upperJaw);
+
+    const lowerJaw = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.46, actualHeadSize * 0.14, actualHeadSize * 0.78), jawMat);
+    lowerJaw.name = "gator-lower-jaw";
+    lowerJaw.position.set(0, -actualHeadSize * 0.16, actualHeadSize * 0.58);
+    lowerJaw.castShadow = true;
+    head.add(lowerJaw);
+
+    const toothMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f4, roughness: 0.4, name: "gator-tooth" });
+    const toothGeo = new THREE.ConeGeometry(actualHeadSize * 0.035, actualHeadSize * 0.1, 6);
+    for (let i = 0; i < 4; i++) {
+      const t = i / 3;
+      const toothZ = actualHeadSize * (0.32 + t * 0.62);
+      const tooth = new THREE.Mesh(toothGeo, toothMat);
+      tooth.name = `gator-tooth-${i}`;
+      tooth.rotation.x = Math.PI;
+      tooth.position.set((i % 2 === 0 ? -1 : 1) * actualHeadSize * 0.2, -actualHeadSize * 0.08, toothZ);
+      head.add(tooth);
+    }
+
+    const eyeRidgeMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#365314", roughness: 0.7, name: "gator-eye-ridge" });
+    [-1, 1].forEach((side) => {
+      const ridge = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.1, 8, 8), eyeRidgeMat);
+      ridge.name = `gator-eye-ridge-${side}`;
+      ridge.position.set(side * actualHeadSize * 0.2, actualHeadSize * 0.34, actualHeadSize * 0.22);
+      head.add(ridge);
+    });
+  }
+
   // ==========================================
   // 3. HAIR STYLE (WITH COLLISION CLAMP INORGANICS)
   // ==========================================

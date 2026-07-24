@@ -50,7 +50,7 @@ interface CreatureVariantPreset {
 const CREATURE_VARIANTS: Record<string, CreatureVariantPreset> = {
   gremlin: { label: "🧌 Gremlin (Creature)", skinColor: "#3f6212", hairColor: "#1a2e05", accessories: ["horns", "tail", "cat-ears"] },
   monster: { label: "👹 Monster (Chaotic)", skinColor: "#57534e", hairColor: "#1c1917", bodyType: "athletic", accessories: ["horns", "tail", "snout"] },
-  gator: { label: "🐊 Alligator", skinColor: "#365314", hairColor: "#1a2e05", accessories: ["snout", "tail"] },
+  gator: { label: "🐊 Alligator", skinColor: "#365314", hairColor: "#1a2e05", accessories: ["tail"] },
   raccoon: { label: "🦝 Raccoon", skinColor: "#78716c", hairColor: "#1c1917", accessories: ["tail", "whiskers", "cat-ears"] },
   cat: { label: "🐱 Cat", skinColor: "#ea9a3e", hairColor: "#78350f", accessories: ["cat-ears", "tail", "whiskers"] },
   dog: { label: "🐶 Dog", skinColor: "#92400e", hairColor: "#451a03", accessories: ["tail", "snout"] },
