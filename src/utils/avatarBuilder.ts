@@ -67,6 +67,11 @@ export function validateAvatarConfig(config: AvatarConfig): AvatarConfig {
   if (!validHairStyles.includes(validated.hairStyle)) validated.hairStyle = "short";
   if (!validBodyTypes.includes(validated.bodyType)) validated.bodyType = "normal";
 
+  const validCreatureVariants = ["none", "gremlin", "monster"];
+  if (!validated.creatureVariant || !validCreatureVariants.includes(validated.creatureVariant)) {
+    validated.creatureVariant = "none";
+  }
+
   const hexRegex = /^#[0-9A-F]{6}$/i;
   if (!validated.skinColor || !hexRegex.test(validated.skinColor)) validated.skinColor = "#e5a65d";
   if (!validated.hairColor || !hexRegex.test(validated.hairColor)) validated.hairColor = "#211510";
@@ -639,6 +644,50 @@ export function buildAvatar(
   chin.position.set(0, -skullRadiusVal * 0.8, skullRadiusVal * 0.35);
   chin.castShadow = true;
   head.add(chin);
+
+  // --- CREATURE VARIANT: EXTRA DISTINGUISHING HEAD DETAIL ---
+  if (config.creatureVariant === "monster") {
+    const wartMat = new THREE.MeshStandardMaterial({ color: 0x3f3f2e, roughness: 0.9, name: "monster-wart" });
+    const wartSpots: [number, number, number, number][] = [
+      [0.09, actualHeadSize * 0.32, actualHeadSize * 0.18, actualHeadSize * 0.32],
+      [0.07, -actualHeadSize * 0.28, actualHeadSize * 0.05, actualHeadSize * 0.36],
+      [0.06, actualHeadSize * 0.02, actualHeadSize * 0.4, actualHeadSize * 0.22],
+    ];
+    wartSpots.forEach(([radius, x, y, z], i) => {
+      const wart = new THREE.Mesh(getSphereGeometry(radius, 8, 8), wartMat);
+      wart.name = `monster-wart-${i}`;
+      wart.position.set(x, y, z);
+      wart.castShadow = true;
+      head.add(wart);
+    });
+
+    const fangMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f4, roughness: 0.3, name: "monster-fang" });
+    const fangGeo = new THREE.ConeGeometry(actualHeadSize * 0.045, actualHeadSize * 0.15, 6);
+    [-1, 1].forEach((side) => {
+      const fang = new THREE.Mesh(fangGeo, fangMat);
+      fang.name = `monster-fang-${side}`;
+      fang.rotation.x = Math.PI;
+      fang.position.set(side * actualHeadSize * 0.14, -actualHeadSize * 0.32, actualHeadSize * 0.42);
+      fang.castShadow = true;
+      head.add(fang);
+    });
+  }
+
+  if (config.creatureVariant === "gremlin") {
+    const eyeGlowMat = new THREE.MeshStandardMaterial({
+      color: 0xeab308,
+      emissive: new THREE.Color(0xeab308),
+      emissiveIntensity: 1.2,
+      roughness: 0.3,
+      name: "gremlin-eye-glow",
+    });
+    [-1, 1].forEach((side) => {
+      const glow = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.05, 8, 8), eyeGlowMat);
+      glow.name = `gremlin-eye-glow-${side}`;
+      glow.position.set(side * actualHeadSize * 0.2, actualHeadSize * 0.05, actualHeadSize * 0.44);
+      head.add(glow);
+    });
+  }
 
   // ==========================================
   // 3. HAIR STYLE (WITH COLLISION CLAMP INORGANICS)
