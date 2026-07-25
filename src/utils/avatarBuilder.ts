@@ -333,12 +333,12 @@ export function buildAvatar(
     prominent: { y: 1.15, z: 1.25 }
   };
 
-  // Apply detected facial geometry or use defaults
-  const faceScale = config.faceShape ? faceShapeScales[config.faceShape] : { x: 1.0, y: 1.0, z: 1.0 };
-  const noseScale = config.noseSize ? noseSizeScales[config.noseSize] : 1.0;
-  const noseWidthScale = config.noseWidth ? noseWidthScales[config.noseWidth] : 1.0;
-  const jawScale = config.jawWidth ? jawWidthScales[config.jawWidth] : 1.0;
-  const chinScale = config.chinShape ? chinShapeScales[config.chinShape] : { y: 1.0, z: 1.0 };
+  // Apply detected facial geometry or use defaults (with fallback for unrecognized values)
+  const faceScale = config.faceShape ? (faceShapeScales[config.faceShape] || faceShapeScales.oval) : { x: 1.0, y: 1.0, z: 1.0 };
+  const noseScale = config.noseSize ? (noseSizeScales[config.noseSize] || 1.0) : 1.0;
+  const noseWidthScale = config.noseWidth ? (noseWidthScales[config.noseWidth] || 1.0) : 1.0;
+  const jawScale = config.jawWidth ? (jawWidthScales[config.jawWidth] || 1.0) : 1.0;
+  const chinScale = config.chinShape ? (chinShapeScales[config.chinShape] || { y: 1.0, z: 1.0 }) : { y: 1.0, z: 1.0 };
 
   // Helper to dynamically inject Blender-style material adjustments
   const getMatParams = (baseRoughness: number, baseMetalness: number) => {
