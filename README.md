@@ -97,5 +97,6 @@ GEMINI_API_KEY=your_gemini_api_key_here
 ---
 
 <p align="center">
-  <sub>Built by <a href="https://github.com/DaCameraGirl">DaCameraGirl</a> — bug reports and creature requests welcome.</sub>
+  <sub>Built by <a href="https://github.com/DaCameraGirl">DaCameraGirl</a> — bug reports and creature requests welcome.</sub><br/>
+  <sub>Camera upgrades, guided wizard, and face blending by <strong>Bob Shell</strong></sub>
 </p>
