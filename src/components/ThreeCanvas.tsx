@@ -676,19 +676,6 @@ export default function ThreeCanvas({
       // Remove old avatar group if exists
       if (avatarGroupRef.current) {
         sceneRef.current.remove(avatarGroupRef.current);
-        // Dispose old geometries and materials to prevent memory leaks
-        avatarGroupRef.current.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            if (child.geometry) child.geometry.dispose();
-            if (child.material) {
-              if (Array.isArray(child.material)) {
-                child.material.forEach((mat) => mat.dispose());
-              } else {
-                child.material.dispose();
-              }
-            }
-          }
-        });
       }
 
       // Build new avatar
