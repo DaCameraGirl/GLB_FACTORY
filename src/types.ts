@@ -12,7 +12,7 @@ export interface AvatarConfig {
   hairStyle: HairStyle;
   bodyType: BodyType;
   headShape: HeadShape;
-  creatureVariant?: "none" | "gremlin" | "monster" | "gator" | "raccoon" | "cat" | "dog" | "lizard" | "possum" | "tigerfish" | "lionfish" | "clown";
+  creatureVariant?: "none" | "gremlin" | "monster" | "gator" | "raccoon" | "cat" | "dog" | "lizard" | "possum" | "tigerfish" | "lionfish" | "clown" | "dragon" | "fairy" | "hammerhead";
   featherEdges: boolean;
   featherRadius: number; // 0 to 100
   cropX: number; // percentage offset
@@ -66,7 +66,7 @@ export interface AvatarConfig {
   keyLightIntensity?: number;
   keyLightColor?: string;
   cameraFov?: number;
-  cameraPreset?: "front" | "side" | "top" | "isometric";
+  cameraPreset?: "front" | "side" | "top" | "isometric" | "close-up" | "three-quarter" | "low-angle" | "high-angle" | "back" | "profile-left" | "profile-right";
   twoDStyleEffect?: "none" | "crt" | "blueprint" | "gameboy" | "cyberpunk" | "sketch";
   
   // Postprocessing & Camera Effects
@@ -105,6 +105,9 @@ export interface AvatarConfig {
   noseWidth?: "narrow" | "medium" | "wide";
   jawWidth?: "narrow" | "medium" | "wide";
   chinShape?: "pointed" | "rounded" | "square" | "prominent";
+  
+  // Photo morph transition effect (0 = full 3D features, 1 = full photo texture)
+  photoMorphProgress?: number; // 0 to 1
 }
 
 export interface DetectionResult {

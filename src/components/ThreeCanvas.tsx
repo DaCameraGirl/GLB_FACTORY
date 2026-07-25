@@ -105,6 +105,20 @@ export default function ThreeCanvas({
         ? new THREE.Vector3(0, 1, 0.18)
         : preset === "isometric"
         ? new THREE.Vector3(1, 0.75, 1)
+        : preset === "close-up"
+        ? new THREE.Vector3(0, 0.15, 0.5)
+        : preset === "three-quarter"
+        ? new THREE.Vector3(0.7, 0.2, 0.7)
+        : preset === "low-angle"
+        ? new THREE.Vector3(0, -0.3, 1)
+        : preset === "high-angle"
+        ? new THREE.Vector3(0, 0.8, 0.4)
+        : preset === "back"
+        ? new THREE.Vector3(0, 0.18, -1)
+        : preset === "profile-left"
+        ? new THREE.Vector3(-1, 0.2, 0)
+        : preset === "profile-right"
+        ? new THREE.Vector3(1, 0.2, 0)
         : new THREE.Vector3(0, 0.18, 1);
 
     direction.normalize();
@@ -1059,6 +1073,7 @@ export default function ThreeCanvas({
     config.hairStyle,
     config.bodyType,
     config.headShape,
+    config.creatureVariant,
     config.accessories,
     config.clothingStyle,
     config.expression,
@@ -1091,8 +1106,24 @@ export default function ThreeCanvas({
     config.legScaleX,
     config.legScaleY,
     config.legScaleZ,
+    config.photoMorphProgress,
     faceCanvas,
   ]);
+
+  // 6. Photo morph animation effect - update shader uniform in real-time
+  useEffect(() => {
+    if (!avatarGroupRef.current) return;
+    
+    const skull = avatarGroupRef.current.getObjectByName("skull") as THREE.Mesh;
+    if (!skull || !skull.material) return;
+    
+    const material = skull.material as any;
+    if (material.uniforms && material.uniforms.morphProgress) {
+      const targetProgress = config.photoMorphProgress !== undefined ? config.photoMorphProgress : 1.0;
+      material.uniforms.morphProgress.value = targetProgress;
+      material.needsUpdate = true;
+    }
+  }, [config.photoMorphProgress]);
 
   return (
     <div
