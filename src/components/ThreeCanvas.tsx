@@ -1005,7 +1005,7 @@ export default function ThreeCanvas({
   // Dynamic DOF blur control
   useEffect(() => {
     if (dofEffectRef.current) {
-      const dofEnabled = config.dofEnabled !== false;
+      const dofEnabled = config.dofEnabled === true;
       const focusDistance = config.dofFocusDistance !== undefined ? config.dofFocusDistance : 0.0;
       const bokehScale = config.dofBokehScale !== undefined ? config.dofBokehScale : 2.0;
       
