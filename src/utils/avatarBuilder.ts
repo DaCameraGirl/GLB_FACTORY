@@ -2073,19 +2073,21 @@ export function buildAvatar(
     const tailMat = skinMaterial;
 
     const segments = 5;
-    let prevRadius = torsoWidth * 0.18;
-    let anchor = new THREE.Vector3(0, -torsoHeight * 0.3, -torsoDepth * 0.45);
+    let radius = torsoWidth * 0.18;
+    let tailZ = -torsoDepth * 0.45;
+    let tailY = -torsoHeight * 0.15;
     for (let i = 0; i < segments; i++) {
       const segLength = torsoHeight * 0.22;
-      const radius = prevRadius * 0.82;
-      const segGeo = getCylinderGeometry(prevRadius, radius, segLength, 8);
+      const nextRadius = radius * 0.82;
+      const segGeo = getCylinderGeometry(radius, nextRadius, segLength, 8);
       const seg = new THREE.Mesh(segGeo, tailMat);
-      seg.position.set(anchor.x, anchor.y - segLength * 0.5, anchor.z - i * 0.02);
-      seg.rotation.x = Math.PI / 2 + i * 0.12;
+      seg.rotation.x = -Math.PI / 2;
+      seg.position.set(0, tailY, tailZ - segLength / 2);
       seg.castShadow = true;
       tail.add(seg);
-      anchor = anchor.clone().setY(anchor.y - segLength);
-      prevRadius = radius;
+      tailZ -= segLength;
+      tailY -= segLength * 0.08; // gentle downward droop as it extends
+      radius = nextRadius;
     }
 
     torso.add(tail);
