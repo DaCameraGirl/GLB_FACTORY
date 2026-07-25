@@ -5,6 +5,7 @@ This project is maintained by [Angela Hudson (@DaCameraGirl)](https://github.com
 ## Code Contributors
 
 ### Bob Shell
+- **Rarity & Mutation Engine**: Created the procedural chaos mutation system with genomic rank classification (COMMON to CHAOTIC-DIVINE), chaos intensity regulator, and chrono-loop auto-cycling for instant palette/proportion variants
 - **Camera System Enhancements**: Implemented postprocessing pipeline with depth-of-field blur effects, tone mapping for exposure control, and loosened OrbitControls for improved pan/tilt/zoom freedom
 - **Guided Mutation Wizard**: Created 5-step guided character creation flow (MutationFlow component) allowing intentional design choices alongside random chaos mutations
 - **Face Texture Blending**: Improved uploaded photo integration with radial gradient masking and seamless edge blending to reduce default head shape visibility
