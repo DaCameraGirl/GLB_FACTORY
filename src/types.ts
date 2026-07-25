@@ -68,6 +68,12 @@ export interface AvatarConfig {
   cameraFov?: number;
   cameraPreset?: "front" | "side" | "top" | "isometric";
   twoDStyleEffect?: "none" | "crt" | "blueprint" | "gameboy" | "cyberpunk" | "sketch";
+  
+  // Postprocessing & Camera Effects
+  toneMappingExposure?: number; // 0.1 to 3.0, default 1.0
+  dofEnabled?: boolean; // default false
+  dofFocusDistance?: number; // 0.0 to 1.0, default 0.0
+  dofBokehScale?: number; // 0.0 to 5.0, default 2.0
 
   // Snapchat Lenses & Camera Studio settings
   activeLens?: "none" | "heart-vfx" | "sparkle-vfx" | "code-vfx" | "bubble-vfx" | "fireflies-vfx" | "glow-vfx";

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { EffectComposer, EffectPass, RenderPass, DepthOfFieldEffect, BlendFunction } from "postprocessing";
 import { AvatarConfig } from "../types";
 import { buildAvatar } from "../utils/avatarBuilder";
 
@@ -33,6 +34,10 @@ export default function ThreeCanvas({
   const dirLightRef = useRef<THREE.DirectionalLight | null>(null);
   const meltParticlesRef = useRef<THREE.Group | null>(null);
   const meltPuddleRef = useRef<THREE.Mesh | null>(null);
+  
+  // Postprocessing refs
+  const composerRef = useRef<EffectComposer | null>(null);
+  const dofEffectRef = useRef<DepthOfFieldEffect | null>(null);
 
   // Snapchat Lenses particles state refs
   const particlesRef = useRef<THREE.Group | null>(null);
@@ -204,6 +209,10 @@ export default function ThreeCanvas({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    
+    // Tone mapping for exposure/brightness control
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = configRef.current.toneMappingExposure !== undefined ? configRef.current.toneMappingExposure : 1.0;
 
     canvasMountRef.current.innerHTML = "";
     canvasMountRef.current.appendChild(renderer.domElement);
@@ -232,16 +241,36 @@ export default function ThreeCanvas({
     rimLight.position.set(-3, 3, -4);
     scene.add(rimLight);
 
-    // Orbit Controls
+    // Orbit Controls - loosened for better pan/tilt freedom
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.enableZoom = false; // Allow mouse scroll wheel to scroll the webpage instead of zooming the scene
-    controls.maxPolarAngle = Math.PI / 2 + 0.1;
-    controls.minDistance = 2.0;
-    controls.maxDistance = 10.0;
+    controls.enableZoom = true; // Enable zoom for better camera control
+    controls.enablePan = true; // Enable panning
+    controls.maxPolarAngle = Math.PI; // Allow full vertical rotation
+    controls.minPolarAngle = 0; // Allow looking straight down
+    controls.minDistance = 1.0; // Closer zoom
+    controls.maxDistance = 15.0; // Further zoom
     controls.target.set(0, 1.3, 0);
     controlsRef.current = controls;
+
+    // Setup postprocessing with DOF blur effect
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    
+    // Create DOF effect with cinematic blur
+    const dofEffect = new DepthOfFieldEffect(camera, {
+      focusDistance: 0.0,
+      focalLength: 0.05,
+      bokehScale: 2.0,
+      height: 480,
+    });
+    
+    const effectPass = new EffectPass(camera, dofEffect);
+    composer.addPass(effectPass);
+    
+    composerRef.current = composer;
+    dofEffectRef.current = dofEffect;
 
     // Resize Observer
     const resizeObserver = new ResizeObserver((entries) => {
@@ -251,6 +280,11 @@ export default function ThreeCanvas({
         rendererRef.current.setSize(width, height);
         cameraRef.current.aspect = width / height;
         cameraRef.current.updateProjectionMatrix();
+        
+        // Update composer size for postprocessing effects
+        if (composerRef.current) {
+          composerRef.current.setSize(width, height);
+        }
       }
     });
     resizeObserver.observe(containerRef.current);
@@ -883,7 +917,9 @@ export default function ThreeCanvas({
         controlsRef.current.update();
       }
 
-      if (rendererRef.current && sceneRef.current && cameraRef.current) {
+      if (composerRef.current) {
+        composerRef.current.render();
+      } else if (rendererRef.current && sceneRef.current && cameraRef.current) {
         rendererRef.current.render(sceneRef.current, cameraRef.current);
       }
 
@@ -958,6 +994,25 @@ export default function ThreeCanvas({
       gridHelperRef.current.visible = config.showGrid !== false;
     }
   }, [config.showGrid]);
+
+  // Dynamic tone mapping exposure control
+  useEffect(() => {
+    if (rendererRef.current) {
+      rendererRef.current.toneMappingExposure = config.toneMappingExposure !== undefined ? config.toneMappingExposure : 1.0;
+    }
+  }, [config.toneMappingExposure]);
+
+  // Dynamic DOF blur control
+  useEffect(() => {
+    if (dofEffectRef.current) {
+      const dofEnabled = config.dofEnabled !== false;
+      const focusDistance = config.dofFocusDistance !== undefined ? config.dofFocusDistance : 0.0;
+      const bokehScale = config.dofBokehScale !== undefined ? config.dofBokehScale : 2.0;
+      
+      dofEffectRef.current.bokehScale = dofEnabled ? bokehScale : 0;
+      dofEffectRef.current.circleOfConfusionMaterial.uniforms.focusDistance.value = focusDistance;
+    }
+  }, [config.dofEnabled, config.dofFocusDistance, config.dofBokehScale]);
 
   // 4. Stable callback ref for onSceneReady
   const onSceneReadyRef = useRef(onSceneReady);

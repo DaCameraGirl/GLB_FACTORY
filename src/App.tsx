@@ -24,6 +24,7 @@ import {
 import { AvatarConfig, DetectionResult, LogEntry, HairStyle, BodyType, HeadShape } from "./types";
 import ThreeCanvas from "./components/ThreeCanvas";
 import StudioLogs from "./components/StudioLogs";
+import MutationFlow from "./components/MutationFlow";
 import { prepareFaceTexture } from "./utils/texturePreparer";
 import { exportToGLB } from "./utils/glbExporter";
 import genieMascotIcon from "./assets/genie-mascot.png";
@@ -696,6 +697,7 @@ export default function App() {
   // Irresistible Chaos Mutation states
   const [chaosIntensity, setChaosIntensity] = useState<number>(0.85);
   const [autoMutationActive, setAutoMutationActive] = useState<boolean>(false);
+  const [showMutationFlow, setShowMutationFlow] = useState<boolean>(false);
   const [lastMutationSummary, setLastMutationSummary] = useState<{
     name: string;
     rarity: "COMMON" | "UNCOMMON" | "RARE" | "ULTRA-RARE" | "LEGENDARY" | "CHAOTIC-DIVINE";
@@ -794,6 +796,59 @@ export default function App() {
   // Tab Selection with smooth scrolling
   const handleTabSelection = (tab: "parts" | "transforms" | "materials" | "scene" | "camera") => {
     setEditorTab(tab);
+  };
+
+  const handleApplyGuidedMutation = (mutationConfig: Partial<AvatarConfig>, name: string) => {
+    setCharacterName(name);
+    setConfig((prev) => ({
+      ...prev,
+      ...mutationConfig,
+    }));
+
+    // Calculate rarity and summary for the guided mutation
+    const maxDeviation = Math.max(
+      Math.abs(1.0 - (mutationConfig.headScaleX || 1.0)),
+      Math.abs(1.0 - (mutationConfig.torsoScaleX || 1.0)),
+      Math.abs(1.0 - (mutationConfig.armScaleX || 1.0))
+    );
+
+    const { rarity, rarityColor } = calculateSlotMachineRarity(chaosIntensity, maxDeviation);
+
+    const buildType = mutationConfig.bodyType === "chibi" 
+      ? "Guided Chibi Design"
+      : mutationConfig.bodyType === "tall"
+      ? "Guided Tall Build"
+      : mutationConfig.bodyType === "athletic"
+      ? "Guided Athletic Frame"
+      : "Guided Standard Build";
+
+    const summary = {
+      name,
+      rarity,
+      rarityColor,
+      buildType,
+      mutatedGlow: mutationConfig.materialEmissive !== "#000000",
+      accessoryCount: mutationConfig.accessories?.length || 0,
+      symmetrySkew: "Balanced Guided Design",
+    };
+
+    setLastMutationSummary(summary);
+
+    // Add to vault
+    const vaultSpecimen = {
+      id: Math.random().toString(),
+      config: { ...config, ...mutationConfig, name } as AvatarConfig,
+      ...summary,
+      timestamp: new Date().toLocaleTimeString(),
+    };
+
+    setMutationVault((prev) => {
+      const filtered = prev.filter(item => item.name !== name);
+      return [vaultSpecimen, ...filtered].slice(0, 40);
+    });
+
+    addLog(`[GUIDED FLOW] Created custom character '${name}' with intentional design choices.`, "success");
+    playSynthSound("disco");
   };
 
   const handleChaosMutation = () => {
@@ -2347,8 +2402,7 @@ export default function App() {
               </section>
             )}
 
-            {sourceImage && (
-              <section className="bg-yellow-50/85 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_#141414]" id="meltdown-factory-panel">
+            <section className="bg-yellow-50/85 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_#141414]" id="meltdown-factory-panel">
                 <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-yellow-300 flex items-center justify-between">
                   <h2 className="font-sans text-[11px] font-black text-[#141414] uppercase tracking-wider flex items-center gap-1.5">
                     <span className="text-[14px]">☣</span>
@@ -2435,7 +2489,6 @@ export default function App() {
                   <span>{meltActive ? "Splicing in progress..." : "Trigger Meltdown Transition"}</span>
                 </button>
               </section>
-            )}
 
             {/* AVATAR STYLE CUSTOMIZATION PANEL - BLENDER WORKSPACE */}
             <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]" id="customization-panel">
@@ -4297,7 +4350,21 @@ export default function App() {
                 </div>
 
                 {/* --- 🕹️ LAB COMMAND CONTROLS --- */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  {/* 0. Guided Mutation Flow */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMutationFlow(true);
+                      addLog("🎨 [GUIDED FLOW] Opened step-by-step character creation wizard.", "info");
+                      playSynthSound("coin");
+                    }}
+                    className="border-2 border-[#141414] bg-gradient-to-br from-[#D946EF]/20 to-[#F59E0B]/20 hover:from-[#D946EF]/30 hover:to-[#F59E0B]/30 text-[10px] font-mono font-bold py-3 px-3 tracking-wider text-[#141414] border-[#141414] shadow-[3px_3px_0px_0px_#141414] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_#141414] active:translate-y-[3px] active:shadow-none transition-all cursor-pointer rounded-none uppercase flex flex-col items-center justify-center gap-1"
+                  >
+                    <span className="text-xs flex items-center gap-1">🎨 GUIDED CREATION WIZARD</span>
+                    <span className="text-[8px] opacity-75 font-normal normal-case block">Step-by-step intentional design flow</span>
+                  </button>
+
                   {/* 1. Bounce / Squish Physical Rig Test */}
                   <button
                     type="button"
@@ -4858,11 +4925,31 @@ export default function App() {
         </section>
       </main>
 
+      {/* MUTATION FLOW MODAL */}
+      {showMutationFlow && (
+        <MutationFlow
+          currentConfig={config}
+          onApplyMutation={handleApplyGuidedMutation}
+          onClose={() => setShowMutationFlow(false)}
+        />
+      )}
+
       {/* FOOTER */}
       <footer className="border-t-2 border-[#141414] bg-[#D4D3D0] text-center py-4 text-[10px] text-[#141414]/60 font-mono mt-auto select-none" id="app-footer">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2 uppercase tracking-tight">
           <span>DISK_WRITES: 124.5MB // UPTIME: 00:14:22</span>
-          <span>© 2026 Photo to GLB Studio // DACAMERAGIRL // REPO_FIX_01</span>
+          <span>
+            © 2026 Photo to GLB Studio //{" "}
+            <a
+              href="https://github.com/DaCameraGirl"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[#141414] underline underline-offset-2"
+            >
+              DACAMERAGIRL
+            </a>{" "}
+            // REPO_FIX_01
+          </span>
         </div>
       </footer>
     </div>
