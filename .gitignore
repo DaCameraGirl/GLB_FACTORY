@@ -6,3 +6,4 @@ coverage/
 *.log
 .env*
 !.env.example
+CHALLENGE_NOTES_local.md
