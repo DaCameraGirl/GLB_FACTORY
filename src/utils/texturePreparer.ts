@@ -66,7 +66,7 @@ export function prepareFaceTexture(
   // Draw cropped face into a beautifully centered region.
   // featherRadius doubles as the coverage control: higher values grow the drawn
   // face toward filling the entire 256x256 head texture, not just a small fixed circle.
-  const faceSizeOnCanvas = 100 + (featherRadius / 100) * 140; // 100..240
+  const faceSizeOnCanvas = 80 + (featherRadius / 100) * 176; // 80..256 (full coverage)
   const targetX = (256 - faceSizeOnCanvas) / 2;
   const targetY = (256 - faceSizeOnCanvas) / 2;
 

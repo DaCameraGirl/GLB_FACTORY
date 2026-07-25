@@ -71,6 +71,28 @@ const CREATURE_VARIANTS: Record<string, CreatureVariantPreset> = {
     pantsColor: "#111827",
     accessories: [],
   },
+  dragon: {
+    label: "🐉 Dragon",
+    skinColor: "#3f6212",
+    hairColor: "#1c1917",
+    bodyType: "athletic",
+    hairStyle: "none",
+    accessories: [],
+  },
+  fairy: {
+    label: "🧚 Dark Fairy",
+    skinColor: "#c4b5fd",
+    hairColor: "#581c87",
+    clothingColor: "#1e1030",
+    accessories: [],
+  },
+  hammerhead: {
+    label: "🔨🦈 Hammerhead Shark",
+    skinColor: "#57606f",
+    hairColor: "#27272a",
+    hairStyle: "none",
+    accessories: [],
+  },
 };
 
 const PRESET_HEROES: PresetHero[] = [
@@ -2329,20 +2351,40 @@ export default function App() {
                 </div>
 
                 {config.featherEdges && (
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
-                      <span>FEATHER RADIUS</span>
-                      <span>{config.featherRadius}%</span>
+                  <>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
+                        <span>FEATHER RADIUS</span>
+                        <span>{config.featherRadius}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="30"
+                        max="100"
+                        value={config.featherRadius}
+                        onChange={(e) => setConfig((prev) => ({ ...prev, featherRadius: parseInt(e.target.value) }))}
+                        className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
+                      />
                     </div>
-                    <input
-                      type="range"
-                      min="30"
-                      max="100"
-                      value={config.featherRadius}
-                      onChange={(e) => setConfig((prev) => ({ ...prev, featherRadius: parseInt(e.target.value) }))}
-                      className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
-                    />
-                  </div>
+                    
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[10px] font-mono font-bold text-[#141414]/80">
+                        <span>PHOTO MORPH</span>
+                        <span>{Math.round((config.photoMorphProgress !== undefined ? config.photoMorphProgress : 1.0) * 100)}%</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={(config.photoMorphProgress !== undefined ? config.photoMorphProgress : 1.0) * 100}
+                        onChange={(e) => setConfig((prev) => ({ ...prev, photoMorphProgress: parseInt(e.target.value) / 100 }))}
+                        className="w-full accent-[#D946EF] h-1.5 cursor-pointer bg-[#141414]/10"
+                      />
+                      <p className="text-[9px] text-[#141414]/60 font-mono">
+                        0% = Full 3D features • 100% = Full photo texture
+                      </p>
+                    </div>
+                  </>
                 )}
 
                 <div className="grid grid-cols-2 gap-4">
