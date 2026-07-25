@@ -4,6 +4,11 @@ import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 /**
  * Exports a Three.js Group/Mesh to a GLB (Binary glTF) file.
  * Returns a Promise that resolves to a Blob containing the binary data.
+ *
+ * Scope (accurate): mesh hierarchy, materials/textures, and current pose transforms.
+ * Does NOT export AnimationClips — viewport walk/dance is mesh-group animation only.
+ * Call this "customizable, poseable GLB with PBR + organized hierarchy" until
+ * real bones, skin weights, and clips are wired into the parse options.
  */
 export function exportToGLB(group: THREE.Group, characterName: string = "avatar"): Promise<Blob> {
   // --- EXPORT SANITY CHECKS ---
@@ -83,6 +88,7 @@ export function exportToGLB(group: THREE.Group, characterName: string = "avatar"
       },
       {
         binary: true,
+        // Empty until we author real THREE.AnimationClips on a skinned hierarchy.
         animations: [],
         includeCustomExtensions: false,
       }

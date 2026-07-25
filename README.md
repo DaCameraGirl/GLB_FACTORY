@@ -10,7 +10,14 @@
   <img src="https://img.shields.io/badge/Tailwind_v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind v4"/>
 </p>
 
-Upload a portrait. Get back a rigged, textured, exportable **`.glb`** — blocky, organic, or a full-on creature. GLB_FACTORY is a browser-based procedural avatar studio built entirely out of primitive 3D shapes (cylinders, boxes, spheres) in the spirit of Minecraft/Roblox-style voxel characters — no Blender, no manual UV unwrapping, no waiting for a bake.
+Upload a portrait — or spin up the Mutation Lab — and export a customizable, poseable **`.glb`** with PBR materials and an organized mesh hierarchy. Blocky, organic, or a full-on creature. GLB_FACTORY is a browser-based procedural avatar studio built from primitive 3D shapes (cylinders, boxes, spheres) in the spirit of Minecraft/Roblox-style voxel characters — no Blender, no manual UV unwrapping, no waiting for a bake.
+
+**Two connected modes**
+
+1. **Create From Photo** — Upload portrait → build avatar → customize → export GLB  
+2. **Mutation Lab** — Generate specimens → collect rare mutations → breed two parents → export offspring
+
+> **Export honesty:** Viewport walk/dance/pose controls animate mesh groups in the browser. The GLB exporter currently ships an empty animation list. Treat downloads as poseable hierarchies with materials — not Mixamo-ready skinned AnimationClip characters — until full bones + clips land.
 
 ### 🎭 Live from the Mesh Style dropdown — actual in-app renders, not concept art
 
@@ -40,7 +47,7 @@ Upload a portrait. Get back a rigged, textured, exportable **`.glb`** — blocky
 | **Creature mesh styles** | 🧌 Gremlin, 👹 Monster, 🐊 Alligator, 🦝 Raccoon, 🐱 Cat, 🐶 Dog, 🦎 Lizard, 🐀 Possum, 🐠 Tiger Fish, 🦁🐟 Lionfish, 🤡 Evil Clown — each with its own head geometry (jaws, masks, fins, spikes, floppy ears — not just a recolor) |
 | **Individual creature parts** | Fins 🐟, Tail 🦎, Snout 🐽, Whiskers 🐱, Mushroom Cap 🍄 (mix onto any base mesh style) |
 | **Gear** | Blaster 🔫, Knife 🗡️, Herb Pouch 🌿, plus Glasses, Wings, Horns, Crown, Halo, Cyber Visor, Cape |
-| **Poses & rig** | Idle, Walk, Dance, Zombie, Spin, Ninja, or fully custom bone-by-bone armature control |
+| **Poses (in-viewer)** | Idle, Walk, Dance, Zombie, Spin, Ninja, or joint sliders — live mesh-group posing in the studio (not exported as AnimationClips yet) |
 | **Snap Studio** | 3D particle lenses, big-head lens, VHS/Cyber/Sepia/Glitch color filters, custom caption overlay |
 | **Mutation Lab** | One click generates a new proportional/palette variant, ranked from `COMMON` up to the elusive `CHAOTIC-DIVINE` |
 
