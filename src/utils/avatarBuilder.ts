@@ -297,6 +297,49 @@ export function buildAvatar(
 
   const radialSeg = seg(config.detailLevel);
 
+  // ==========================================
+  // FACIAL GEOMETRY SCALE FACTORS (from photo detection)
+  // ==========================================
+  const faceShapeScales = {
+    round: { x: 1.1, y: 0.95, z: 1.05 },
+    oval: { x: 1.0, y: 1.05, z: 1.0 },
+    square: { x: 1.05, y: 0.98, z: 1.0 },
+    heart: { x: 1.0, y: 1.08, z: 0.95 },
+    long: { x: 0.95, y: 1.15, z: 0.98 }
+  };
+  
+  const noseSizeScales = {
+    small: 0.75,
+    medium: 1.0,
+    large: 1.35
+  };
+  
+  const noseWidthScales = {
+    narrow: 0.8,
+    medium: 1.0,
+    wide: 1.3
+  };
+  
+  const jawWidthScales = {
+    narrow: 0.9,
+    medium: 1.0,
+    wide: 1.15
+  };
+  
+  const chinShapeScales = {
+    pointed: { y: 1.2, z: 0.85 },
+    rounded: { y: 1.0, z: 1.0 },
+    square: { y: 0.9, z: 1.1 },
+    prominent: { y: 1.15, z: 1.25 }
+  };
+
+  // Apply detected facial geometry or use defaults
+  const faceScale = config.faceShape ? faceShapeScales[config.faceShape] : { x: 1.0, y: 1.0, z: 1.0 };
+  const noseScale = config.noseSize ? noseSizeScales[config.noseSize] : 1.0;
+  const noseWidthScale = config.noseWidth ? noseWidthScales[config.noseWidth] : 1.0;
+  const jawScale = config.jawWidth ? jawWidthScales[config.jawWidth] : 1.0;
+  const chinScale = config.chinShape ? chinShapeScales[config.chinShape] : { y: 1.0, z: 1.0 };
+
   // Helper to dynamically inject Blender-style material adjustments
   const getMatParams = (baseRoughness: number, baseMetalness: number) => {
     return {
@@ -563,7 +606,11 @@ export function buildAvatar(
 
     const skull = new THREE.Mesh(skullGeo, faceMaterial);
     skull.name = "skull";
-    skull.scale.set(1.0, 1.15, 1.05);
+    skull.scale.set(
+      1.0 * faceScale.x * jawScale,
+      1.15 * faceScale.y,
+      1.05 * faceScale.z
+    );
     skull.castShadow = true;
     skull.receiveShadow = true;
     head.add(skull);
@@ -584,7 +631,11 @@ export function buildAvatar(
 
     const skull = new THREE.Mesh(skullGeo, faceMaterial);
     skull.name = "skull";
-    skull.scale.set(1.04, 0.96, 1.0);
+    skull.scale.set(
+      1.04 * faceScale.x * jawScale,
+      0.96 * faceScale.y,
+      1.0 * faceScale.z
+    );
     skull.castShadow = true;
     skull.receiveShadow = true;
     head.add(skull);
@@ -632,6 +683,7 @@ export function buildAvatar(
   const nose = new THREE.Mesh(noseGeo, skinMaterial);
   nose.name = "nose";
   nose.position.set(0, -0.05 * headSize, isOrganicHead ? skullRadiusVal * 0.86 : skullRadiusVal);
+  nose.scale.set(noseWidthScale, noseScale, noseScale);
   nose.castShadow = true;
   head.add(nose);
 
@@ -664,6 +716,7 @@ export function buildAvatar(
   const chin = new THREE.Mesh(chinGeo, skinMaterial);
   chin.name = "chin";
   chin.position.set(0, -skullRadiusVal * 0.8, skullRadiusVal * 0.35);
+  chin.scale.set(1.0, chinScale.y, chinScale.z);
   chin.castShadow = true;
   head.add(chin);
 

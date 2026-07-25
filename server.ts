@@ -52,6 +52,11 @@ Return a JSON object with:
 3. 'hair_color': a hex color code (e.g., '#322315') matching their hair.
 4. 'clothing_color': a hex color code (e.g., '#3b82f6') matching their clothing or a nice complementary color.
 5. 'gender_style': a string recommendation for hairstyle ("short", "long", "afro", "bald", "ponytail", "cap").
+6. 'face_shape': categorize the overall face shape ("round", "oval", "square", "heart", "long").
+7. 'nose_size': categorize nose size ("small", "medium", "large").
+8. 'nose_width': categorize nose width ("narrow", "medium", "wide").
+9. 'jaw_width': categorize jaw width ("narrow", "medium", "wide").
+10. 'chin_shape': categorize chin shape ("pointed", "rounded", "square", "prominent").
 
 Provide ONLY the raw JSON object, following this schema strictly, without markdown backticks or any other text.`;
 

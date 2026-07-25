@@ -98,6 +98,13 @@ export interface AvatarConfig {
   meltProgress?: number; // 0 to 1
   meltPreset?: "slime" | "gold" | "acid" | "lava";
   meltViscosity?: number; // 0.1 to 1.0
+
+  // Facial geometry adjustments (from photo detection)
+  faceShape?: "round" | "oval" | "square" | "heart" | "long";
+  noseSize?: "small" | "medium" | "large";
+  noseWidth?: "narrow" | "medium" | "wide";
+  jawWidth?: "narrow" | "medium" | "wide";
+  chinShape?: "pointed" | "rounded" | "square" | "prominent";
 }
 
 export interface DetectionResult {
@@ -106,6 +113,11 @@ export interface DetectionResult {
   hair_color: string;
   clothing_color: string;
   gender_style: string;
+  face_shape?: "round" | "oval" | "square" | "heart" | "long";
+  nose_size?: "small" | "medium" | "large";
+  nose_width?: "narrow" | "medium" | "wide";
+  jaw_width?: "narrow" | "medium" | "wide";
+  chin_shape?: "pointed" | "rounded" | "square" | "prominent";
 }
 
 export interface LogEntry {
