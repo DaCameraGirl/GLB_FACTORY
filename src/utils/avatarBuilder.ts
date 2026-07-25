@@ -351,9 +351,28 @@ export function buildAvatar(
 
   if (ctx) {
     if (faceTextureCanvas) {
-      // Draw uploaded/analyzed portrait first
+      // Draw uploaded/analyzed portrait with improved blending
       try {
+        // Draw the photo
         ctx.drawImage(faceTextureCanvas, 0, 0, 256, 256);
+        
+        // Apply radial gradient mask for smooth edge blending
+        const gradient = ctx.createRadialGradient(128, 128, 80, 128, 128, 128);
+        gradient.addColorStop(0, 'rgba(0,0,0,0)');
+        gradient.addColorStop(0.7, 'rgba(0,0,0,0)');
+        gradient.addColorStop(0.85, 'rgba(0,0,0,0.3)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0.8)');
+        
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 256, 256);
+        ctx.globalCompositeOperation = 'source-over';
+        
+        // Blend edges with skin color for seamless transition
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = config.skinColor;
+        ctx.fillRect(0, 0, 256, 256);
+        ctx.globalCompositeOperation = 'source-over';
       } catch (err) {
         console.warn("Could not draw faceTextureCanvas:", err);
       }
@@ -604,12 +623,15 @@ export function buildAvatar(
     : actualHeadSize * 0.5;
 
   // 1. Nose
+  // On organic heads this is a solid-color bump with no photo texture of its own (only the
+  // main skull gets front-projection UVs), so an uploaded photo's real nose visually clashes
+  // with it. Keep it small and low-relief so it doesn't fight the flat photo underneath.
   const noseGeo = isOrganicHead
-    ? getSphereGeometry(0.06 * headSize, radialSeg, radialSeg)
+    ? getSphereGeometry(0.032 * headSize, radialSeg, radialSeg)
     : getBoxGeometry(0.12 * headSize, 0.12 * headSize, 0.12 * headSize);
   const nose = new THREE.Mesh(noseGeo, skinMaterial);
   nose.name = "nose";
-  nose.position.set(0, -0.05 * headSize, skullRadiusVal);
+  nose.position.set(0, -0.05 * headSize, isOrganicHead ? skullRadiusVal * 0.86 : skullRadiusVal);
   nose.castShadow = true;
   head.add(nose);
 
