@@ -91,30 +91,33 @@ export function prepareFaceTexture(
     const maxRadius = faceSizeOnCanvas / 2;
 
     if (featherEdges) {
-      // Smooth feathered radial gradient mask: fixed fractions of the (now dynamic) radius,
-      // so the feather band stays proportionally thin as coverage grows.
-      const innerRadius = maxRadius * 0.82;
-      const outerRadius = maxRadius * 0.99;
+      // Wide soft falloff into skin so the photo wraps the skull instead of reading as a sticker.
+      // Inner solid disc ~62% of radius; outer fade to transparent at the rim.
+      const innerRadius = maxRadius * 0.62;
+      const outerRadius = maxRadius * 0.98;
 
       const gradient = maskCtx.createRadialGradient(
         128, 128, innerRadius,
         128, 128, outerRadius
       );
       gradient.addColorStop(0, "rgba(0,0,0,1)");
-      gradient.addColorStop(0.5, "rgba(0,0,0,0.95)");
-      gradient.addColorStop(0.8, "rgba(0,0,0,0.4)");
+      gradient.addColorStop(0.45, "rgba(0,0,0,0.92)");
+      gradient.addColorStop(0.75, "rgba(0,0,0,0.45)");
       gradient.addColorStop(1, "rgba(0,0,0,0)");
 
       maskCtx.fillStyle = gradient;
       maskCtx.fillRect(0, 0, 256, 256);
     } else {
-      // Hard-edged circular clip mask
-      maskCtx.fillStyle = "rgba(0,0,0,0)";
+      // Soft-edged circular clip (slight feather even in "hard" mode to avoid alias ring)
+      const outerRadius = maxRadius * 0.99;
+      const gradient = maskCtx.createRadialGradient(
+        128, 128, outerRadius * 0.88,
+        128, 128, outerRadius
+      );
+      gradient.addColorStop(0, "rgba(0,0,0,1)");
+      gradient.addColorStop(1, "rgba(0,0,0,0)");
+      maskCtx.fillStyle = gradient;
       maskCtx.fillRect(0, 0, 256, 256);
-      maskCtx.fillStyle = "rgba(0,0,0,1)";
-      maskCtx.beginPath();
-      maskCtx.arc(128, 128, maxRadius, 0, Math.PI * 2);
-      maskCtx.fill();
     }
 
     // Mask the raw face photo
@@ -124,6 +127,14 @@ export function prepareFaceTexture(
 
   // 4. Paint the feathered face over the skin background
   ctx.drawImage(tempCanvas, 0, 0);
+
+  // 5. Guarantee pure skin in the four corners (used by side/back UV falloff)
+  ctx.fillStyle = skinColor;
+  const corner = 18;
+  ctx.fillRect(0, 0, corner, corner);
+  ctx.fillRect(256 - corner, 0, corner, corner);
+  ctx.fillRect(0, 256 - corner, corner, corner);
+  ctx.fillRect(256 - corner, 256 - corner, corner, corner);
 
   return canvas;
 }

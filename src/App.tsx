@@ -1349,34 +1349,80 @@ export default function App() {
 
   // Helper for static/client-side fallback face and color analysis
   const analyzeColorsClientSide = (img: HTMLImageElement): { skin_tone: string; hair_color: string; clothing_color: string; gender_style: HairStyle } => {
+    const defaults = {
+      skin_tone: "#e5a65d",
+      hair_color: "#211510",
+      clothing_color: "#1e3a8a",
+      gender_style: "short" as HairStyle,
+    };
+
     try {
       const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        return { skin_tone: "#e5a65d", hair_color: "#211510", clothing_color: "#1e3a8a", gender_style: "short" };
-      }
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      if (!ctx) return defaults;
+
       canvas.width = 100;
       canvas.height = 100;
       ctx.drawImage(img, 0, 0, 100, 100);
 
       const rgbToHex = (r: number, g: number, b: number) => {
-        return "#" + [r, g, b].map(x => {
-          const hex = Math.max(0, Math.min(255, x)).toString(16);
-          return hex.length === 1 ? "0" + hex : hex;
-        }).join("");
+        return (
+          "#" +
+          [r, g, b]
+            .map((x) => {
+              const hex = Math.max(0, Math.min(255, Math.round(x))).toString(16);
+              return hex.length === 1 ? "0" + hex : hex;
+            })
+            .join("")
+        );
       };
 
-      // Sample Skin: Center of the image (50, 50)
-      const skinPixel = ctx.getImageData(50, 50, 1, 1).data;
-      const skin_tone = rgbToHex(skinPixel[0], skinPixel[1], skinPixel[2]);
+      // Average a block of pixels (more stable than a single sample)
+      const averageRegion = (x0: number, y0: number, w: number, h: number) => {
+        const data = ctx.getImageData(
+          Math.max(0, x0),
+          Math.max(0, y0),
+          Math.min(w, 100 - x0),
+          Math.min(h, 100 - y0)
+        ).data;
+        let r = 0;
+        let g = 0;
+        let b = 0;
+        let n = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          r += data[i];
+          g += data[i + 1];
+          b += data[i + 2];
+          n++;
+        }
+        if (n === 0) return { r: 128, g: 128, b: 128, lum: 128 };
+        r /= n;
+        g /= n;
+        b /= n;
+        return { r, g, b, lum: 0.2126 * r + 0.7152 * g + 0.0722 * b };
+      };
 
-      // Sample Hair: Upper part of the image (50, 20)
-      const hairPixel = ctx.getImageData(50, 20, 1, 1).data;
-      const hair_color = rgbToHex(hairPixel[0], hairPixel[1], hairPixel[2]);
+      // Skin: central face region
+      const skin = averageRegion(40, 38, 20, 22);
+      const skin_tone = rgbToHex(skin.r, skin.g, skin.b);
 
-      // Sample Clothing: Bottom part of the image (50, 85)
-      const clothingPixel = ctx.getImageData(50, 85, 1, 1).data;
-      const clothing_color = rgbToHex(clothingPixel[0], clothingPixel[1], clothingPixel[2]);
+      // Hair: upper band
+      const hair = averageRegion(35, 8, 30, 14);
+      // Avoid mistaking bright background for hair
+      const hair_color =
+        hair.lum > 220
+          ? defaults.hair_color
+          : rgbToHex(hair.r, hair.g, hair.b);
+
+      // Clothing: lower torso band — skip near-black / near-white (backdrop / voids)
+      // that otherwise paint the entire mesh as a silhouette.
+      const clothing = averageRegion(30, 78, 40, 16);
+      let clothing_color: string;
+      if (clothing.lum < 18 || clothing.lum > 245) {
+        clothing_color = defaults.clothing_color;
+      } else {
+        clothing_color = rgbToHex(clothing.r, clothing.g, clothing.b);
+      }
 
       return {
         skin_tone,
@@ -1386,12 +1432,7 @@ export default function App() {
       };
     } catch (e) {
       console.warn("Could not read image pixels client-side, defaulting to standard colors.", e);
-      return {
-        skin_tone: "#e5a65d",
-        hair_color: "#211510",
-        clothing_color: "#1e3a8a",
-        gender_style: "short",
-      };
+      return defaults;
     }
   };
 

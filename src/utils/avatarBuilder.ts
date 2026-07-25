@@ -186,7 +186,9 @@ function drawExpressionOverlay(
   }
 }
 
-// Front projection UVs for seamless head wrapping
+// Front projection UVs for seamless head wrapping.
+// Maps the face texture across the front hemisphere with a soft falloff
+// to skin-colored texture corners on the sides/back (avoids hard sticker edge).
 function applyFrontProjectionUVs(geometry: THREE.BufferGeometry) {
   const position = geometry.attributes.position;
   if (!position) return;
@@ -202,13 +204,21 @@ function applyFrontProjectionUVs(geometry: THREE.BufferGeometry) {
     const ny = y / (len || 1);
     const nz = z / (len || 1);
 
-    const blend = Math.max(0, Math.min(1, (nz - 0.05) / 0.15));
+    // Wider, softer front hemisphere (covers ~front 2/3 of skull before full skin)
+    const blend = Math.max(0, Math.min(1, (nz + 0.25) / 0.95));
+    // Smoothstep for less banding at the silhouette
+    const t = blend * blend * (3 - 2 * blend);
 
-    const uProj = 0.5 + nx * 0.48;
-    const vProj = 0.44 + ny * 0.48;
+    // Center face slightly high so eyes sit above equator of the sphere
+    const uProj = 0.5 + nx * 0.46;
+    const vProj = 0.48 + ny * 0.46;
 
-    const u = uProj * blend + 0.01 * (1 - blend);
-    const v = vProj * blend + 0.01 * (1 - blend);
+    // Skin-colored border of the prepared texture (corners stay pure skin)
+    const uSkin = 0.02;
+    const vSkin = 0.02;
+
+    const u = uProj * t + uSkin * (1 - t);
+    const v = vProj * t + vSkin * (1 - t);
 
     uvs.push(u, v);
   }
@@ -388,153 +398,81 @@ export function buildAvatar(
 
   // ==========================================
   // DUAL TEXTURE SYSTEM: Procedural 3D Face + Photo
+  // Baked to a single canvas + MeshStandardMaterial so the head
+  // receives the same scene lights as the body (no flat sticker shader).
   // ==========================================
-  
-  // 1. Create procedural 3D face texture (with eyes, nose, mouth)
+
+  // 1. Procedural 3D face texture (pixel eyes + expression)
   const proceduralCanvas = document.createElement("canvas");
   proceduralCanvas.width = 256;
   proceduralCanvas.height = 256;
   const procCtx = proceduralCanvas.getContext("2d");
-  
+
   if (procCtx) {
-    // Draw solid skin-colored backing
     procCtx.fillStyle = config.skinColor;
     procCtx.fillRect(0, 0, 256, 256);
 
-    // Draw baseline pixel art cute eyes
     procCtx.fillStyle = "#141414";
     procCtx.fillRect(60, 90, 32, 32);
     procCtx.fillRect(164, 90, 32, 32);
 
-    // Eye highlights
     procCtx.fillStyle = "#ffffff";
     procCtx.fillRect(60, 90, 12, 12);
     procCtx.fillRect(164, 90, 12, 12);
-    
-    // Overlay expression shapes
+
     drawExpressionOverlay(procCtx, 256, 256, expressionVal);
   }
-  
-  const proceduralTexture = new THREE.CanvasTexture(proceduralCanvas);
-  proceduralTexture.colorSpace = THREE.SRGBColorSpace;
-  proceduralTexture.wrapS = THREE.ClampToEdgeWrapping;
-  proceduralTexture.wrapT = THREE.ClampToEdgeWrapping;
 
-  // 2. Create photo texture (if available)
-  let photoTexture: THREE.Texture | null = null;
-  
-  if (faceTextureCanvas) {
-    const photoCanvas = document.createElement("canvas");
-    photoCanvas.width = 256;
-    photoCanvas.height = 256;
-    const photoCtx = photoCanvas.getContext("2d");
-    
-    if (photoCtx) {
+  // 2. Bake final face map: procedural <-> photo morph on canvas
+  // texturePreparer already feathers the photo onto skin; do NOT punch
+  // a second hard circular mask here (that caused the sticker look).
+  const morphProgress =
+    config.photoMorphProgress !== undefined
+      ? config.photoMorphProgress
+      : faceTextureCanvas
+        ? 1.0
+        : 0.0;
+
+  const faceCanvas = document.createElement("canvas");
+  faceCanvas.width = 256;
+  faceCanvas.height = 256;
+  const faceCtx = faceCanvas.getContext("2d");
+
+  if (faceCtx) {
+    // Always start with procedural base
+    faceCtx.drawImage(proceduralCanvas, 0, 0, 256, 256);
+
+    if (faceTextureCanvas && morphProgress > 0) {
       try {
-        // Draw the photo
-        photoCtx.drawImage(faceTextureCanvas, 0, 0, 256, 256);
-        
-        // Apply radial gradient mask for smooth edge blending
-        const gradient = photoCtx.createRadialGradient(128, 128, 80, 128, 128, 128);
-        gradient.addColorStop(0, 'rgba(0,0,0,0)');
-        gradient.addColorStop(0.7, 'rgba(0,0,0,0)');
-        gradient.addColorStop(0.85, 'rgba(0,0,0,0.3)');
-        gradient.addColorStop(1, 'rgba(0,0,0,0.8)');
-        
-        photoCtx.globalCompositeOperation = 'destination-out';
-        photoCtx.fillStyle = gradient;
-        photoCtx.fillRect(0, 0, 256, 256);
-        photoCtx.globalCompositeOperation = 'source-over';
-        
-        // Blend edges with skin color
-        photoCtx.globalCompositeOperation = 'destination-over';
-        photoCtx.fillStyle = config.skinColor;
-        photoCtx.fillRect(0, 0, 256, 256);
-        photoCtx.globalCompositeOperation = 'source-over';
-        
-        photoTexture = new THREE.CanvasTexture(photoCanvas);
-        photoTexture.colorSpace = THREE.SRGBColorSpace;
-        photoTexture.wrapS = THREE.ClampToEdgeWrapping;
-        photoTexture.wrapT = THREE.ClampToEdgeWrapping;
+        if (morphProgress >= 0.999) {
+          // Full photo: use prepared texture as-is (already skin-backed + feathered)
+          faceCtx.clearRect(0, 0, 256, 256);
+          faceCtx.drawImage(faceTextureCanvas, 0, 0, 256, 256);
+        } else {
+          // Partial morph: draw photo with alpha = morphProgress
+          faceCtx.save();
+          faceCtx.globalAlpha = morphProgress;
+          faceCtx.drawImage(faceTextureCanvas, 0, 0, 256, 256);
+          faceCtx.restore();
+        }
       } catch (err) {
         console.warn("Could not draw faceTextureCanvas:", err);
       }
     }
   }
 
-  // 3. Create morphing shader material
-  const morphProgress = config.photoMorphProgress !== undefined ? config.photoMorphProgress : (photoTexture ? 1.0 : 0.0);
-  
-  if (photoTexture) {
-    // Custom shader material for smooth morph transition
-    faceMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        proceduralMap: { value: proceduralTexture },
-        photoMap: { value: photoTexture },
-        morphProgress: { value: morphProgress },
-        roughness: { value: config.materialRoughness !== undefined ? config.materialRoughness : 0.75 },
-        metalness: { value: config.materialMetalness !== undefined ? config.materialMetalness : 0.05 },
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        varying vec3 vNormal;
-        varying vec3 vViewPosition;
-        
-        void main() {
-          vUv = uv;
-          vNormal = normalize(normalMatrix * normal);
-          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          vViewPosition = -mvPosition.xyz;
-          gl_Position = projectionMatrix * mvPosition;
-        }
-      `,
-      fragmentShader: `
-        uniform sampler2D proceduralMap;
-        uniform sampler2D photoMap;
-        uniform float morphProgress;
-        uniform float roughness;
-        uniform float metalness;
-        
-        varying vec2 vUv;
-        varying vec3 vNormal;
-        varying vec3 vViewPosition;
-        
-        void main() {
-          // Sample both textures
-          vec4 proceduralColor = texture2D(proceduralMap, vUv);
-          vec4 photoColor = texture2D(photoMap, vUv);
-          
-          // Smooth morph between them
-          vec4 finalColor = mix(proceduralColor, photoColor, morphProgress);
-          
-          // Basic lighting (simplified PBR)
-          vec3 normal = normalize(vNormal);
-          vec3 viewDir = normalize(vViewPosition);
-          
-          // Ambient
-          vec3 ambient = finalColor.rgb * 0.3;
-          
-          // Diffuse (simple directional light)
-          vec3 lightDir = normalize(vec3(0.5, 1.0, 0.5));
-          float diff = max(dot(normal, lightDir), 0.0);
-          vec3 diffuse = finalColor.rgb * diff * 0.7;
-          
-          gl_FragColor = vec4(ambient + diffuse, finalColor.a);
-        }
-      `,
-      lights: false,
-    });
-    
-    // Store morph progress for animation updates
-    (faceMaterial as any).userData = { morphProgress };
-  } else {
-    // No photo - use standard material with procedural texture
-    faceMaterial = new THREE.MeshStandardMaterial({
-      map: proceduralTexture,
-      ...getMatParams(0.75, 0.05),
-      name: "face"
-    });
-  }
+  const faceMap = new THREE.CanvasTexture(faceCanvas);
+  faceMap.colorSpace = THREE.SRGBColorSpace;
+  faceMap.wrapS = THREE.ClampToEdgeWrapping;
+  faceMap.wrapT = THREE.ClampToEdgeWrapping;
+  faceMap.needsUpdate = true;
+
+  faceMaterial = new THREE.MeshStandardMaterial({
+    map: faceMap,
+    ...getMatParams(0.75, 0.05),
+    name: "face",
+  });
+  (faceMaterial as THREE.MeshStandardMaterial).userData = { morphProgress };
 
   // ==========================================
   // 1. TORSO & NECK (WITH CLOTHING VARIATIONS)
@@ -801,16 +739,18 @@ export function buildAvatar(
   
   head.add(ears);
 
-  // 3. Chin
-  const chinGeo = isOrganicHead
-    ? getSphereGeometry(0.11 * headSize, radialSeg, radialSeg)
-    : getBoxGeometry(0.24 * headSize, 0.12 * headSize, 0.18 * headSize);
-  const chin = new THREE.Mesh(chinGeo, skinMaterial);
-  chin.name = "chin";
-  chin.position.set(0, -skullRadiusVal * 0.8, skullRadiusVal * 0.35);
-  chin.scale.set(1.0, chinScale.y, chinScale.z);
-  chin.castShadow = true;
-  head.add(chin);
+  // 3. Chin — hide when a photo texture is mapped (same reason as nose: clashes with real photo jaw)
+  if (!hasPhotoTexture) {
+    const chinGeo = isOrganicHead
+      ? getSphereGeometry(0.11 * headSize, radialSeg, radialSeg)
+      : getBoxGeometry(0.24 * headSize, 0.12 * headSize, 0.18 * headSize);
+    const chin = new THREE.Mesh(chinGeo, skinMaterial);
+    chin.name = "chin";
+    chin.position.set(0, -skullRadiusVal * 0.8, skullRadiusVal * 0.35);
+    chin.scale.set(1.0, chinScale.y, chinScale.z);
+    chin.castShadow = true;
+    head.add(chin);
+  }
 
   // --- CREATURE VARIANT: EXTRA DISTINGUISHING HEAD DETAIL ---
   if (config.creatureVariant === "monster") {

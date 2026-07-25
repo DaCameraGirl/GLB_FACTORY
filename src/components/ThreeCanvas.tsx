@@ -1110,20 +1110,8 @@ export default function ThreeCanvas({
     faceCanvas,
   ]);
 
-  // 6. Photo morph animation effect - update shader uniform in real-time
-  useEffect(() => {
-    if (!avatarGroupRef.current) return;
-    
-    const skull = avatarGroupRef.current.getObjectByName("skull") as THREE.Mesh;
-    if (!skull || !skull.material) return;
-    
-    const material = skull.material as any;
-    if (material.uniforms && material.uniforms.morphProgress) {
-      const targetProgress = config.photoMorphProgress !== undefined ? config.photoMorphProgress : 1.0;
-      material.uniforms.morphProgress.value = targetProgress;
-      material.needsUpdate = true;
-    }
-  }, [config.photoMorphProgress]);
+  // Photo morph is rebaked into the face CanvasTexture when config.photoMorphProgress
+  // changes (listed in the rebuild effect deps above). No separate shader uniform needed.
 
   return (
     <div
