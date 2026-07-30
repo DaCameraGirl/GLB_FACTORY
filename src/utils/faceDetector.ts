@@ -31,7 +31,7 @@ export function estimateFaceBox(
   };
 
   const visited = new Uint8Array(GRID * GRID);
-  let best: { minX: number; minY: number; maxX: number; maxY: number; size: number } | null = null;
+  let best: { minX: number; minY: number; maxX: number; maxY: number; size: number; score: number } | null = null;
   const stackX: number[] = [];
   const stackY: number[] = [];
 
@@ -69,8 +69,21 @@ export function estimateFaceBox(
         }
       }
 
-      if (!best || size > best.size) {
-        best = { minX, minY, maxX, maxY, size };
+      // The largest skin-toned blob is very often a neck/chest/arm, not the
+      // face — those are usually bigger than the face itself in a normal
+      // photo. Score blobs toward face-like proportions (roughly as wide as
+      // tall) sitting in the upper part of the frame (portraits/selfies
+      // overwhelmingly frame the face there), instead of picking on raw size.
+      const w = maxX - minX + 1;
+      const h = maxY - minY + 1;
+      const aspect = w / h;
+      const aspectScore = 1 / (1 + Math.abs(Math.log(aspect / 0.85)));
+      const verticalCenter = (minY + maxY) / 2 / GRID;
+      const positionScore = verticalCenter < 0.65 ? 1 : 0.35;
+      const score = size * aspectScore * positionScore;
+
+      if (!best || score > best.score) {
+        best = { minX, minY, maxX, maxY, size, score };
       }
     }
   }

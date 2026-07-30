@@ -61,7 +61,7 @@ export default function ModeSelect({ onSelect }: ModeSelectProps) {
 
         <div className="px-4 md:px-8 pb-8 pt-5 space-y-6">
           {/* Brand row */}
-          <div className="flex flex-wrap items-end justify-between gap-4 -mt-16 md:-mt-20 relative z-10">
+          <div className="flex flex-wrap items-end justify-between gap-4 mt-4 md:mt-6 relative z-10">
             <div className="flex items-center gap-3">
               <img
                 src={glbLogo}

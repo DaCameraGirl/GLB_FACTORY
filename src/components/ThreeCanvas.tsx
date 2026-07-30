@@ -1116,7 +1116,7 @@ export default function ThreeCanvas({
   return (
     <div
       ref={containerRef}
-      className={`w-full h-full min-h-[350px] md:min-h-[500px] rounded-none overflow-hidden relative border-2 border-[#141414] transition-all duration-300 ${
+      className={`w-full h-full min-h-[260px] md:min-h-[360px] rounded-none overflow-hidden relative border-2 border-[#141414] transition-all duration-300 ${
         config.twoDStyleEffect === "gameboy"
           ? "bg-[#8b956d] contrast-[1.1] saturate-[0.9]"
           : config.twoDStyleEffect === "blueprint"

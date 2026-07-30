@@ -89,12 +89,20 @@ export function prepareFaceTexture(
   const maskCtx = maskCanvas.getContext("2d");
   if (maskCtx) {
     const maxRadius = faceSizeOnCanvas / 2;
+    // A circle inscribed in the 256x256 canvas (radius = half-width) never
+    // reaches the corners — at most ~79% of the square is covered, no matter
+    // how high featherRadius goes. Blend the mask radius toward the canvas's
+    // half-diagonal (sqrt(2) * maxRadius) as featherRadius approaches 100 so
+    // "100%" actually means edge-to-edge coverage instead of a capped disc.
+    const coverage = featherRadius / 100;
+    const cornerFactor = 1 + coverage * (Math.SQRT2 - 1);
+    const cappedMaxRadius = maxRadius * cornerFactor;
 
     if (featherEdges) {
       // Wide soft falloff into skin so the photo wraps the skull instead of reading as a sticker.
-      // Inner solid disc ~62% of radius; outer fade to transparent at the rim.
-      const innerRadius = maxRadius * 0.62;
-      const outerRadius = maxRadius * 0.98;
+      // Inner solid disc ~85% of radius; only the last sliver fades to the rim.
+      const innerRadius = cappedMaxRadius * 0.85;
+      const outerRadius = cappedMaxRadius;
 
       const gradient = maskCtx.createRadialGradient(
         128, 128, innerRadius,
@@ -109,7 +117,7 @@ export function prepareFaceTexture(
       maskCtx.fillRect(0, 0, 256, 256);
     } else {
       // Soft-edged circular clip (slight feather even in "hard" mode to avoid alias ring)
-      const outerRadius = maxRadius * 0.99;
+      const outerRadius = cappedMaxRadius * 0.99;
       const gradient = maskCtx.createRadialGradient(
         128, 128, outerRadius * 0.88,
         128, 128, outerRadius
@@ -128,13 +136,17 @@ export function prepareFaceTexture(
   // 4. Paint the feathered face over the skin background
   ctx.drawImage(tempCanvas, 0, 0);
 
-  // 5. Guarantee pure skin in the four corners (used by side/back UV falloff)
-  ctx.fillStyle = skinColor;
-  const corner = 18;
-  ctx.fillRect(0, 0, corner, corner);
-  ctx.fillRect(256 - corner, 0, corner, corner);
-  ctx.fillRect(0, 256 - corner, corner, corner);
-  ctx.fillRect(256 - corner, 256 - corner, corner, corner);
+  // 5. Guarantee pure skin in the four corners (used by side/back UV falloff).
+  // Skip this once featherRadius is maxed out — that's the user asking for
+  // full edge-to-edge photo coverage, so don't punch skin squares back over it.
+  if (featherRadius < 90) {
+    ctx.fillStyle = skinColor;
+    const corner = 18;
+    ctx.fillRect(0, 0, corner, corner);
+    ctx.fillRect(256 - corner, 0, corner, corner);
+    ctx.fillRect(0, 256 - corner, corner, corner);
+    ctx.fillRect(256 - corner, 256 - corner, corner, corner);
+  }
 
   return canvas;
 }
