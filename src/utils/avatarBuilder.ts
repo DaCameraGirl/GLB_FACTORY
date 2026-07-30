@@ -67,7 +67,12 @@ export function validateAvatarConfig(config: AvatarConfig): AvatarConfig {
   if (!validHairStyles.includes(validated.hairStyle)) validated.hairStyle = "short";
   if (!validBodyTypes.includes(validated.bodyType)) validated.bodyType = "normal";
 
-  const validCreatureVariants = ["none", "gremlin", "monster", "gator", "raccoon", "cat", "dog", "lizard", "possum", "tigerfish", "lionfish", "clown", "dragon", "fairy", "hammerhead"];
+  const validCreatureVariants = [
+    "none", "gremlin", "monster", "gator", "raccoon", "cat", "dog", "lizard", "possum",
+    "tigerfish", "lionfish", "clown", "dragon", "fairy", "hammerhead",
+    "octopus", "spider", "snake", "bat", "crow", "rat", "centipede", "biped-lizard",
+    "toad", "scorpion", "worm", "mantis",
+  ];
   if (!validated.creatureVariant || !validCreatureVariants.includes(validated.creatureVariant)) {
     validated.creatureVariant = "none";
   }
@@ -1378,6 +1383,196 @@ export function buildAvatar(
     torso.add(tailFinGroup);
   }
 
+  // --- TRUE ANIMAL HEAD / BODY MARKERS (non-humanoid fauna) ---
+  if (config.creatureVariant === "octopus") {
+    const inkMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#7c3aed", roughness: 0.55, name: "octopus-skin" });
+    // Soft bulbous mantle already is the head; add siphon + eye bumps
+    [-1, 1].forEach((side) => {
+      const eye = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.12, 10, 10), new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.3, name: "octopus-eye" }));
+      eye.name = `octopus-eye-${side}`;
+      eye.position.set(side * actualHeadSize * 0.28, actualHeadSize * 0.05, actualHeadSize * 0.38);
+      head.add(eye);
+      const pupil = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.045, 8, 8), new THREE.MeshStandardMaterial({ color: 0x0c0a09, roughness: 0.2, name: "octopus-pupil" }));
+      pupil.position.set(side * actualHeadSize * 0.28, actualHeadSize * 0.05, actualHeadSize * 0.48);
+      head.add(pupil);
+    });
+    const siphon = new THREE.Mesh(getCylinderGeometry(actualHeadSize * 0.08, actualHeadSize * 0.12, actualHeadSize * 0.25, 8), inkMat);
+    siphon.name = "octopus-siphon";
+    siphon.rotation.x = Math.PI / 2;
+    siphon.position.set(0, -actualHeadSize * 0.2, actualHeadSize * 0.35);
+    head.add(siphon);
+  }
+
+  if (config.creatureVariant === "spider") {
+    const chitin = new THREE.MeshStandardMaterial({ color: config.skinColor || "#1c1917", roughness: 0.45, name: "spider-chitin" });
+    // Fang chelicerae
+    [-1, 1].forEach((side) => {
+      const fang = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.05, actualHeadSize * 0.22, 6), chitin);
+      fang.name = `spider-fang-${side}`;
+      fang.rotation.x = Math.PI;
+      fang.position.set(side * actualHeadSize * 0.12, -actualHeadSize * 0.25, actualHeadSize * 0.4);
+      head.add(fang);
+    });
+    // Multi-eye cluster
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: new THREE.Color(0x7f1d1d), emissiveIntensity: 0.6, roughness: 0.2, name: "spider-eye" });
+    for (let i = 0; i < 6; i++) {
+      const eye = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.04, 6, 6), eyeMat);
+      eye.name = `spider-eye-${i}`;
+      const col = (i % 3) - 1;
+      const row = Math.floor(i / 3);
+      eye.position.set(col * actualHeadSize * 0.12, actualHeadSize * (0.12 - row * 0.1), actualHeadSize * 0.46);
+      head.add(eye);
+    }
+  }
+
+  if (config.creatureVariant === "snake") {
+    const scaleMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#166534", roughness: 0.4, name: "snake-scale" });
+    const snout = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.22, actualHeadSize * 0.45, 6), scaleMat);
+    snout.name = "snake-snout";
+    snout.rotation.x = Math.PI / 2;
+    snout.position.set(0, -actualHeadSize * 0.02, actualHeadSize * 0.5);
+    head.add(snout);
+    const forkMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.3, name: "snake-tongue" });
+    [-1, 1].forEach((side) => {
+      const tine = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.03, actualHeadSize * 0.02, actualHeadSize * 0.2), forkMat);
+      tine.name = `snake-tongue-${side}`;
+      tine.position.set(side * actualHeadSize * 0.04, -actualHeadSize * 0.08, actualHeadSize * 0.72);
+      tine.rotation.y = side * 0.35;
+      head.add(tine);
+    });
+  }
+
+  if (config.creatureVariant === "bat" || config.creatureVariant === "crow") {
+    const darkMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#18181b", roughness: 0.55, name: "avian-dark" });
+    // Beak
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.1, actualHeadSize * 0.35, 5), darkMat);
+    beak.name = `${config.creatureVariant}-beak`;
+    beak.rotation.x = Math.PI / 2;
+    beak.position.set(0, -actualHeadSize * 0.05, actualHeadSize * 0.55);
+    head.add(beak);
+    if (config.creatureVariant === "bat") {
+      // Pointed ears
+      [-1, 1].forEach((side) => {
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.1, actualHeadSize * 0.32, 5), darkMat);
+        ear.name = `bat-ear-${side}`;
+        ear.position.set(side * actualHeadSize * 0.32, actualHeadSize * 0.35, 0);
+        ear.rotation.z = side * 0.25;
+        head.add(ear);
+      });
+    } else {
+      // Crow ruff
+      const ruff = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.55, 10, 10), darkMat);
+      ruff.name = "crow-ruff";
+      ruff.scale.set(1.1, 0.7, 1.0);
+      ruff.position.set(0, -actualHeadSize * 0.15, -actualHeadSize * 0.1);
+      head.add(ruff);
+    }
+  }
+
+  if (config.creatureVariant === "rat") {
+    const fur = new THREE.MeshStandardMaterial({ color: config.skinColor || "#a8a29e", roughness: 0.85, name: "rat-fur" });
+    const snout = new THREE.Mesh(getCylinderGeometry(actualHeadSize * 0.08, actualHeadSize * 0.16, actualHeadSize * 0.35, 8), fur);
+    snout.name = "rat-snout";
+    snout.rotation.x = Math.PI / 2;
+    snout.position.set(0, -actualHeadSize * 0.05, actualHeadSize * 0.48);
+    head.add(snout);
+    const nose = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.05, 8, 8), new THREE.MeshStandardMaterial({ color: 0xf9a8d4, roughness: 0.4, name: "rat-nose" }));
+    nose.position.set(0, -actualHeadSize * 0.05, actualHeadSize * 0.68);
+    head.add(nose);
+    [-1, 1].forEach((side) => {
+      const ear = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.16, 10, 10), fur);
+      ear.name = `rat-ear-${side}`;
+      ear.scale.set(1, 1, 0.25);
+      ear.position.set(side * actualHeadSize * 0.38, actualHeadSize * 0.28, -actualHeadSize * 0.05);
+      head.add(ear);
+    });
+  }
+
+  if (config.creatureVariant === "centipede" || config.creatureVariant === "scorpion" || config.creatureVariant === "mantis") {
+    const chitin = new THREE.MeshStandardMaterial({ color: config.skinColor || "#854d0e", roughness: 0.5, name: "bug-chitin" });
+    // Mandibles
+    [-1, 1].forEach((side) => {
+      const mand = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.06, actualHeadSize * 0.2, 5), chitin);
+      mand.name = `bug-mandible-${side}`;
+      mand.rotation.set(Math.PI * 0.6, 0, side * 0.5);
+      mand.position.set(side * actualHeadSize * 0.15, -actualHeadSize * 0.22, actualHeadSize * 0.4);
+      head.add(mand);
+    });
+    // Compound eyes
+    const compound = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.15, metalness: 0.4, name: "compound-eye" });
+    [-1, 1].forEach((side) => {
+      const eye = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.11, 10, 10), compound);
+      eye.name = `bug-eye-${side}`;
+      eye.position.set(side * actualHeadSize * 0.28, actualHeadSize * 0.08, actualHeadSize * 0.38);
+      head.add(eye);
+    });
+    if (config.creatureVariant === "mantis") {
+      // Triangular mantis head plate
+      const plate = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.7, actualHeadSize * 0.55, actualHeadSize * 0.35), chitin);
+      plate.name = "mantis-head-plate";
+      plate.position.set(0, actualHeadSize * 0.1, actualHeadSize * 0.15);
+      head.add(plate);
+    }
+  }
+
+  if (config.creatureVariant === "toad") {
+    const wartMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#3f6212", roughness: 0.9, name: "toad-skin" });
+    // Bulging eyes on top of head
+    [-1, 1].forEach((side) => {
+      const bulb = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.16, 10, 10), wartMat);
+      bulb.name = `toad-eye-bulb-${side}`;
+      bulb.position.set(side * actualHeadSize * 0.22, actualHeadSize * 0.32, actualHeadSize * 0.2);
+      head.add(bulb);
+      const iris = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.07, 8, 8), new THREE.MeshStandardMaterial({ color: 0xfbbf24, roughness: 0.3, name: "toad-iris" }));
+      iris.position.set(side * actualHeadSize * 0.22, actualHeadSize * 0.36, actualHeadSize * 0.32);
+      head.add(iris);
+    });
+    // Wide mouth slit
+    const mouth = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.55, actualHeadSize * 0.06, actualHeadSize * 0.08), new THREE.MeshStandardMaterial({ color: 0x1a2e05, roughness: 0.6, name: "toad-mouth" }));
+    mouth.name = "toad-mouth";
+    mouth.position.set(0, -actualHeadSize * 0.2, actualHeadSize * 0.42);
+    head.add(mouth);
+    // Warts
+    for (let i = 0; i < 5; i++) {
+      const wart = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.04, 6, 6), wartMat);
+      wart.position.set((i - 2) * actualHeadSize * 0.1, actualHeadSize * 0.15, -actualHeadSize * 0.25);
+      head.add(wart);
+    }
+  }
+
+  if (config.creatureVariant === "biped-lizard") {
+    // Same snout language as lizard, but this variant also drops arms (body plan below)
+    const snoutMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#4d7c0f", roughness: 0.6, name: "biped-lizard-snout" });
+    const snout = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.4, actualHeadSize * 0.16, actualHeadSize * 0.48), snoutMat);
+    snout.name = "biped-lizard-snout";
+    snout.position.set(0, -actualHeadSize * 0.08, actualHeadSize * 0.5);
+    head.add(snout);
+    for (let i = 0; i < 4; i++) {
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.045, actualHeadSize * 0.14, 4), snoutMat);
+      spike.position.set(0, actualHeadSize * 0.42, -actualHeadSize * (0.0 + i * 0.12));
+      head.add(spike);
+    }
+  }
+
+  if (config.creatureVariant === "worm") {
+    const wet = new THREE.MeshStandardMaterial({ color: config.skinColor || "#fbcfe8", roughness: 0.25, name: "worm-skin" });
+    // Ringed face hole
+    const maw = new THREE.Mesh(getCylinderGeometry(actualHeadSize * 0.2, actualHeadSize * 0.28, actualHeadSize * 0.15, 12), new THREE.MeshStandardMaterial({ color: 0x4a044e, roughness: 0.5, name: "worm-maw" }));
+    maw.name = "worm-maw";
+    maw.rotation.x = Math.PI / 2;
+    maw.position.set(0, 0, actualHeadSize * 0.42);
+    head.add(maw);
+    // Tiny teeth ring
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const tooth = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.03, actualHeadSize * 0.08, 4), new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.2, name: "worm-tooth" }));
+      tooth.position.set(Math.cos(a) * actualHeadSize * 0.18, Math.sin(a) * actualHeadSize * 0.18, actualHeadSize * 0.5);
+      tooth.rotation.x = Math.PI / 2;
+      head.add(tooth);
+    }
+    void wet;
+  }
+
   // ==========================================
   // 3. HAIR STYLE (WITH COLLISION CLAMP INORGANICS)
   // ==========================================
@@ -2153,31 +2348,335 @@ export function buildAvatar(
     return pivot;
   };
 
-  // Build and mount limbs
+  // Build and mount limbs — humanoid OR true-animal body plan
   const isOrganic = config.headShape === "organic-smooth";
+  const variant = config.creatureVariant || "none";
 
-  const leftArm = isOrganic ? createSkinnedLimb(true, true) : createClassicLimb(true, true);
-  leftArm.name = "left-arm";
-  leftArm.position.set(-torsoWidth / 2 - limbWidth / 2 - 0.05, torsoHeight / 2 - 0.1, 0);
-  torso.add(leftArm);
+  /** Non-humanoid animals: replace arms/legs with tentacles, multi-legs, legless bodies, etc. */
+  const TRUE_ANIMAL_PLANS = new Set([
+    "octopus", "spider", "snake", "bat", "crow", "rat", "centipede",
+    "biped-lizard", "toad", "scorpion", "worm", "mantis",
+  ]);
+  const usesAnimalBody = TRUE_ANIMAL_PLANS.has(variant);
 
-  const rightArm = isOrganic ? createSkinnedLimb(true, false) : createClassicLimb(true, false);
-  rightArm.name = "right-arm";
-  rightArm.position.set(torsoWidth / 2 + limbWidth / 2 + 0.05, torsoHeight / 2 - 0.1, 0);
-  torso.add(rightArm);
+  let leftArm: THREE.Group | null = null;
+  let rightArm: THREE.Group | null = null;
+  let leftLeg: THREE.Group | null = null;
+  let rightLeg: THREE.Group | null = null;
 
-  const leftLeg = isOrganic ? createSkinnedLimb(false, true) : createClassicLimb(false, true);
-  leftLeg.name = "left-leg";
-  leftLeg.position.set(-torsoWidth / 4, -torsoHeight / 2, 0);
-  torso.add(leftLeg);
+  if (!usesAnimalBody) {
+    leftArm = isOrganic ? createSkinnedLimb(true, true) : createClassicLimb(true, true);
+    leftArm.name = "left-arm";
+    leftArm.position.set(-torsoWidth / 2 - limbWidth / 2 - 0.05, torsoHeight / 2 - 0.1, 0);
+    torso.add(leftArm);
 
-  const rightLeg = isOrganic ? createSkinnedLimb(false, false) : createClassicLimb(false, false);
-  rightLeg.name = "right-leg";
-  rightLeg.position.set(torsoWidth / 4, -torsoHeight / 2, 0);
-  torso.add(rightLeg);
+    rightArm = isOrganic ? createSkinnedLimb(true, false) : createClassicLimb(true, false);
+    rightArm.name = "right-arm";
+    rightArm.position.set(torsoWidth / 2 + limbWidth / 2 + 0.05, torsoHeight / 2 - 0.1, 0);
+    torso.add(rightArm);
+
+    leftLeg = isOrganic ? createSkinnedLimb(false, true) : createClassicLimb(false, true);
+    leftLeg.name = "left-leg";
+    leftLeg.position.set(-torsoWidth / 4, -torsoHeight / 2, 0);
+    torso.add(leftLeg);
+
+    rightLeg = isOrganic ? createSkinnedLimb(false, false) : createClassicLimb(false, false);
+    rightLeg.name = "right-leg";
+    rightLeg.position.set(torsoWidth / 4, -torsoHeight / 2, 0);
+    torso.add(rightLeg);
+  } else {
+    // ==========================================
+    // TRUE ANIMAL BODY PLANS
+    // ==========================================
+    const animalMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(config.skinColor),
+      ...getMatParams(0.75, 0.05),
+      name: "animal-body",
+    });
+    const animalDark = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(config.hairColor || "#1c1917"),
+      roughness: 0.7,
+      name: "animal-dark",
+    });
+
+    const makeSegmentedLimb = (
+      name: string,
+      segs: number,
+      baseR: number,
+      segLen: number,
+      droop = 0.08
+    ): THREE.Group => {
+      const g = new THREE.Group();
+      g.name = name;
+      let r = baseR;
+      let y = 0;
+      for (let i = 0; i < segs; i++) {
+        const nextR = r * 0.82;
+        const seg = new THREE.Mesh(getCylinderGeometry(r, nextR, segLen, 8), animalMat);
+        seg.position.y = y - segLen / 2;
+        seg.castShadow = true;
+        g.add(seg);
+        y -= segLen;
+        // slight forward curl for tentacles
+        seg.rotation.x = droop;
+        r = nextR;
+      }
+      return g;
+    };
+
+    if (variant === "octopus") {
+      // 12 arms (weird on purpose — not biology-textbook accurate)
+      const tentacleRoot = new THREE.Group();
+      tentacleRoot.name = "octopus-tentacles";
+      const armCount = 12;
+      for (let i = 0; i < armCount; i++) {
+        const angle = (i / armCount) * Math.PI * 2;
+        const arm = makeSegmentedLimb(`octopus-arm-${i}`, 7, torsoWidth * 0.12, torsoHeight * 0.22, 0.12);
+        arm.position.set(
+          Math.cos(angle) * torsoWidth * 0.45,
+          -torsoHeight * 0.35,
+          Math.sin(angle) * torsoDepth * 0.45
+        );
+        arm.rotation.z = Math.cos(angle) * 0.4;
+        arm.rotation.x = Math.sin(angle) * 0.35 + 0.5;
+        tentacleRoot.add(arm);
+        // sucker bumps on outer segs
+        for (let s = 0; s < 3; s++) {
+          const sucker = new THREE.Mesh(getSphereGeometry(0.04, 6, 6), animalDark);
+          sucker.position.set(
+            Math.cos(angle) * 0.08,
+            -torsoHeight * 0.15 - s * 0.2,
+            Math.sin(angle) * 0.08
+          );
+          arm.add(sucker);
+        }
+      }
+      torso.add(tentacleRoot);
+      // Soften torso into mantle
+      torso.scale.set(1.15, 0.85, 1.15);
+    } else if (variant === "spider") {
+      const legRoot = new THREE.Group();
+      legRoot.name = "spider-legs";
+      for (let i = 0; i < 8; i++) {
+        const side = i < 4 ? -1 : 1;
+        const slot = i % 4;
+        const leg = makeSegmentedLimb(`spider-leg-${i}`, 4, 0.08, limbLength * 0.45, 0.05);
+        leg.position.set(side * torsoWidth * 0.55, -torsoHeight * 0.15, (slot - 1.5) * torsoDepth * 0.55);
+        leg.rotation.z = side * (0.9 + slot * 0.08);
+        leg.rotation.x = (slot - 1.5) * 0.15;
+        legRoot.add(leg);
+      }
+      torso.add(legRoot);
+      torso.scale.set(1.35, 0.7, 1.2);
+      // Abdomen bulb behind
+      const abdomen = new THREE.Mesh(getSphereGeometry(torsoWidth * 0.55, 12, 12), animalMat);
+      abdomen.name = "spider-abdomen";
+      abdomen.position.set(0, 0, -torsoDepth * 1.1);
+      abdomen.scale.set(1.1, 0.9, 1.3);
+      torso.add(abdomen);
+    } else if (variant === "snake" || variant === "worm") {
+      // Legless elongated body trail
+      const bodyTrail = new THREE.Group();
+      bodyTrail.name = `${variant}-body-trail`;
+      let r = torsoWidth * 0.35;
+      let z = -torsoDepth * 0.4;
+      let y = -torsoHeight * 0.1;
+      const segs = variant === "worm" ? 14 : 12;
+      for (let i = 0; i < segs; i++) {
+        const nextR = r * 0.92;
+        const segLen = torsoHeight * 0.28;
+        const seg = new THREE.Mesh(getCylinderGeometry(r, nextR, segLen, 10), animalMat);
+        seg.rotation.x = -Math.PI / 2;
+        seg.position.set(Math.sin(i * 0.45) * 0.12, y, z - segLen / 2);
+        seg.castShadow = true;
+        bodyTrail.add(seg);
+        // ring ridges for worm
+        if (variant === "worm" && i % 2 === 0) {
+          const ring = new THREE.Mesh(getCylinderGeometry(r * 1.08, r * 1.08, segLen * 0.15, 10), animalDark);
+          ring.rotation.x = -Math.PI / 2;
+          ring.position.copy(seg.position);
+          bodyTrail.add(ring);
+        }
+        z -= segLen * 0.95;
+        y -= segLen * 0.04;
+        r = nextR;
+      }
+      torso.add(bodyTrail);
+      torso.scale.set(0.85, 0.9, 1.4);
+    } else if (variant === "bat" || variant === "crow") {
+      // Small biped legs + big wings
+      leftLeg = isOrganic ? createSkinnedLimb(false, true) : createClassicLimb(false, true);
+      leftLeg.name = "left-leg";
+      leftLeg.scale.set(0.7, 0.75, 0.7);
+      leftLeg.position.set(-torsoWidth * 0.2, -torsoHeight / 2, 0);
+      torso.add(leftLeg);
+      rightLeg = isOrganic ? createSkinnedLimb(false, false) : createClassicLimb(false, false);
+      rightLeg.name = "right-leg";
+      rightLeg.scale.set(0.7, 0.75, 0.7);
+      rightLeg.position.set(torsoWidth * 0.2, -torsoHeight / 2, 0);
+      torso.add(rightLeg);
+
+      const wingMat = new THREE.MeshStandardMaterial({
+        color: config.skinColor || "#18181b",
+        roughness: 0.6,
+        side: THREE.DoubleSide,
+        transparent: variant === "bat",
+        opacity: variant === "bat" ? 0.85 : 1,
+        name: "animal-wing",
+      });
+      [-1, 1].forEach((side) => {
+        const wing = new THREE.Mesh(getBoxGeometry(torsoWidth * 1.6, torsoHeight * 0.08, torsoDepth * 1.4), wingMat);
+        wing.name = `${variant}-wing-${side}`;
+        wing.position.set(side * torsoWidth * 0.9, torsoHeight * 0.15, -torsoDepth * 0.2);
+        wing.rotation.set(0.15, side * 0.35, side * 0.5);
+        wing.castShadow = true;
+        torso.add(wing);
+        if (variant === "bat") {
+          // Finger spars
+          for (let f = 0; f < 3; f++) {
+            const spar = new THREE.Mesh(getCylinderGeometry(0.02, 0.015, torsoWidth * 1.2, 5), animalDark);
+            spar.rotation.z = side * (0.9 + f * 0.15);
+            spar.position.set(side * torsoWidth * 0.5, torsoHeight * 0.2, -torsoDepth * (0.1 + f * 0.15));
+            torso.add(spar);
+          }
+        }
+      });
+      torso.scale.set(0.9, 0.95, 1.0);
+    } else if (variant === "rat") {
+      // Four short legs + long tail
+      for (let i = 0; i < 4; i++) {
+        const side = i < 2 ? -1 : 1;
+        const front = i % 2 === 0 ? 1 : -1;
+        const leg = makeSegmentedLimb(`rat-leg-${i}`, 3, 0.1, limbLength * 0.35, 0.02);
+        leg.position.set(side * torsoWidth * 0.4, -torsoHeight * 0.4, front * torsoDepth * 0.35);
+        leg.rotation.z = side * 0.25;
+        torso.add(leg);
+      }
+      const tail = makeSegmentedLimb("rat-tail", 8, torsoWidth * 0.08, torsoHeight * 0.2, 0.06);
+      tail.rotation.x = Math.PI / 2;
+      tail.position.set(0, -torsoHeight * 0.2, -torsoDepth * 0.5);
+      torso.add(tail);
+      torso.scale.set(1.1, 0.75, 1.25);
+    } else if (variant === "centipede") {
+      const segs = 10;
+      const trail = new THREE.Group();
+      trail.name = "centipede-body";
+      for (let i = 0; i < segs; i++) {
+        const seg = new THREE.Mesh(getSphereGeometry(torsoWidth * 0.35, 10, 10), animalMat);
+        seg.scale.set(1, 0.7, 1.1);
+        seg.position.set(0, -torsoHeight * 0.1, -i * torsoDepth * 0.55);
+        trail.add(seg);
+        // pair of legs per segment
+        [-1, 1].forEach((side) => {
+          const leg = new THREE.Mesh(getCylinderGeometry(0.04, 0.03, limbLength * 0.5, 6), animalDark);
+          leg.position.set(side * torsoWidth * 0.45, -torsoHeight * 0.35, -i * torsoDepth * 0.55);
+          leg.rotation.z = side * 1.1;
+          trail.add(leg);
+        });
+      }
+      torso.add(trail);
+      torso.scale.set(0.8, 0.7, 1.0);
+    } else if (variant === "biped-lizard") {
+      // TWO LEGS ONLY — no arms (as requested)
+      leftLeg = isOrganic ? createSkinnedLimb(false, true) : createClassicLimb(false, true);
+      leftLeg.name = "left-leg";
+      leftLeg.position.set(-torsoWidth / 4, -torsoHeight / 2, 0);
+      torso.add(leftLeg);
+      rightLeg = isOrganic ? createSkinnedLimb(false, false) : createClassicLimb(false, false);
+      rightLeg.name = "right-leg";
+      rightLeg.position.set(torsoWidth / 4, -torsoHeight / 2, 0);
+      torso.add(rightLeg);
+      // Tiny T-rex-ish arm nubs (optional creepy)
+      [-1, 1].forEach((side) => {
+        const nub = new THREE.Mesh(getCylinderGeometry(0.06, 0.04, 0.25, 6), animalMat);
+        nub.name = `biped-lizard-arm-nub-${side}`;
+        nub.position.set(side * torsoWidth * 0.55, torsoHeight * 0.15, torsoDepth * 0.1);
+        nub.rotation.z = side * 0.6;
+        torso.add(nub);
+      });
+      // Long balance tail
+      const tail = makeSegmentedLimb("biped-lizard-tail", 7, torsoWidth * 0.14, torsoHeight * 0.22, 0.05);
+      tail.rotation.x = Math.PI / 2;
+      tail.position.set(0, -torsoHeight * 0.15, -torsoDepth * 0.45);
+      torso.add(tail);
+    } else if (variant === "toad") {
+      // Squat body, thick legs, short arms
+      leftArm = makeSegmentedLimb("left-arm", 2, 0.14, limbLength * 0.35, 0.02);
+      leftArm.position.set(-torsoWidth * 0.55, 0, torsoDepth * 0.2);
+      leftArm.rotation.z = 0.8;
+      torso.add(leftArm);
+      rightArm = makeSegmentedLimb("right-arm", 2, 0.14, limbLength * 0.35, 0.02);
+      rightArm.position.set(torsoWidth * 0.55, 0, torsoDepth * 0.2);
+      rightArm.rotation.z = -0.8;
+      torso.add(rightArm);
+      leftLeg = makeSegmentedLimb("left-leg", 3, 0.18, limbLength * 0.4, 0.02);
+      leftLeg.position.set(-torsoWidth * 0.35, -torsoHeight * 0.35, -torsoDepth * 0.1);
+      torso.add(leftLeg);
+      rightLeg = makeSegmentedLimb("right-leg", 3, 0.18, limbLength * 0.4, 0.02);
+      rightLeg.position.set(torsoWidth * 0.35, -torsoHeight * 0.35, -torsoDepth * 0.1);
+      torso.add(rightLeg);
+      torso.scale.set(1.35, 0.65, 1.25);
+    } else if (variant === "scorpion") {
+      // 8 legs + pincers + tail stinger
+      for (let i = 0; i < 8; i++) {
+        const side = i < 4 ? -1 : 1;
+        const slot = i % 4;
+        const leg = makeSegmentedLimb(`scorpion-leg-${i}`, 3, 0.07, limbLength * 0.4, 0.03);
+        leg.position.set(side * torsoWidth * 0.5, -torsoHeight * 0.2, (slot - 1.5) * torsoDepth * 0.4);
+        leg.rotation.z = side * 0.95;
+        torso.add(leg);
+      }
+      [-1, 1].forEach((side) => {
+        const claw = new THREE.Group();
+        claw.name = `scorpion-pincer-${side}`;
+        const arm = new THREE.Mesh(getCylinderGeometry(0.08, 0.06, torsoWidth * 0.7, 6), animalMat);
+        arm.rotation.z = side * Math.PI / 2;
+        claw.add(arm);
+        const pincer = new THREE.Mesh(getBoxGeometry(0.2, 0.12, 0.28), animalDark);
+        pincer.position.set(side * torsoWidth * 0.45, 0, torsoDepth * 0.35);
+        claw.add(pincer);
+        claw.position.set(side * torsoWidth * 0.5, torsoHeight * 0.1, torsoDepth * 0.3);
+        torso.add(claw);
+      });
+      const stinger = makeSegmentedLimb("scorpion-tail", 6, torsoWidth * 0.12, torsoHeight * 0.2, -0.15);
+      stinger.position.set(0, torsoHeight * 0.2, -torsoDepth * 0.5);
+      stinger.rotation.x = -0.8;
+      const barb = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.28, 5), animalDark);
+      barb.position.set(0, torsoHeight * 0.9, -torsoDepth * 0.2);
+      stinger.add(barb);
+      torso.add(stinger);
+      torso.scale.set(1.2, 0.65, 1.3);
+    } else if (variant === "mantis") {
+      // Tall body, raptorial forearms, thin rear legs
+      leftArm = makeSegmentedLimb("left-arm", 4, 0.1, limbLength * 0.55, 0.04);
+      leftArm.position.set(-torsoWidth * 0.5, torsoHeight * 0.2, torsoDepth * 0.3);
+      leftArm.rotation.set(-0.8, 0, 0.9);
+      torso.add(leftArm);
+      rightArm = makeSegmentedLimb("right-arm", 4, 0.1, limbLength * 0.55, 0.04);
+      rightArm.position.set(torsoWidth * 0.5, torsoHeight * 0.2, torsoDepth * 0.3);
+      rightArm.rotation.set(-0.8, 0, -0.9);
+      torso.add(rightArm);
+      // Blade tips
+      [-1, 1].forEach((side) => {
+        const blade = new THREE.Mesh(getBoxGeometry(0.06, 0.35, 0.12), animalDark);
+        blade.position.set(side * torsoWidth * 0.55, -torsoHeight * 0.15, torsoDepth * 0.55);
+        blade.rotation.z = side * 0.3;
+        torso.add(blade);
+      });
+      leftLeg = makeSegmentedLimb("left-leg", 4, 0.07, limbLength * 0.7, 0.02);
+      leftLeg.position.set(-torsoWidth * 0.25, -torsoHeight * 0.4, -torsoDepth * 0.15);
+      torso.add(leftLeg);
+      rightLeg = makeSegmentedLimb("right-leg", 4, 0.07, limbLength * 0.7, 0.02);
+      rightLeg.position.set(torsoWidth * 0.25, -torsoHeight * 0.4, -torsoDepth * 0.15);
+      torso.add(rightLeg);
+      torso.scale.set(0.75, 1.25, 0.85);
+    }
+  }
 
   // --- HAND-HELD & BELT ITEMS ---
-  const rightHand = rightArm.getObjectByName(isOrganic ? "right-hand" : "hand");
+  const rightHand = rightArm
+    ? rightArm.getObjectByName(isOrganic ? "right-hand" : "hand") || rightArm.getObjectByName("right-hand")
+    : null;
 
   if (accessories.includes("gun")) {
     const gun = new THREE.Group();

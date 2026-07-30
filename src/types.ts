@@ -12,7 +12,36 @@ export interface AvatarConfig {
   hairStyle: HairStyle;
   bodyType: BodyType;
   headShape: HeadShape;
-  creatureVariant?: "none" | "gremlin" | "monster" | "gator" | "raccoon" | "cat" | "dog" | "lizard" | "possum" | "tigerfish" | "lionfish" | "clown" | "dragon" | "fairy" | "hammerhead";
+  /** Creature / animal mesh style. True animals use non-humanoid body plans (tentacles, many legs, legless, etc.). */
+  creatureVariant?:
+    | "none"
+    | "gremlin"
+    | "monster"
+    | "gator"
+    | "raccoon"
+    | "cat"
+    | "dog"
+    | "lizard"
+    | "possum"
+    | "tigerfish"
+    | "lionfish"
+    | "clown"
+    | "dragon"
+    | "fairy"
+    | "hammerhead"
+    // True animals & weird fauna (non-humanoid limb layouts)
+    | "octopus"
+    | "spider"
+    | "snake"
+    | "bat"
+    | "crow"
+    | "rat"
+    | "centipede"
+    | "biped-lizard"
+    | "toad"
+    | "scorpion"
+    | "worm"
+    | "mantis";
   featherEdges: boolean;
   featherRadius: number; // 0 to 100
   cropX: number; // percentage offset

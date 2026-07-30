@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Dispatch, SetStateAction } from "react";
+import { useState, useEffect, useCallback, useRef, Dispatch, SetStateAction } from "react";
 import { AvatarConfig, HairStyle, BodyType, HeadShape, LogEntry } from "../types";
 import { MutantSpecimen, MutationSummary, MutationRarity } from "../types/mutation";
 import { playSynthSound } from "../utils/playSynthSound";
@@ -40,6 +40,14 @@ export function useMutationEngine(
   const [showMutationFlow, setShowMutationFlow] = useState(false);
   const [lastMutationSummary, setLastMutationSummary] = useState<MutationSummary | null>(null);
   const [splicerParents, setSplicerParents] = useState<string[]>([]);
+
+  // Auto-mutation loop calls handleChaosMutation on an interval; reading config
+  // through a ref (instead of the useCallback dep) keeps that callback's identity
+  // stable across mutations so the interval isn't torn down/restarted every tick.
+  const configRef = useRef(config);
+  useEffect(() => {
+    configRef.current = config;
+  }, [config]);
 
   const [mutationVault, setMutationVault] = useState<MutantSpecimen[]>(() => {
     try {
@@ -189,7 +197,7 @@ export function useMutationEngine(
       : 0;
 
     const mutatedConfig: AvatarConfig = {
-      ...config,
+      ...configRef.current,
       name: randomName,
       skinColor: chosenSkin,
       hairColor: chosenHair,
@@ -277,7 +285,7 @@ export function useMutationEngine(
     if (rarity === "CHAOTIC-DIVINE" || rarity === "LEGENDARY") playSynthSound("disco");
     else if (rarity === "ULTRA-RARE" || rarity === "RARE") playSynthSound("coin");
     else playSynthSound("arp");
-  }, [chaosIntensity, config, setConfig, setCharacterName, addLog]);
+  }, [chaosIntensity, setConfig, setCharacterName, addLog]);
 
   const handleFuseGenomes = useCallback(() => {
     if (splicerParents.length !== 2) {
