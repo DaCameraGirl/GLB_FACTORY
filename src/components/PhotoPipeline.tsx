@@ -43,11 +43,11 @@ export default function PhotoPipeline({
 }: PhotoPipelineProps) {
   return (
     <>
-            <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]" id="upload-panel">
-              <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#D4D3D0]">
-                <h2 className="font-serif text-[11px] italic text-[#141414]/80 uppercase font-bold tracking-wider flex items-center gap-2">
+            <section className="bg-gradient-to-br from-cyan-50 via-white to-fuchsia-50 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_#22d3ee]" id="upload-panel">
+              <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-lime-300">
+                <h2 className="font-serif text-[11px] italic text-[#141414] uppercase font-bold tracking-wider flex items-center gap-2">
                   <User className="w-3.5 h-3.5" />
-                  <span>01 // Character Identity & Portrait</span>
+                  <span>01 // Character Identity & Portrait · Photo → 3D Morph</span>
                 </h2>
               </div>
 
@@ -73,10 +73,10 @@ export default function PhotoPipeline({
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`border-2 border-dashed p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 relative overflow-hidden rounded-none shadow-[2px_2px_0px_0px_#141414] ${
+                  className={`border-2 border-dashed p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 relative overflow-hidden rounded-none shadow-[2px_2px_0px_0px_#a855f7] ${
                     isDraggingFile
-                      ? "border-[#141414] bg-[#141414]/5"
-                      : "border-[#141414]/60 hover:border-[#141414] bg-white/40 hover:bg-white/60"
+                      ? "border-fuchsia-600 bg-fuchsia-100/80"
+                      : "border-cyan-500/70 hover:border-fuchsia-500 bg-white/70 hover:bg-cyan-50/80"
                   }`}
                   id="drag-drop-zone"
                 >
@@ -132,12 +132,12 @@ export default function PhotoPipeline({
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className="w-12 h-12 rounded-none bg-[#D4D3D0] border border-[#141414] flex items-center justify-center mx-auto text-[#141414]">
+                      <div className="w-12 h-12 rounded-none bg-gradient-to-br from-cyan-300 to-fuchsia-400 border-2 border-[#141414] flex items-center justify-center mx-auto text-[#141414] shadow-[2px_2px_0px_0px_#141414]">
                         <Upload className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-[#141414] uppercase tracking-wide">Drag & drop portrait photo</p>
-                        <p className="text-[10px] text-[#141414]/60 font-mono mt-1 uppercase">or click to browse local filesystem</p>
+                        <p className="text-xs font-bold text-[#141414] uppercase tracking-wide">Drop a portrait to morph into 3D</p>
+                        <p className="text-[10px] text-[#141414]/60 font-mono mt-1 uppercase">or click · face texture + colors → mesh</p>
                       </div>
                     </div>
                   )}
@@ -149,24 +149,24 @@ export default function PhotoPipeline({
                 type="button"
                 onClick={handleBuildAvatar}
                 disabled={isProcessing || !sourceImage}
-                className={`w-full py-3 px-4 font-mono text-xs tracking-wider font-bold transition-all duration-300 flex items-center justify-center gap-2 uppercase select-none rounded-none border-2 border-[#141414] ${
+                className={`w-full py-3.5 px-4 font-mono text-xs tracking-wider font-black transition-all duration-300 flex items-center justify-center gap-2 uppercase select-none rounded-none border-2 border-[#141414] ${
                   !sourceImage
                     ? "bg-[#D4D3D0] text-[#141414]/30 cursor-not-allowed border-[#141414]/40 shadow-none"
                     : isProcessing
-                    ? "bg-[#D4D3D0] text-[#141414]/60 cursor-wait shadow-none animate-pulse"
-                    : "bg-[#141414] text-[#E4E3E0] hover:bg-black hover:translate-x-[2px] hover:translate-y-[2px] shadow-[3px_3px_0px_0px_#141414] hover:shadow-[1px_1px_0px_0px_#141414] cursor-pointer"
+                    ? "bg-gradient-to-r from-fuchsia-400 via-cyan-400 to-lime-400 text-[#141414] cursor-wait shadow-none animate-pulse"
+                    : "bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-lime-400 text-[#141414] hover:brightness-110 hover:translate-x-[2px] hover:translate-y-[2px] shadow-[4px_4px_0px_0px_#141414] hover:shadow-[2px_2px_0px_0px_#141414] cursor-pointer"
                 }`}
                 id="build-avatar-button"
               >
                 {isProcessing ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Processing Portrait...</span>
+                    <span>Morphing Portrait → 3D…</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    <span>Build 3D Avatar</span>
+                    <span>Morph Photo → 3D Avatar</span>
                   </>
                 )}
               </button>

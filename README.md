@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="docs/assets/readme-hero.svg" alt="GLB_FACTORY — Photo to Procedural 3D Avatar Pipeline" width="100%"/>
+  <img src="docs/assets/glb-banner.png" alt="GLB_FACTORY — Photo to 3D · Mutate · Customize · Export" width="100%"/>
+</p>
+
+<p align="center">
+  <img src="docs/assets/glb-logo.png" alt="GLB Factory logo" width="120"/>
 </p>
 
 <p align="center">

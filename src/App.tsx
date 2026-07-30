@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
-  Sparkles,
   RefreshCw,
   Trophy,
   Cpu,
@@ -21,12 +20,15 @@ import MutationLab from "./components/MutationLab";
 import SpecimenVault from "./components/SpecimenVault";
 import Guidebook, { WikiTab } from "./components/Guidebook";
 import ExportPanel from "./components/ExportPanel";
+import MorphOverlay from "./components/MorphOverlay";
 import { prepareFaceTexture } from "./utils/texturePreparer";
+import { estimateFaceBox } from "./utils/faceDetector";
 import { playSynthSound } from "./utils/playSynthSound";
 import { PRESET_HEROES, PresetHero } from "./constants/presets";
 import { useMutationEngine } from "./hooks/useMutationEngine";
 import { useAvatarExport } from "./hooks/useAvatarExport";
 import genieMascotIcon from "./assets/genie-mascot.png";
+import glbLogo from "./assets/glb-logo.png";
 import * as THREE from "three";
 
 // Re-export for any external importers that used App's synth helper
@@ -298,8 +300,9 @@ export default function App() {
   const meltdownTimerRef = useRef<number | null>(null);
   const genieMascotImgRef = useRef<HTMLImageElement | null>(null);
 
-  // 2. Logging helper
-  const addLog = (text: string, type: LogEntry["type"] = "info") => {
+  // 2. Logging helper — memoized so hooks that depend on it (e.g. the
+  // auto-mutation loop) don't get a new function identity on every render.
+  const addLog = useCallback((text: string, type: LogEntry["type"] = "info") => {
     setLogs((prev) => [
       ...prev,
       {
@@ -309,7 +312,7 @@ export default function App() {
         type,
       },
     ]);
-  };
+  }, []);
 
   const {
     chaosIntensity,
@@ -628,8 +631,16 @@ export default function App() {
         addLog("Local color sampler analysis complete!", "success");
         addLog(`Extracted local features - Skin: ${result.skin_tone}, Hair: ${result.hair_color}, Clothes: ${result.clothing_color}`, "info");
 
-        // Default crop box (centered)
-        const localBox: [number, number, number, number] = [20, 20, 80, 80];
+        // Estimate the actual face region from skin-toned pixels; only fall
+        // back to a fixed center box if no confident skin blob is found.
+        const estimatedBox = estimateFaceBox(imageRef.current);
+        const localBox: [number, number, number, number] = estimatedBox || [20, 20, 80, 80];
+        addLog(
+          estimatedBox
+            ? "Estimated face region from photo (client-side heuristic)."
+            : "Could not confidently locate a face — using centered default crop.",
+          estimatedBox ? "success" : "warning"
+        );
         setFaceBox(localBox);
         setConfig((prev) => ({
           ...prev,
@@ -1080,19 +1091,41 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen border-[12px] md:border-[16px] border-[#141414] bg-[#E4E3E0] text-[#141414] flex flex-col font-sans selection:bg-[#141414] selection:text-[#E4E3E0]" id="app-root-container">
+    <div
+      className={`min-h-screen flex flex-col font-sans selection:bg-[#141414] selection:text-[#E4E3E0] ${
+        studioMode === "select"
+          ? "app-shell-select border-0 text-[#E4E3E0]"
+          : "border-[12px] md:border-[16px] border-[#141414] bg-[#E4E3E0] text-[#141414]"
+      }`}
+      id="app-root-container"
+    >
+      <MorphOverlay active={isProcessing} characterName={characterName} />
+
       {/* HEADER BAR */}
-      <header className="flex flex-col sm:flex-row shrink-0 items-center justify-between border-b-2 border-[#141414] bg-[#141414] px-6 py-3 text-[#E4E3E0] sticky top-0 z-50 gap-4">
+      <header
+        className={`flex flex-col sm:flex-row shrink-0 items-center justify-between border-b-2 border-[#141414] sticky top-0 z-50 gap-4 px-6 py-3 ${
+          studioMode === "select"
+            ? "bg-gradient-to-r from-[#1a0f2e] via-[#141414] to-[#0c1a22] text-[#E4E3E0]"
+            : "bg-[#141414] text-[#E4E3E0]"
+        }`}
+      >
         <div className="flex items-center gap-4">
-          <div className="w-8 h-8 rounded-none bg-[#E4E3E0] flex items-center justify-center text-[#141414] font-bold">
-            <Sparkles className="w-4 h-4" />
-          </div>
+          <img
+            src={glbLogo}
+            alt="GLB Factory logo"
+            className="w-10 h-10 rounded-none border-2 border-lime-400/50 object-cover shrink-0 shadow-[0_0_12px_rgba(132,204,22,0.45)]"
+            id="app-header-logo"
+          />
           <div>
             <h1 className="font-mono text-sm font-bold tracking-widest uppercase flex items-center gap-2 text-white">
               GLB Factory
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse inline-block"></span>
+              <span className="h-2 w-2 rounded-full bg-lime-400 animate-pulse inline-block shadow-[0_0_8px_#84cc16]"></span>
             </h1>
-            <p className="font-mono text-[9px] opacity-70">v1.0.0-RELEASE // {typeof window !== "undefined" ? window.location.hostname.toUpperCase() : "LOCALHOST"}</p>
+            <p className="font-mono text-[9px] opacity-70">
+              {studioMode === "select"
+                ? "PHOTO → 3D · MUTATE · EXPORT // BOB IBM CHALLENGE"
+                : `v1.0.0-RELEASE // ${typeof window !== "undefined" ? window.location.hostname.toUpperCase() : "LOCALHOST"}`}
+            </p>
           </div>
         </div>
 
@@ -1114,25 +1147,35 @@ export default function App() {
           </button>
 
           <div className="flex gap-3 opacity-80">
-            <span>CPU: 42%</span>
-            <span>MEM: 1.2GB</span>
-            <span>GPU: THREE.JS</span>
+            <span className="text-cyan-300">CPU: 42%</span>
+            <span className="text-fuchsia-300">MEM: 1.2GB</span>
+            <span className="text-lime-300">GPU: THREE.JS</span>
           </div>
-          <div className="border-l border-[#E4E3E0]/20 pl-4 opacity-75 hidden md:block">
-            ENGINE // GEMINI_3.5_FLASH
+          <div className="border-l border-[#E4E3E0]/20 pl-4 opacity-75 hidden md:block text-cyan-200/80">
+            ENGINE // GEMINI + CLIENT FALLBACK
           </div>
         </div>
       </header>
 
       {/* CORE CONTENT */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 md:p-8 space-y-6">
-        {/* PIPELINE STUDIO STATUS BAR */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 bg-[#D4D3D0] border-2 border-[#141414] p-2 rounded-none text-center text-xs font-mono select-none" id="pipeline-status-bar">
+      <main
+        className={`flex-1 w-full mx-auto space-y-6 ${
+          studioMode === "select"
+            ? "max-w-6xl p-3 md:p-6"
+            : "max-w-7xl p-4 md:p-8"
+        }`}
+      >
+        {/* PIPELINE STUDIO STATUS BAR — colorful on select, step-lit when building */}
+        {studioMode !== "select" && (
+        <div
+          className="grid grid-cols-2 md:grid-cols-4 gap-2 border-2 border-[#141414] p-2 rounded-none text-center text-xs font-mono select-none bg-gradient-to-r from-cyan-100 via-fuchsia-100 to-lime-100"
+          id="pipeline-status-bar"
+        >
           <div
             className={`py-2 px-3 rounded-none flex items-center justify-center gap-2 transition-all duration-300 border ${
               sourceImage
-                ? "bg-[#141414] text-[#E4E3E0] border-[#141414]"
-                : "bg-transparent text-[#141414]/40 border-transparent"
+                ? "bg-cyan-500 text-white border-cyan-700 shadow-[2px_2px_0px_0px_#141414]"
+                : "bg-white/50 text-[#141414]/40 border-transparent"
             }`}
           >
             <span className="w-5 h-5 rounded-none border border-current flex items-center justify-center text-[10px] font-bold">01</span>
@@ -1141,8 +1184,8 @@ export default function App() {
           <div
             className={`py-2 px-3 rounded-none flex items-center justify-center gap-2 transition-all duration-300 border ${
               currentStep === "texture" || currentStep === "mesh" || currentStep === "glb" || currentStep === "ready"
-                ? "bg-[#141414] text-[#E4E3E0] border-[#141414]"
-                : "bg-transparent text-[#141414]/40 border-transparent"
+                ? "bg-fuchsia-500 text-white border-fuchsia-700 shadow-[2px_2px_0px_0px_#141414]"
+                : "bg-white/50 text-[#141414]/40 border-transparent"
             }`}
           >
             <span className="w-5 h-5 rounded-none border border-current flex items-center justify-center text-[10px] font-bold">02</span>
@@ -1151,8 +1194,8 @@ export default function App() {
           <div
             className={`py-2 px-3 rounded-none flex items-center justify-center gap-2 transition-all duration-300 border ${
               currentStep === "mesh" || currentStep === "glb" || currentStep === "ready"
-                ? "bg-[#141414] text-[#E4E3E0] border-[#141414]"
-                : "bg-transparent text-[#141414]/40 border-transparent"
+                ? "bg-lime-500 text-[#141414] border-lime-700 shadow-[2px_2px_0px_0px_#141414]"
+                : "bg-white/50 text-[#141414]/40 border-transparent"
             }`}
           >
             <span className="w-5 h-5 rounded-none border border-current flex items-center justify-center text-[10px] font-bold">03</span>
@@ -1161,14 +1204,15 @@ export default function App() {
           <div
             className={`py-2 px-3 rounded-none flex items-center justify-center gap-2 transition-all duration-300 border ${
               currentStep === "glb" || currentStep === "ready"
-                ? "bg-[#141414] text-[#E4E3E0] border-[#141414]"
-                : "bg-transparent text-[#141414]/40 border-transparent"
+                ? "bg-amber-400 text-[#141414] border-amber-600 shadow-[2px_2px_0px_0px_#141414]"
+                : "bg-white/50 text-[#141414]/40 border-transparent"
             }`}
           >
             <span className="w-5 h-5 rounded-none border border-current flex items-center justify-center text-[10px] font-bold">04</span>
             <span className="font-bold tracking-wider">EXPORT</span>
           </div>
         </div>
+        )}
 
         {/* Mode switcher — always visible once a mode is chosen */}
         {studioMode !== "select" && (
@@ -1810,7 +1854,9 @@ export default function App() {
 
         </>
         )}
-        <Guidebook wikiTab={wikiTab} setWikiTab={setWikiTab} />
+        {studioMode !== "select" && (
+          <Guidebook wikiTab={wikiTab} setWikiTab={setWikiTab} />
+        )}
       </main>
 
       {/* MUTATION FLOW MODAL */}
@@ -1823,7 +1869,14 @@ export default function App() {
       )}
 
       {/* FOOTER */}
-      <footer className="border-t-2 border-[#141414] bg-[#D4D3D0] text-center py-4 text-[10px] text-[#141414]/60 font-mono mt-auto select-none" id="app-footer">
+      <footer
+        className={`border-t-2 border-[#141414] text-center py-4 text-[10px] font-mono mt-auto select-none ${
+          studioMode === "select"
+            ? "bg-[#0a0614] text-white/50"
+            : "bg-[#D4D3D0] text-[#141414]/60"
+        }`}
+        id="app-footer"
+      >
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2 uppercase tracking-tight">
           <span>DISK_WRITES: 124.5MB // UPTIME: 00:14:22</span>
           <span>
@@ -1832,7 +1885,9 @@ export default function App() {
               href="https://github.com/DaCameraGirl"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-[#141414] underline underline-offset-2"
+              className={`underline underline-offset-2 ${
+                studioMode === "select" ? "hover:text-lime-300" : "hover:text-[#141414]"
+              }`}
             >
               DACAMERAGIRL
             </a>{" "}
