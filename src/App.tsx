@@ -525,9 +525,21 @@ export default function App() {
         return { r, g, b, lum: 0.2126 * r + 0.7152 * g + 0.0722 * b };
       };
 
-      // Skin: central face region
-      const skin = averageRegion(40, 38, 20, 22);
-      const skin_tone = rgbToHex(skin.r, skin.g, skin.b);
+      // Skin: sample cheeks & forehead (avoiding dark eyes/eyebrows/shadows)
+      const candidates = [
+        averageRegion(56, 46, 12, 12), // Right cheek
+        averageRegion(32, 46, 12, 12), // Left cheek
+        averageRegion(42, 28, 16, 10), // Forehead
+        averageRegion(42, 42, 16, 16), // Central face
+      ];
+
+      let skin_tone = defaults.skin_tone;
+      for (const cand of candidates) {
+        if (cand.lum > 65 && cand.r > cand.g && cand.g > cand.b * 0.75) {
+          skin_tone = rgbToHex(cand.r, cand.g, cand.b);
+          break;
+        }
+      }
 
       // Hair: upper band
       const hair = averageRegion(35, 8, 30, 14);
