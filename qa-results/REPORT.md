@@ -1,6 +1,6 @@
 # GLB Factory QA Report
 
-**Generated:** 2026-07-25T15:55:12.420Z
+**Generated:** 2026-08-01T15:17:17.751Z
 **Summary:** 23 PASS · 0 FAIL · 0 SKIP
 
 ## Results
@@ -23,11 +23,11 @@
 | **PASS** | local:reload-offspring | LOAD clicked on specimen |
 | **PASS** | local:state-survive-to-create | canvas present after return to create |
 | **PASS** | local:state-after-select-roundtrip | canvas rebuilt after select round-trip |
-| **PASS** | local:export-glb | turbo_pulse.glb (135744 bytes) |
-| **PASS** | local:export-texture | turbo_pulse_face_texture.png (75724 bytes) |
+| **PASS** | local:export-glb | hyper_spark.glb (136332 bytes) |
+| **PASS** | local:export-texture | hyper_spark_face_texture.png (54278 bytes) |
 | **PASS** | pages-build | GITHUB_ACTIONS=true build ok |
 | **PASS** | pages-asset-prefix | JS/CSS under /GLB_FACTORY/assets/ |
-| **PASS** | pages-js-fetch | http://127.0.0.1:4178/GLB_FACTORY/assets/index-BGJr37A_.js (1107811 bytes) |
+| **PASS** | pages-js-fetch | http://127.0.0.1:4178/GLB_FACTORY/assets/index-DEyikzF5.js (1132557 bytes) |
 | **PASS** | pages-og-asset | og-preview.svg 200 |
 | **PASS** | pages-spa-mode | Create mode works under /GLB_FACTORY/ |
 
@@ -56,6 +56,8 @@
 
 ## Downloads
 
+- `hyper_spark.glb` (136332 bytes)
+- `hyper_spark_face_texture.png` (54278 bytes)
 - `turbo_pulse.glb` (135744 bytes)
 - `turbo_pulse_face_texture.png` (75724 bytes)
 
