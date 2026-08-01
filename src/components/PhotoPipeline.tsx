@@ -1,6 +1,7 @@
 import React from "react";
 import { Upload, Sparkles, RefreshCw, User, Sliders } from "lucide-react";
 import { AvatarConfig } from "../types";
+import { estimateFaceBox } from "../utils/faceDetector";
 
 export interface PhotoPipelineProps {
   characterName: string;
@@ -97,11 +98,9 @@ export default function PhotoPipeline({
                           alt="Portrait source"
                           className="w-full h-full object-cover"
                           onLoad={() => {
-                            // Automatically set a full-bounding box if none is set
-                            if (!faceBox) {
-                              setFaceBox([10, 10, 90, 90]);
-                            } else {
-                              updateFaceTexture();
+                            if (imageRef.current) {
+                              const est = estimateFaceBox(imageRef.current) || [20, 20, 80, 80];
+                              setFaceBox(est);
                             }
                           }}
                         />
