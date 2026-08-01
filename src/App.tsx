@@ -438,7 +438,14 @@ export default function App() {
       setFaceCanvas(null);
       setIsSuccess(false);
       setCurrentStep("texture");
-      setConfig((prev) => ({ ...prev, cropX: 0, cropY: 0, cropScale: 1.0 }));
+      setConfig((prev) => ({
+        ...prev,
+        creatureVariant: "none",
+        photoMorphProgress: 1.0,
+        cropX: 0,
+        cropY: 0,
+        cropScale: 1.0,
+      }));
       addLog(`Loaded image: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`, "success");
       addLog("Ready to build. Click 'BUILD AVATAR' to let Gemini auto-detect the face features.", "info");
     };
@@ -592,6 +599,8 @@ export default function App() {
       setFaceBox(result.face_box);
       setConfig((prev) => ({
         ...prev,
+        creatureVariant: "none",
+        photoMorphProgress: 1.0,
         skinColor: result.skin_tone || prev.skinColor,
         hairColor: result.hair_color || prev.hairColor,
         clothingColor: result.clothing_color || prev.clothingColor,
@@ -644,6 +653,8 @@ export default function App() {
         setFaceBox(localBox);
         setConfig((prev) => ({
           ...prev,
+          creatureVariant: "none",
+          photoMorphProgress: 1.0,
           skinColor: result.skin_tone,
           hairColor: result.hair_color,
           clothingColor: result.clothing_color,

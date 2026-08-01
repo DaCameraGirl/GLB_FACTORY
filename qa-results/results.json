@@ -1,0 +1,148 @@
+{
+  "results": [
+    {
+      "id": "production-build",
+      "status": "PASS",
+      "detail": "npm run build exit 0"
+    },
+    {
+      "id": "local-static-server",
+      "status": "PASS",
+      "detail": "http://127.0.0.1:4177/"
+    },
+    {
+      "id": "local:landing-modes",
+      "status": "PASS",
+      "detail": "Create + Mutation visible"
+    },
+    {
+      "id": "local:create-mode",
+      "status": "PASS",
+      "detail": "upload panel visible"
+    },
+    {
+      "id": "local:upload",
+      "status": "PASS",
+      "detail": "image shown (genie-mascot.png)"
+    },
+    {
+      "id": "local:build-avatar",
+      "status": "PASS",
+      "detail": "WebGL canvas present"
+    },
+    {
+      "id": "local:face-sliders",
+      "status": "PASS",
+      "detail": "adjusted 5 range inputs"
+    },
+    {
+      "id": "local:editor-settings",
+      "status": "PASS",
+      "detail": "customization panel interacted"
+    },
+    {
+      "id": "local:switch-to-mutate",
+      "status": "PASS",
+      "detail": "lab visible, upload hidden=true"
+    },
+    {
+      "id": "local:state-survive-to-mutate",
+      "status": "PASS",
+      "detail": "canvas still present after mode switch"
+    },
+    {
+      "id": "local:mutate",
+      "status": "PASS",
+      "detail": "clicked mutate 3x"
+    },
+    {
+      "id": "local:vault-save",
+      "status": "PASS",
+      "detail": "3 specimen cards (LOAD buttons)"
+    },
+    {
+      "id": "local:breed",
+      "status": "PASS",
+      "detail": "fused two parents"
+    },
+    {
+      "id": "local:reload-offspring",
+      "status": "PASS",
+      "detail": "LOAD clicked on specimen"
+    },
+    {
+      "id": "local:state-survive-to-create",
+      "status": "PASS",
+      "detail": "canvas present after return to create"
+    },
+    {
+      "id": "local:state-after-select-roundtrip",
+      "status": "PASS",
+      "detail": "canvas rebuilt after select round-trip"
+    },
+    {
+      "id": "local:export-glb",
+      "status": "PASS",
+      "detail": "turbo_pulse.glb (135744 bytes)"
+    },
+    {
+      "id": "local:export-texture",
+      "status": "PASS",
+      "detail": "turbo_pulse_face_texture.png (75724 bytes)"
+    },
+    {
+      "id": "pages-build",
+      "status": "PASS",
+      "detail": "GITHUB_ACTIONS=true build ok"
+    },
+    {
+      "id": "pages-asset-prefix",
+      "status": "PASS",
+      "detail": "JS/CSS under /GLB_FACTORY/assets/"
+    },
+    {
+      "id": "pages-js-fetch",
+      "status": "PASS",
+      "detail": "http://127.0.0.1:4178/GLB_FACTORY/assets/index-BGJr37A_.js (1107811 bytes)"
+    },
+    {
+      "id": "pages-og-asset",
+      "status": "PASS",
+      "detail": "og-preview.svg 200"
+    },
+    {
+      "id": "pages-spa-mode",
+      "status": "PASS",
+      "detail": "Create mode works under /GLB_FACTORY/"
+    }
+  ],
+  "shots": [
+    "local-01-landing.png",
+    "local-02-create-mode.png",
+    "local-03-after-upload.png",
+    "local-04-viewport-after-build.png",
+    "local-04b-full-after-build.png",
+    "local-05-viewport-after-sliders.png",
+    "local-06-viewport-after-editor.png",
+    "local-07-viewport-mutate-mode.png",
+    "local-07b-mutate-mode-full.png",
+    "local-08-viewport-after-mutate.png",
+    "local-09-viewport-after-breed-load.png",
+    "local-09b-vault-full.png",
+    "local-10-viewport-back-create.png",
+    "local-11-back-to-select.png",
+    "local-12-viewport-after-select-roundtrip.png",
+    "local-13-final-viewport.png",
+    "local-13-final.png",
+    "pages-01-landing.png",
+    "pages-02-create.png",
+    "pages-03-mutate.png"
+  ],
+  "dls": [
+    "turbo_pulse.glb",
+    "turbo_pulse_face_texture.png"
+  ],
+  "passN": 23,
+  "failN": 0,
+  "skipN": 0
+}
