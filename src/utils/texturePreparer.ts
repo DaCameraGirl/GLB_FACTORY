@@ -1,29 +1,29 @@
 /**
  * Prepares the face texture by cropping from the original image,
- * blending it with the base skin color, and optionally applying
- * a feathered radial mask so it blends seamlessly onto the head mesh.
+ * blending it with the base skin color, and applying a feathered radial
+ * mask so it blends seamlessly onto the head mesh without dark background bleed.
  */
 export function prepareFaceTexture(
   img: HTMLImageElement,
   box: [number, number, number, number], // [ymin, xmin, ymax, xmax] (0 to 100)
   skinColor: string,
   featherEdges: boolean,
-  featherRadius: number, // 0 to 100 (percentage size of the solid center)
-  offsetX: number = 0, // shift crop horizontally (percent of face size)
+  featherRadius: number, // 0 to 100
+  offsetX: number = 0, // shift crop horizontally
   offsetY: number = 0, // shift crop vertically
   scale: number = 1.0  // manual crop scaling zoom
 ): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
   canvas.height = 256;
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return canvas;
 
   // 1. Fill background with base skin color
   ctx.fillStyle = skinColor;
   ctx.fillRect(0, 0, 256, 256);
 
-  // Convert percentage box to actual image pixels (with client-side fallback)
+  // Convert percentage box to actual image pixels
   const imgW = img.naturalWidth || img.width || img.clientWidth || 256;
   const imgH = img.naturalHeight || img.height || img.clientHeight || 256;
 
@@ -41,7 +41,6 @@ export function prepareFaceTexture(
   let faceW = xmax - xmin;
   let faceH = ymax - ymin;
 
-  // Adjust for square crop aspect ratio to prevent face stretching
   const size = Math.max(faceW, faceH);
   const centerX = xmin + faceW / 2;
   const centerY = ymin + faceH / 2;
@@ -56,97 +55,99 @@ export function prepareFaceTexture(
   const finalW = Math.min(imgW - finalXmin, finalSize);
   const finalH = Math.min(imgH - finalYmin, finalSize);
 
-  // 2. Create temporary canvas for the cropped raw face
+  // 2. Create temporary canvas for the cropped face
   const tempCanvas = document.createElement("canvas");
   tempCanvas.width = 256;
   tempCanvas.height = 256;
-  const tempCtx = tempCanvas.getContext("2d");
+  const tempCtx = tempCanvas.getContext("2d", { willReadFrequently: true });
   if (!tempCtx) return canvas;
 
-  // Draw cropped face into a beautifully centered region.
-  // featherRadius doubles as the coverage control: higher values grow the drawn
-  // face toward filling the entire 256x256 head texture, not just a small fixed circle.
-  const faceSizeOnCanvas = 80 + (featherRadius / 100) * 176; // 80..256 (full coverage)
+  // Center face crop (target size 120..190px on canvas)
+  const faceSizeOnCanvas = 120 + (featherRadius / 100) * 70;
   const targetX = (256 - faceSizeOnCanvas) / 2;
-  const targetY = (256 - faceSizeOnCanvas) / 2;
+  const targetY = (256 - faceSizeOnCanvas) / 2 - 4;
 
   if (finalW > 0 && finalH > 0 && imgW > 0 && imgH > 0) {
     try {
       tempCtx.drawImage(
         img,
         finalXmin, finalYmin, finalW, finalH, // Source
-        targetX, targetY, faceSizeOnCanvas, faceSizeOnCanvas // Destination centered
+        targetX, targetY, faceSizeOnCanvas, faceSizeOnCanvas // Destination
       );
     } catch (drawErr) {
       console.warn("Skipped drawing raw crop due to canvas drawImage limits", drawErr);
     }
   }
 
-  // 3. Apply radial mask feathering or circular clipping
+  // 3. Apply radial mask feathering
   const maskCanvas = document.createElement("canvas");
   maskCanvas.width = 256;
   maskCanvas.height = 256;
   const maskCtx = maskCanvas.getContext("2d");
   if (maskCtx) {
     const maxRadius = faceSizeOnCanvas / 2;
-    // A circle inscribed in the 256x256 canvas (radius = half-width) never
-    // reaches the corners — at most ~79% of the square is covered, no matter
-    // how high featherRadius goes. Blend the mask radius toward the canvas's
-    // half-diagonal (sqrt(2) * maxRadius) as featherRadius approaches 100 so
-    // "100%" actually means edge-to-edge coverage instead of a capped disc.
-    const coverage = featherRadius / 100;
-    const cornerFactor = 1 + coverage * (Math.SQRT2 - 1);
-    const cappedMaxRadius = maxRadius * cornerFactor;
+    const innerRadius = maxRadius * (featherEdges ? 0.55 : 0.85);
+    const outerRadius = maxRadius;
 
-    if (featherEdges) {
-      // Wide soft falloff into skin so the photo wraps the skull instead of reading as a sticker.
-      // Inner solid disc ~85% of radius; only the last sliver fades to the rim.
-      const innerRadius = cappedMaxRadius * 0.85;
-      const outerRadius = cappedMaxRadius;
+    const gradient = maskCtx.createRadialGradient(
+      128, 124, innerRadius,
+      128, 124, outerRadius
+    );
+    gradient.addColorStop(0, "rgba(0,0,0,1)");
+    gradient.addColorStop(0.5, "rgba(0,0,0,0.85)");
+    gradient.addColorStop(0.8, "rgba(0,0,0,0.35)");
+    gradient.addColorStop(1, "rgba(0,0,0,0)");
 
-      const gradient = maskCtx.createRadialGradient(
-        128, 128, innerRadius,
-        128, 128, outerRadius
-      );
-      gradient.addColorStop(0, "rgba(0,0,0,1)");
-      gradient.addColorStop(0.45, "rgba(0,0,0,0.92)");
-      gradient.addColorStop(0.75, "rgba(0,0,0,0.45)");
-      gradient.addColorStop(1, "rgba(0,0,0,0)");
+    maskCtx.fillStyle = gradient;
+    maskCtx.fillRect(0, 0, 256, 256);
 
-      maskCtx.fillStyle = gradient;
-      maskCtx.fillRect(0, 0, 256, 256);
-    } else {
-      // Soft-edged circular clip (slight feather even in "hard" mode to avoid alias ring)
-      const outerRadius = cappedMaxRadius * 0.99;
-      const gradient = maskCtx.createRadialGradient(
-        128, 128, outerRadius * 0.88,
-        128, 128, outerRadius
-      );
-      gradient.addColorStop(0, "rgba(0,0,0,1)");
-      gradient.addColorStop(1, "rgba(0,0,0,0)");
-      maskCtx.fillStyle = gradient;
-      maskCtx.fillRect(0, 0, 256, 256);
-    }
-
-    // Mask the raw face photo
     tempCtx.globalCompositeOperation = "destination-in";
     tempCtx.drawImage(maskCanvas, 0, 0);
   }
 
-  // 4. Paint the feathered face over the skin background
+  // 4. Suppress dark photo background/clothing pixels outside core face region
+  // so dark hoodies/backgrounds fade cleanly into skinColor instead of stamping a black disc.
+  const tempImgData = tempCtx.getImageData(0, 0, 256, 256);
+  const data = tempImgData.data;
+  const cx = 128, cy = 124;
+  const coreRadius = (faceSizeOnCanvas / 2) * 0.45; // inner face skin region (eyes/nose/mouth)
+
+  for (let y = 0; y < 256; y++) {
+    for (let x = 0; x < 256; x++) {
+      const idx = (y * 256 + x) * 4;
+      const alpha = data[idx + 3];
+      if (alpha === 0) continue;
+
+      const dx = x - cx;
+      const dy = y - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist > coreRadius) {
+        const r = data[idx];
+        const g = data[idx + 1];
+        const b = data[idx + 2];
+        const lum = r * 0.299 + g * 0.587 + b * 0.114;
+
+        if (lum < 75) {
+          const fadeFactor = Math.max(0, (lum - 20) / 55);
+          const distFade = Math.max(0, 1 - (dist - coreRadius) / ((faceSizeOnCanvas / 2) - coreRadius));
+          data[idx + 3] = Math.round(alpha * Math.min(fadeFactor, distFade));
+        }
+      }
+    }
+  }
+  tempCtx.putImageData(tempImgData, 0, 0);
+
+  // 5. Paint feathered face over skin background
   ctx.drawImage(tempCanvas, 0, 0);
 
-  // 5. Guarantee pure skin in the four corners (used by side/back UV falloff).
-  // Skip this once featherRadius is maxed out — that's the user asking for
-  // full edge-to-edge photo coverage, so don't punch skin squares back over it.
-  if (featherRadius < 90) {
-    ctx.fillStyle = skinColor;
-    const corner = 18;
-    ctx.fillRect(0, 0, corner, corner);
-    ctx.fillRect(256 - corner, 0, corner, corner);
-    ctx.fillRect(0, 256 - corner, corner, corner);
-    ctx.fillRect(256 - corner, 256 - corner, corner, corner);
-  }
+  // 6. Guarantee pure skin on corners & margins for side/back UV falloff
+  ctx.fillStyle = skinColor;
+  const corner = 32;
+  ctx.fillRect(0, 0, corner, corner);
+  ctx.fillRect(256 - corner, 0, corner, corner);
+  ctx.fillRect(0, 256 - corner, corner, corner);
+  ctx.fillRect(256 - corner, 256 - corner, corner, corner);
 
   return canvas;
 }
