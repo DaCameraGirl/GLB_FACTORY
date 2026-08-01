@@ -83,12 +83,12 @@
     {
       "id": "local:export-glb",
       "status": "PASS",
-      "detail": "hyper_spark.glb (136332 bytes)"
+      "detail": "giga_rig.glb (50840 bytes)"
     },
     {
       "id": "local:export-texture",
       "status": "PASS",
-      "detail": "hyper_spark_face_texture.png (54278 bytes)"
+      "detail": "giga_rig_face_texture.png (30175 bytes)"
     },
     {
       "id": "pages-build",
@@ -103,7 +103,7 @@
     {
       "id": "pages-js-fetch",
       "status": "PASS",
-      "detail": "http://127.0.0.1:4178/GLB_FACTORY/assets/index-DEyikzF5.js (1132557 bytes)"
+      "detail": "http://127.0.0.1:4178/GLB_FACTORY/assets/index-eG_xYLiI.js (1132059 bytes)"
     },
     {
       "id": "pages-og-asset",
@@ -139,10 +139,14 @@
     "pages-03-mutate.png"
   ],
   "dls": [
+    "giga_rig.glb",
+    "giga_rig_face_texture.png",
     "hyper_spark.glb",
     "hyper_spark_face_texture.png",
     "turbo_pulse.glb",
-    "turbo_pulse_face_texture.png"
+    "turbo_pulse_face_texture.png",
+    "voxel_zone.glb",
+    "voxel_zone_face_texture.png"
   ],
   "passN": 23,
   "failN": 0,

@@ -1,7 +1,7 @@
 /**
  * Prepares the face texture by cropping from the original image,
- * blending it with the base skin color, and applying a feathered radial
- * mask so it blends seamlessly onto the head mesh without dark background bleed.
+ * blending it with the base skin color, and applying an anatomical face-oval
+ * (ellipse) mask so it blends seamlessly onto the head mesh without dark background bleed.
  */
 export function prepareFaceTexture(
   img: HTMLImageElement,
@@ -62,8 +62,8 @@ export function prepareFaceTexture(
   const tempCtx = tempCanvas.getContext("2d", { willReadFrequently: true });
   if (!tempCtx) return canvas;
 
-  // Center face crop (target size 120..190px on canvas)
-  const faceSizeOnCanvas = 120 + (featherRadius / 100) * 70;
+  // Center face crop (ideal face size ~150px on 256x256 canvas)
+  const faceSizeOnCanvas = 130 + (featherRadius / 100) * 50;
   const targetX = (256 - faceSizeOnCanvas) / 2;
   const targetY = (256 - faceSizeOnCanvas) / 2 - 4;
 
@@ -79,38 +79,17 @@ export function prepareFaceTexture(
     }
   }
 
-  // 3. Apply radial mask feathering
-  const maskCanvas = document.createElement("canvas");
-  maskCanvas.width = 256;
-  maskCanvas.height = 256;
-  const maskCtx = maskCanvas.getContext("2d");
-  if (maskCtx) {
-    const maxRadius = faceSizeOnCanvas / 2;
-    const innerRadius = maxRadius * (featherEdges ? 0.55 : 0.85);
-    const outerRadius = maxRadius;
-
-    const gradient = maskCtx.createRadialGradient(
-      128, 124, innerRadius,
-      128, 124, outerRadius
-    );
-    gradient.addColorStop(0, "rgba(0,0,0,1)");
-    gradient.addColorStop(0.5, "rgba(0,0,0,0.85)");
-    gradient.addColorStop(0.8, "rgba(0,0,0,0.35)");
-    gradient.addColorStop(1, "rgba(0,0,0,0)");
-
-    maskCtx.fillStyle = gradient;
-    maskCtx.fillRect(0, 0, 256, 256);
-
-    tempCtx.globalCompositeOperation = "destination-in";
-    tempCtx.drawImage(maskCanvas, 0, 0);
-  }
-
-  // 4. Suppress dark photo background/clothing pixels outside core face region
-  // so dark hoodies/backgrounds fade cleanly into skinColor instead of stamping a black disc.
+  // 3. Apply an Anatomical Face-Oval (Ellipse) Feather Mask
+  // Vertical radius (ry) covers forehead to chin; Horizontal radius (rx) covers cheek to cheek.
+  // This clips out dark photo backgrounds and clothing on the left/right before they reach the sides of the head.
   const tempImgData = tempCtx.getImageData(0, 0, 256, 256);
   const data = tempImgData.data;
-  const cx = 128, cy = 124;
-  const coreRadius = (faceSizeOnCanvas / 2) * 0.45; // inner face skin region (eyes/nose/mouth)
+
+  const cx = 128;
+  const cy = 122;
+  const ry = (faceSizeOnCanvas / 2) * 0.92; // vertical radius (~65-72px)
+  const rx = (faceSizeOnCanvas / 2) * 0.60; // horizontal radius (~40-48px)
+  const coreFactor = featherEdges ? 0.55 : 0.82; // solid core inner ratio
 
   for (let y = 0; y < 256; y++) {
     for (let x = 0; x < 256; x++) {
@@ -118,32 +97,30 @@ export function prepareFaceTexture(
       const alpha = data[idx + 3];
       if (alpha === 0) continue;
 
-      const dx = x - cx;
-      const dy = y - cy;
-      const dist = Math.sqrt(dx * dx + dy * dy);
+      const nx = (x - cx) / rx;
+      const ny = (y - cy) / ry;
+      const dist = Math.sqrt(nx * nx + ny * ny);
 
-      if (dist > coreRadius) {
-        const r = data[idx];
-        const g = data[idx + 1];
-        const b = data[idx + 2];
-        const lum = r * 0.299 + g * 0.587 + b * 0.114;
-
-        if (lum < 75) {
-          const fadeFactor = Math.max(0, (lum - 20) / 55);
-          const distFade = Math.max(0, 1 - (dist - coreRadius) / ((faceSizeOnCanvas / 2) - coreRadius));
-          data[idx + 3] = Math.round(alpha * Math.min(fadeFactor, distFade));
-        }
+      if (dist >= 1.0) {
+        // Outside the face oval: 100% transparent (blends to skinColor)
+        data[idx + 3] = 0;
+      } else if (dist > coreFactor) {
+        // Soft feather band between core and outer oval edge
+        const feather = (1.0 - dist) / (1.0 - coreFactor);
+        const smoothFeather = feather * feather * (3 - 2 * feather); // smoothstep
+        data[idx + 3] = Math.round(alpha * smoothFeather);
       }
     }
   }
+
   tempCtx.putImageData(tempImgData, 0, 0);
 
-  // 5. Paint feathered face over skin background
+  // 4. Paint feathered face oval over base skin color
   ctx.drawImage(tempCanvas, 0, 0);
 
-  // 6. Guarantee pure skin on corners & margins for side/back UV falloff
+  // 5. Guarantee pure skin on corners & margins for side/back UV falloff
   ctx.fillStyle = skinColor;
-  const corner = 32;
+  const corner = 36;
   ctx.fillRect(0, 0, corner, corner);
   ctx.fillRect(256 - corner, 0, corner, corner);
   ctx.fillRect(0, 256 - corner, corner, corner);

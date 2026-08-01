@@ -215,8 +215,8 @@ function applyFrontProjectionUVs(geometry: THREE.BufferGeometry) {
     const t = blend * blend * (3 - 2 * blend);
 
     // Center face slightly high so eyes sit above equator of the sphere
-    const uProj = 0.5 + nx * 0.46;
-    const vProj = 0.48 + ny * 0.46;
+    const uProj = 0.5 + nx * 0.38;
+    const vProj = 0.48 + ny * 0.42;
 
     // Skin-colored border of the prepared texture (corners stay pure skin)
     const uSkin = 0.02;
