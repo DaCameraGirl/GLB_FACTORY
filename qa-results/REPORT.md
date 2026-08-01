@@ -1,6 +1,6 @@
 # GLB Factory QA Report
 
-**Generated:** 2026-08-01T16:19:51.704Z
+**Generated:** 2026-08-01T17:34:34.323Z
 **Summary:** 23 PASS · 0 FAIL · 0 SKIP
 
 ## Results
@@ -23,16 +23,18 @@
 | **PASS** | local:reload-offspring | LOAD clicked on specimen |
 | **PASS** | local:state-survive-to-create | canvas present after return to create |
 | **PASS** | local:state-after-select-roundtrip | canvas rebuilt after select round-trip |
-| **PASS** | local:export-glb | turbo_pico.glb (40296 bytes) |
-| **PASS** | local:export-texture | turbo_pico_face_texture.png (30140 bytes) |
+| **PASS** | local:export-glb | pico_vibe.glb (355784 bytes) |
+| **PASS** | local:export-texture | pico_vibe_face_texture.png (30140 bytes) |
 | **PASS** | pages-build | GITHUB_ACTIONS=true build ok |
 | **PASS** | pages-asset-prefix | JS/CSS under /GLB_FACTORY/assets/ |
-| **PASS** | pages-js-fetch | http://127.0.0.1:4178/GLB_FACTORY/assets/index-BGrrOiAP.js (1132199 bytes) |
+| **PASS** | pages-js-fetch | http://127.0.0.1:4178/GLB_FACTORY/assets/index-KvSjLG53.js (1133481 bytes) |
 | **PASS** | pages-og-asset | og-preview.svg 200 |
 | **PASS** | pages-spa-mode | Create mode works under /GLB_FACTORY/ |
 
 ## Screenshots
 
+- `live-github-pages-01.png` — ![](screenshots/live-github-pages-01.png)
+- `live-github-pages-02-create.png` — ![](screenshots/live-github-pages-02-create.png)
 - `local-01-landing.png` — ![](screenshots/local-01-landing.png)
 - `local-02-create-mode.png` — ![](screenshots/local-02-create-mode.png)
 - `local-03-after-upload.png` — ![](screenshots/local-03-after-upload.png)
@@ -60,6 +62,8 @@
 - `giga_rig_face_texture.png` (30175 bytes)
 - `hyper_spark.glb` (136332 bytes)
 - `hyper_spark_face_texture.png` (54278 bytes)
+- `pico_vibe.glb` (355784 bytes)
+- `pico_vibe_face_texture.png` (30140 bytes)
 - `turbo_pico.glb` (40296 bytes)
 - `turbo_pico_face_texture.png` (30140 bytes)
 - `turbo_pulse.glb` (135744 bytes)

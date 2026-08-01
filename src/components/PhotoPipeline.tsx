@@ -1,7 +1,7 @@
 import React from "react";
 import { Upload, Sparkles, RefreshCw, User, Sliders } from "lucide-react";
 import { AvatarConfig } from "../types";
-import { estimateFaceBox } from "../utils/faceDetector";
+import { estimateFaceBox, analyzeColorsClientSide } from "../utils/faceDetector";
 
 export interface PhotoPipelineProps {
   characterName: string;
@@ -101,6 +101,14 @@ export default function PhotoPipeline({
                             if (imageRef.current) {
                               const est = estimateFaceBox(imageRef.current) || [20, 20, 80, 80];
                               setFaceBox(est);
+                              const colors = analyzeColorsClientSide(imageRef.current);
+                              setConfig((prev) => ({
+                                ...prev,
+                                skinColor: colors.skin_tone,
+                                hairColor: colors.hair_color,
+                                clothingColor: colors.clothing_color,
+                                hairStyle: colors.gender_style,
+                              }));
                             }
                           }}
                         />

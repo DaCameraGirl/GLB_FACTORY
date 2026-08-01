@@ -107,3 +107,93 @@ export function estimateFaceBox(
 
   return [ymin, xmin, ymax, xmax];
 }
+
+export function analyzeColorsClientSide(img: HTMLImageElement): {
+  skin_tone: string;
+  hair_color: string;
+  clothing_color: string;
+  gender_style: "short" | "medium" | "long" | "spiky" | "bald" | "afro" | "pony" | "bob";
+} {
+  const defaults = {
+    skin_tone: "#e5a65d",
+    hair_color: "#211510",
+    clothing_color: "#1e3a8a",
+    gender_style: "short" as const,
+  };
+
+  try {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return defaults;
+
+    canvas.width = 100;
+    canvas.height = 100;
+    ctx.drawImage(img, 0, 0, 100, 100);
+
+    const rgbToHex = (r: number, g: number, b: number) => {
+      return (
+        "#" +
+        [r, g, b]
+          .map((x) => {
+            const hex = Math.max(0, Math.min(255, Math.round(x))).toString(16);
+            return hex.length === 1 ? "0" + hex : hex;
+          })
+          .join("")
+      );
+    };
+
+    const averageRegion = (x0: number, y0: number, w: number, h: number) => {
+      const data = ctx.getImageData(
+        Math.max(0, x0),
+        Math.max(0, y0),
+        Math.min(w, 100 - x0),
+        Math.min(h, 100 - y0)
+      ).data;
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        r += data[i];
+        g += data[i + 1];
+        b += data[i + 2];
+        n++;
+      }
+      if (n === 0) return { r: 128, g: 128, b: 128, lum: 128 };
+      r /= n; g /= n; b /= n;
+      return { r, g, b, lum: 0.2126 * r + 0.7152 * g + 0.0722 * b };
+    };
+
+    // Skin: sample cheeks & forehead (avoiding dark eyes/eyebrows/shadows)
+    const candidates = [
+      averageRegion(56, 46, 12, 12), // Right cheek
+      averageRegion(32, 46, 12, 12), // Left cheek
+      averageRegion(42, 28, 16, 10), // Forehead
+      averageRegion(42, 42, 16, 16), // Central face
+    ];
+
+    let skin_tone = defaults.skin_tone;
+    for (const cand of candidates) {
+      if (cand.lum > 65 && cand.r > cand.g && cand.g > cand.b * 0.75) {
+        skin_tone = rgbToHex(cand.r, cand.g, cand.b);
+        break;
+      }
+    }
+
+    const hair = averageRegion(35, 8, 30, 14);
+    const hair_color = hair.lum > 220 ? defaults.hair_color : rgbToHex(hair.r, hair.g, hair.b);
+
+    const clothing = averageRegion(30, 78, 40, 16);
+    let clothing_color = defaults.clothing_color;
+    if (clothing.lum >= 18 && clothing.lum <= 245) {
+      clothing_color = rgbToHex(clothing.r, clothing.g, clothing.b);
+    }
+
+    return {
+      skin_tone,
+      hair_color,
+      clothing_color,
+      gender_style: "short",
+    };
+  } catch (e) {
+    console.warn("Could not read image pixels client-side", e);
+    return defaults;
+  }
+}

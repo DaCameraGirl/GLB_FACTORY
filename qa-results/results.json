@@ -83,12 +83,12 @@
     {
       "id": "local:export-glb",
       "status": "PASS",
-      "detail": "turbo_pico.glb (40296 bytes)"
+      "detail": "pico_vibe.glb (355784 bytes)"
     },
     {
       "id": "local:export-texture",
       "status": "PASS",
-      "detail": "turbo_pico_face_texture.png (30140 bytes)"
+      "detail": "pico_vibe_face_texture.png (30140 bytes)"
     },
     {
       "id": "pages-build",
@@ -103,7 +103,7 @@
     {
       "id": "pages-js-fetch",
       "status": "PASS",
-      "detail": "http://127.0.0.1:4178/GLB_FACTORY/assets/index-BGrrOiAP.js (1132199 bytes)"
+      "detail": "http://127.0.0.1:4178/GLB_FACTORY/assets/index-KvSjLG53.js (1133481 bytes)"
     },
     {
       "id": "pages-og-asset",
@@ -117,6 +117,8 @@
     }
   ],
   "shots": [
+    "live-github-pages-01.png",
+    "live-github-pages-02-create.png",
     "local-01-landing.png",
     "local-02-create-mode.png",
     "local-03-after-upload.png",
@@ -143,6 +145,8 @@
     "giga_rig_face_texture.png",
     "hyper_spark.glb",
     "hyper_spark_face_texture.png",
+    "pico_vibe.glb",
+    "pico_vibe_face_texture.png",
     "turbo_pico.glb",
     "turbo_pico_face_texture.png",
     "turbo_pulse.glb",
