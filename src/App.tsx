@@ -607,36 +607,41 @@ export default function App() {
       addLog("Face bounding box detected successfully.", "success");
       addLog(`Extracted features - Skin: ${result.skin_tone}, Hair: ${result.hair_color}, Clothes: ${result.clothing_color}`, "info");
 
-      // Apply detected values
+      // Apply detected values - First set the face box to trigger texture creation
       setFaceBox(result.face_box);
-      setConfig((prev) => ({
-        ...prev,
-        creatureVariant: "none",
-        photoMorphProgress: 1.0,
-        skinColor: result.skin_tone || prev.skinColor,
-        hairColor: result.hair_color || prev.hairColor,
-        clothingColor: result.clothing_color || prev.clothingColor,
-        hairStyle: (result.gender_style as HairStyle) || prev.hairStyle,
-        faceShape: result.face_shape,
-        noseSize: result.nose_size,
-        noseWidth: result.nose_width,
-        jawWidth: result.jaw_width,
-        chinShape: result.chin_shape,
-        cropX: 0,
-        cropY: 0,
-        cropScale: 1.0,
-      }));
-
-      setCurrentStep("mesh");
-      addLog("Constructing 3D avatar meshes...", "info");
-
-      // Small artificial delay to show transition animation beautifully
+      
+      // Wait for face texture to be prepared before updating config
+      // This ensures the avatar is built with the photo texture
       setTimeout(() => {
-        setCurrentStep("glb");
-        setIsSuccess(true);
-        setIsProcessing(false);
-        addLog(`Avatar mesh created and rendered. Ready to export!`, "success");
-      }, 1000);
+        setConfig((prev) => ({
+          ...prev,
+          creatureVariant: "none",
+          photoMorphProgress: 1.0,
+          skinColor: result.skin_tone || prev.skinColor,
+          hairColor: result.hair_color || prev.hairColor,
+          clothingColor: result.clothing_color || prev.clothingColor,
+          hairStyle: (result.gender_style as HairStyle) || prev.hairStyle,
+          faceShape: result.face_shape,
+          noseSize: result.nose_size,
+          noseWidth: result.nose_width,
+          jawWidth: result.jaw_width,
+          chinShape: result.chin_shape,
+          cropX: 0,
+          cropY: 0,
+          cropScale: 1.0,
+        }));
+
+        setCurrentStep("mesh");
+        addLog("Constructing 3D avatar meshes...", "info");
+
+        // Small artificial delay to show transition animation beautifully
+        setTimeout(() => {
+          setCurrentStep("glb");
+          setIsSuccess(true);
+          setIsProcessing(false);
+          addLog(`Avatar mesh created and rendered. Ready to export!`, "success");
+        }, 1000);
+      }, 100);
     } catch (err: any) {
       addLog(`Backend analysis unavailable (${err.message}).`, "warning");
       addLog("Switching to offline Client-Side Face Analysis Fallback...", "info");
@@ -663,33 +668,37 @@ export default function App() {
           estimatedBox ? "success" : "warning"
         );
         setFaceBox(localBox);
-        setConfig((prev) => ({
-          ...prev,
-          creatureVariant: "none",
-          photoMorphProgress: 1.0,
-          skinColor: result.skin_tone,
-          hairColor: result.hair_color,
-          clothingColor: result.clothing_color,
-          hairStyle: result.gender_style,
-          faceShape: "oval",
-          noseSize: "medium",
-          noseWidth: "medium",
-          jawWidth: "medium",
-          chinShape: "rounded",
-          cropX: 0,
-          cropY: 0,
-          cropScale: 1.0,
-        }));
-
-        setCurrentStep("mesh");
-        addLog("Constructing 3D avatar meshes...", "info");
-
+        
+        // Wait for face texture to be prepared before updating config
         setTimeout(() => {
-          setCurrentStep("glb");
-          setIsSuccess(true);
-          setIsProcessing(false);
-          addLog(`Avatar mesh created and rendered via local fallback. Ready to export!`, "success");
-        }, 1000);
+          setConfig((prev) => ({
+            ...prev,
+            creatureVariant: "none",
+            photoMorphProgress: 1.0,
+            skinColor: result.skin_tone,
+            hairColor: result.hair_color,
+            clothingColor: result.clothing_color,
+            hairStyle: result.gender_style,
+            faceShape: "oval",
+            noseSize: "medium",
+            noseWidth: "medium",
+            jawWidth: "medium",
+            chinShape: "rounded",
+            cropX: 0,
+            cropY: 0,
+            cropScale: 1.0,
+          }));
+
+          setCurrentStep("mesh");
+          addLog("Constructing 3D avatar meshes...", "info");
+
+          setTimeout(() => {
+            setCurrentStep("glb");
+            setIsSuccess(true);
+            setIsProcessing(false);
+            addLog(`Avatar mesh created and rendered via local fallback. Ready to export!`, "success");
+          }, 1000);
+        }, 100);
       } catch (localErr: any) {
         setIsProcessing(false);
         addLog(`Local analysis failed: ${localErr.message}`, "error");
