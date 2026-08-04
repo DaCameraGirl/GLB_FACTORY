@@ -50,10 +50,15 @@ export function prepareFaceTexture(
   const finalCenterX = centerX + (offsetX / 100) * size;
   const finalCenterY = centerY + (offsetY / 100) * size;
 
-  const finalXmin = Math.max(0, finalCenterX - finalSize / 2);
-  const finalYmin = Math.max(0, finalCenterY - finalSize / 2);
-  const finalW = Math.min(imgW - finalXmin, finalSize);
-  const finalH = Math.min(imgH - finalYmin, finalSize);
+  // Preserve aspect ratio — square crop from center of detected face box
+  // (no stretching faces into squares)
+  const cropSize = finalSize;
+  const cropX = Math.max(0, finalCenterX - cropSize / 2);
+  const cropY = Math.max(0, finalCenterY - cropSize / 2);
+  const finalXmin = cropX;
+  const finalYmin = cropY;
+  const finalW = Math.min(imgW - finalXmin, cropSize);
+  const finalH = Math.min(imgH - finalYmin, cropSize);
 
   // 2. Create temporary canvas for the cropped face
   const tempCanvas = document.createElement("canvas");
@@ -62,16 +67,20 @@ export function prepareFaceTexture(
   const tempCtx = tempCanvas.getContext("2d", { willReadFrequently: true });
   if (!tempCtx) return canvas;
 
-  // Center face crop (ideal face size ~150px on 256x256 canvas)
-  const faceSizeOnCanvas = 130 + (featherRadius / 100) * 50;
+  // Center face crop — bigger face, less background bleed
+  const faceSizeOnCanvas = 140 + (featherRadius / 100) * 45;
   const targetX = (256 - faceSizeOnCanvas) / 2;
   const targetY = (256 - faceSizeOnCanvas) / 2 - 4;
 
   if (finalW > 0 && finalH > 0 && imgW > 0 && imgH > 0) {
     try {
+      // Aspect-ratio-preserving center crop: use min(finalW,finalH) so faces don't squash
+      const srcSize = Math.min(finalW, finalH);
+      const srcX = finalXmin + (finalW - srcSize) / 2;
+      const srcY = finalYmin + (finalH - srcSize) / 2;
       tempCtx.drawImage(
         img,
-        finalXmin, finalYmin, finalW, finalH, // Source
+        srcX, srcY, srcSize, srcSize, // Source (square, center-cropped)
         targetX, targetY, faceSizeOnCanvas, faceSizeOnCanvas // Destination
       );
     } catch (drawErr) {
@@ -87,9 +96,9 @@ export function prepareFaceTexture(
 
   const cx = 128;
   const cy = 122;
-  const ry = (faceSizeOnCanvas / 2) * 0.92; // vertical radius (~65-72px)
-  const rx = (faceSizeOnCanvas / 2) * 0.60; // horizontal radius (~40-48px)
-  const coreFactor = featherEdges ? 0.55 : 0.82; // solid core inner ratio
+  const ry = (faceSizeOnCanvas / 2) * 0.92; // vertical radius
+  const rx = (faceSizeOnCanvas / 2) * 0.78; // horizontal radius — wider, stops cutting off cheeks/jaw
+  const coreFactor = featherEdges ? 0.68 : 0.88; // solid core inner ratio — less aggressive edge fade
 
   for (let y = 0; y < 256; y++) {
     for (let x = 0; x < 256; x++) {

@@ -256,8 +256,8 @@ export default function PhotoPipeline({
                     </div>
                     <input
                       type="range"
-                      min="0.4"
-                      max="2.0"
+                      min="0.1"
+                      max="4.0"
                       step="0.05"
                       value={config.cropScale}
                       onChange={(e) => setConfig((prev) => ({ ...prev, cropScale: parseFloat(e.target.value) }))}
@@ -272,8 +272,8 @@ export default function PhotoPipeline({
                     </div>
                     <input
                       type="range"
-                      min="-50"
-                      max="50"
+                      min="-100"
+                      max="100"
                       value={config.cropX}
                       onChange={(e) => setConfig((prev) => ({ ...prev, cropX: parseInt(e.target.value) }))}
                       className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"
@@ -288,8 +288,8 @@ export default function PhotoPipeline({
                   </div>
                   <input
                     type="range"
-                    min="-50"
-                    max="50"
+                    min="-100"
+                    max="100"
                     value={config.cropY}
                     onChange={(e) => setConfig((prev) => ({ ...prev, cropY: parseInt(e.target.value) }))}
                     className="w-full accent-[#141414] h-1.5 cursor-pointer bg-[#141414]/10"

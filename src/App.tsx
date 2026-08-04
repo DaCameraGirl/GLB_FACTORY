@@ -206,6 +206,7 @@ export default function App() {
     cropX: 0,
     cropY: 0,
     cropScale: 1.0,
+    photoMorphProgress: 1.0,
 
     // Material default parameters
     materialRoughness: 0.8,
@@ -535,7 +536,7 @@ export default function App() {
 
       let skin_tone = defaults.skin_tone;
       for (const cand of candidates) {
-        if (cand.lum > 65 && cand.r > cand.g && cand.g > cand.b * 0.75) {
+        if (cand.lum > 35 && cand.r >= cand.g && cand.g > cand.b * 0.6) {
           skin_tone = rgbToHex(cand.r, cand.g, cand.b);
           break;
         }
@@ -965,6 +966,7 @@ export default function App() {
       cropX: 0,
       cropY: 0,
       cropScale: 1.0,
+    photoMorphProgress: 1.0,
 
       // Material overrides
       materialRoughness: 0.8,

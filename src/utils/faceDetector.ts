@@ -24,10 +24,14 @@ export function estimateFaceBox(
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
-    // YCbCr skin-tone band — more lighting/tone robust than a raw RGB rule.
+    // YCbCr skin-tone band — widened to cover full Monk Skin Tone Scale (medium/brown/dark).
     const cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b;
     const cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b;
-    return cb >= 77 && cb <= 127 && cr >= 133 && cr <= 173;
+    if (cb >= 70 && cb <= 135 && cr >= 130 && cr <= 185) return true;
+    // RGB fallback for skin tones YCbCr still misses (deeper brown/rich melanin).
+    // Relaxed: r >= g (was r > g), g > b*0.6 (was b*0.75), covers broader skin range.
+    if (r >= g && g > b * 0.6 && r > 35 && r - b > 8) return true;
+    return false;
   };
 
   const visited = new Uint8Array(GRID * GRID);
@@ -88,9 +92,10 @@ export function estimateFaceBox(
     }
   }
 
-  // Require a meaningfully sized blob (~2% of the frame) before trusting it —
+  // Require a meaningfully sized blob (~1.5% of the frame) before trusting it —
   // otherwise a stray skin-colored wall or prop could hijack the crop.
-  if (!best || best.size < GRID * GRID * 0.02) {
+  // Lowered from 2.0% to catch smaller/more distant faces.
+  if (!best || best.size < GRID * GRID * 0.015) {
     return null;
   }
 
@@ -171,7 +176,9 @@ export function analyzeColorsClientSide(img: HTMLImageElement): {
 
     let skin_tone = defaults.skin_tone;
     for (const cand of candidates) {
-      if (cand.lum > 65 && cand.r > cand.g && cand.g > cand.b * 0.75) {
+      // Lum gate 35 (was 65) — allows medium/brown/dark skin tones.
+      // r >= g (was r > g), g > b*0.6 (was b*0.75) — broader skin range.
+      if (cand.lum > 35 && cand.r >= cand.g && cand.g > cand.b * 0.6) {
         skin_tone = rgbToHex(cand.r, cand.g, cand.b);
         break;
       }
