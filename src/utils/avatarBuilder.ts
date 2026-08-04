@@ -420,8 +420,28 @@ export function buildAvatar(
     procCtx.fillStyle = config.skinColor;
     procCtx.fillRect(0, 0, 256, 256);
 
-    // Face texture stays blank (skin color only) — no cartoon eyes/mouth.
-    // Photos map onto a clean face.
+    // Cartoon face — only when NO photo texture is mapped.
+    // With a photo: blank skin base, photo is the face.
+    if (!hasPhotoTexture) {
+      // Eyes
+      procCtx.fillStyle = "#141414";
+      const eyeY = 105;
+      const eyeLX = 86;
+      const eyeRX = 170;
+      const eyeR = 11;
+      procCtx.beginPath();
+      procCtx.arc(eyeLX, eyeY, eyeR, 0, Math.PI * 2);
+      procCtx.arc(eyeRX, eyeY, eyeR, 0, Math.PI * 2);
+      procCtx.fill();
+      // Eye highlights
+      procCtx.fillStyle = "#f5f5f0";
+      procCtx.beginPath();
+      procCtx.arc(eyeLX + 3, eyeY - 3, 3, 0, Math.PI * 2);
+      procCtx.arc(eyeRX + 3, eyeY - 3, 3, 0, Math.PI * 2);
+      procCtx.fill();
+      // Mouth / expression
+      drawExpressionOverlay(procCtx, 256, 256, expressionVal);
+    }
   }
 
   // 2. Bake final face map: procedural <-> photo morph on canvas
