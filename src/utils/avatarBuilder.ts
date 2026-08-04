@@ -64,7 +64,7 @@ export function validateAvatarConfig(config: AvatarConfig): AvatarConfig {
   const validBodyTypes: BodyType[] = ["normal", "chibi", "tall", "athletic"];
 
   if (!validHeadShapes.includes(validated.headShape)) validated.headShape = "organic-smooth";
-  if (!validHairStyles.includes(validated.hairStyle)) validated.hairStyle = "short";
+  if (!validHairStyles.includes(validated.hairStyle)) validated.hairStyle = "none";
   if (!validBodyTypes.includes(validated.bodyType)) validated.bodyType = "normal";
 
   const validCreatureVariants = [
@@ -1527,7 +1527,7 @@ export function buildAvatar(
   hairGroup.name = "hairGroup";
   head.add(hairGroup);
 
-  if (config.hairStyle !== "none") {
+  if (config.hairStyle !== "none" && !hasPhotoTexture) { // No hair when photo is mapped — keeps face clean
     if (config.headShape === "organic-smooth" || config.headShape === "rounded-cube") {
       const skullRadius = actualHeadSize * (config.headShape === "rounded-cube" ? 0.52 : 0.48);
 
