@@ -535,10 +535,13 @@ export default function App() {
       ];
 
       let skin_tone = defaults.skin_tone;
+      let bestSkinLum = -1;
       for (const cand of candidates) {
         if (cand.lum > 35 && cand.r >= cand.g && cand.g > cand.b * 0.6) {
-          skin_tone = rgbToHex(cand.r, cand.g, cand.b);
-          break;
+          if (cand.lum > bestSkinLum) {
+            bestSkinLum = cand.lum;
+            skin_tone = rgbToHex(cand.r, cand.g, cand.b);
+          }
         }
       }
 
@@ -618,7 +621,7 @@ export default function App() {
           ...prev,
           creatureVariant: "none",
           photoMorphProgress: 1.0,
-          skinColor: result.skin_tone || prev.skinColor,
+          skinColor: prev.skinColor,
           hairColor: result.hair_color || prev.hairColor,
           clothingColor: result.clothing_color || prev.clothingColor,
           hairStyle: (result.gender_style as HairStyle) || prev.hairStyle,

@@ -174,13 +174,16 @@ export function analyzeColorsClientSide(img: HTMLImageElement): {
       averageRegion(42, 42, 16, 16), // Central face
     ];
 
+    // Pick the BRIGHTEST valid skin sample to avoid shadow/underexposed areas
+    // (important for 3/4 profile photos where fixed sample points hit shadows)
     let skin_tone = defaults.skin_tone;
+    let bestSkinLum = -1;
     for (const cand of candidates) {
-      // Lum gate 35 (was 65) — allows medium/brown/dark skin tones.
-      // r >= g (was r > g), g > b*0.6 (was b*0.75) — broader skin range.
       if (cand.lum > 35 && cand.r >= cand.g && cand.g > cand.b * 0.6) {
-        skin_tone = rgbToHex(cand.r, cand.g, cand.b);
-        break;
+        if (cand.lum > bestSkinLum) {
+          bestSkinLum = cand.lum;
+          skin_tone = rgbToHex(cand.r, cand.g, cand.b);
+        }
       }
     }
 
