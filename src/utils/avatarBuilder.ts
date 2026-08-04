@@ -1375,18 +1375,147 @@ export function buildAvatar(
     }
   }
 
-  if (config.creatureVariant === "snake" && !hasPhotoTexture) {
-    const scaleMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#166534", roughness: 0.4, name: "snake-scale" });
-    const snout = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.22, actualHeadSize * 0.45, 6), scaleMat);
-    snout.name = "snake-snout";
-    snout.rotation.x = Math.PI / 2;
-    snout.position.set(0, -actualHeadSize * 0.02, actualHeadSize * 0.5);
-    head.add(snout);
-    const forkMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.3, name: "snake-tongue" });
+  // === SERPENT / SEA DRAGON ===
+  // Always render serpent features (even with photo - this is a creature morph, not a human face)
+  if (config.creatureVariant === "snake") {
+    const scaleMat = new THREE.MeshStandardMaterial({
+      color: config.skinColor || "#1a6b3a",
+      roughness: 0.35,
+      metalness: 0.15,
+      name: "serpent-scale",
+    });
+
+    // --- Elongated serpent snout / jaw ---
+    const snoutUpper = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.24, actualHeadSize * 0.55, 8), scaleMat);
+    snoutUpper.name = "serpent-snout-upper";
+    snoutUpper.rotation.x = Math.PI / 2;
+    snoutUpper.position.set(0, actualHeadSize * 0.02, actualHeadSize * 0.58);
+    snoutUpper.castShadow = true;
+    head.add(snoutUpper);
+
+    const snoutLower = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.2, actualHeadSize * 0.45, 8), scaleMat);
+    snoutLower.name = "serpent-snout-lower";
+    snoutLower.rotation.x = Math.PI / 2;
+    snoutLower.position.set(0, -actualHeadSize * 0.14, actualHeadSize * 0.52);
+    snoutLower.castShadow = true;
+    head.add(snoutLower);
+
+    // --- Fangs ---
+    const fangMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f0, roughness: 0.15, metalness: 0.05, name: "serpent-fang" });
+    const fangGeo = new THREE.ConeGeometry(actualHeadSize * 0.035, actualHeadSize * 0.16, 6);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([side, front], i) => {
+      const fang = new THREE.Mesh(fangGeo, fangMat);
+      fang.name = `serpent-fang-${i}`;
+      fang.rotation.x = Math.PI;
+      fang.position.set(side * actualHeadSize * 0.1, -actualHeadSize * 0.04, actualHeadSize * (0.58 + front * 0.08));
+      fang.castShadow = true;
+      head.add(fang);
+    });
+
+    // --- Reptilian eyes (glowing amber) ---
+    const eyeGlowMat = new THREE.MeshStandardMaterial({
+      color: 0xffa500,
+      emissive: new THREE.Color(0xff6600),
+      emissiveIntensity: 0.9,
+      roughness: 0.1,
+      name: "serpent-eye",
+    });
+    const eyePupilMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.05, name: "serpent-pupil" });
     [-1, 1].forEach((side) => {
-      const tine = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.03, actualHeadSize * 0.02, actualHeadSize * 0.2), forkMat);
-      tine.name = `snake-tongue-${side}`;
-      tine.position.set(side * actualHeadSize * 0.04, -actualHeadSize * 0.08, actualHeadSize * 0.72);
+      // Eye glow / iris
+      const eye = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.075, 10, 10), eyeGlowMat);
+      eye.name = `serpent-eye-${side}`;
+      eye.position.set(side * actualHeadSize * 0.26, actualHeadSize * 0.1, actualHeadSize * 0.34);
+      eye.castShadow = true;
+      head.add(eye);
+      // Slit pupil
+      const pupil = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.012, actualHeadSize * 0.05, actualHeadSize * 0.04), eyePupilMat);
+      pupil.name = `serpent-pupil-${side}`;
+      pupil.position.set(side * actualHeadSize * 0.26, actualHeadSize * 0.1, actualHeadSize * 0.41);
+      head.add(pupil);
+      // Brow ridge / eye socket
+      const browMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#1a6b3a", roughness: 0.5, name: "serpent-brow" });
+      const brow = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.1, 8, 8), browMat);
+      brow.name = `serpent-brow-${side}`;
+      brow.scale.set(1.3, 0.45, 0.7);
+      brow.position.set(side * actualHeadSize * 0.26, actualHeadSize * 0.18, actualHeadSize * 0.3);
+      brow.castShadow = true;
+      head.add(brow);
+    });
+
+    // --- Horns / antlers (eastern dragon style) ---
+    const hornMat = new THREE.MeshStandardMaterial({ color: 0xd4a574, roughness: 0.6, metalness: 0.1, name: "serpent-horn" });
+    [-1, 1].forEach((side) => {
+      // Main horn curving back
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.045, actualHeadSize * 0.38, 6), hornMat);
+      horn.name = `serpent-horn-${side}`;
+      horn.position.set(side * actualHeadSize * 0.18, actualHeadSize * 0.38, -actualHeadSize * 0.08);
+      horn.rotation.set(-Math.PI * 0.22, 0, side * Math.PI * 0.18);
+      horn.castShadow = true;
+      head.add(horn);
+      // Secondary smaller horn / antler tine
+      const horn2 = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.028, actualHeadSize * 0.22, 5), hornMat);
+      horn2.name = `serpent-horn2-${side}`;
+      horn2.position.set(side * actualHeadSize * 0.28, actualHeadSize * 0.22, actualHeadSize * 0.05);
+      horn2.rotation.set(-Math.PI * 0.08, side * Math.PI * 0.3, side * Math.PI * 0.35);
+      horn2.castShadow = true;
+      head.add(horn2);
+    });
+
+    // --- Whiskers / barbels (eastern dragon) ---
+    const whiskerMat = new THREE.MeshStandardMaterial({ color: 0xe8d5b7, roughness: 0.7, name: "serpent-whisker" });
+    [-1, 1].forEach((side) => {
+      // Long upper whisker
+      const whisker = new THREE.Mesh(getCylinderGeometry(0.008, 0.003, actualHeadSize * 0.65, 6), whiskerMat);
+      whisker.name = `serpent-whisker-upper-${side}`;
+      whisker.position.set(side * actualHeadSize * 0.22, -actualHeadSize * 0.08, actualHeadSize * 0.45);
+      whisker.rotation.set(Math.PI * 0.45, 0, side * Math.PI * 0.35);
+      whisker.castShadow = true;
+      head.add(whisker);
+      // Lower barbel
+      const barbel = new THREE.Mesh(getCylinderGeometry(0.006, 0.002, actualHeadSize * 0.4, 6), whiskerMat);
+      barbel.name = `serpent-whisker-lower-${side}`;
+      barbel.position.set(side * actualHeadSize * 0.14, -actualHeadSize * 0.22, actualHeadSize * 0.48);
+      barbel.rotation.set(Math.PI * 0.65, 0, side * Math.PI * 0.15);
+      barbel.castShadow = true;
+      head.add(barbel);
+    });
+
+    // --- Nasal ridges / frills ---
+    const ridgeMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#1a6b3a", roughness: 0.4, name: "serpent-ridge" });
+    [-1, 1].forEach((side) => {
+      const ridge = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.025, actualHeadSize * 0.18, 4), ridgeMat);
+      ridge.name = `serpent-nasal-ridge-${side}`;
+      ridge.position.set(side * actualHeadSize * 0.1, actualHeadSize * 0.14, actualHeadSize * 0.42);
+      ridge.rotation.x = -Math.PI * 0.12;
+      ridge.castShadow = true;
+      head.add(ridge);
+    });
+
+    // --- Frilled cheek/jaw fins ---
+    const finMat = new THREE.MeshStandardMaterial({
+      color: config.skinColor || "#1a6b3a",
+      roughness: 0.45,
+      transparent: true,
+      opacity: 0.85,
+      side: THREE.DoubleSide,
+      name: "serpent-fin",
+    });
+    [-1, 1].forEach((side) => {
+      const cheekFin = new THREE.Mesh(getBoxGeometry(0.04, actualHeadSize * 0.22, actualHeadSize * 0.28), finMat);
+      cheekFin.name = `serpent-cheek-fin-${side}`;
+      cheekFin.position.set(side * (actualHeadSize * 0.44), -actualHeadSize * 0.05, -actualHeadSize * 0.08);
+      cheekFin.rotation.set(0, side * Math.PI * 0.35, side * Math.PI * 0.08);
+      cheekFin.castShadow = true;
+      head.add(cheekFin);
+    });
+
+    // --- Forked tongue (animated / extended) ---
+    const tongueMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, emissive: new THREE.Color(0x7f1d1d), emissiveIntensity: 0.3, roughness: 0.3, name: "serpent-tongue" });
+    [-1, 1].forEach((side) => {
+      const tine = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.022, actualHeadSize * 0.015, actualHeadSize * 0.28), tongueMat);
+      tine.name = `serpent-tongue-${side}`;
+      tine.position.set(side * actualHeadSize * 0.04, -actualHeadSize * 0.1, actualHeadSize * 0.72);
       tine.rotation.y = side * 0.35;
       head.add(tine);
     });
@@ -2295,34 +2424,138 @@ export function buildAvatar(
       abdomen.scale.set(1.1, 0.9, 1.3);
       torso.add(abdomen);
     } else if (variant === "snake" || variant === "worm") {
-      // Legless elongated body trail
+      // === SERPENT BODY: sinuous segmented tail with dorsal fins ===
       const bodyTrail = new THREE.Group();
       bodyTrail.name = `${variant}-body-trail`;
-      let r = torsoWidth * 0.35;
-      let z = -torsoDepth * 0.4;
-      let y = -torsoHeight * 0.1;
-      const segs = variant === "worm" ? 14 : 12;
+      
+      const isSerpent = variant === "snake";
+      const scaleMatBody = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(config.skinColor),
+        roughness: 0.35,
+        metalness: 0.08,
+        name: "serpent-body",
+      });
+      const finMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(config.clothingColor || "#15803d"),
+        roughness: 0.4,
+        transparent: true,
+        opacity: 0.88,
+        side: THREE.DoubleSide,
+        name: "serpent-fin",
+      });
+      
+      let r = torsoWidth * 0.36;
+      let z = -torsoDepth * 0.35;
+      let y = -torsoHeight * 0.08;
+      const segs = variant === "worm" ? 14 : 14;
+      
       for (let i = 0; i < segs; i++) {
-        const nextR = r * 0.92;
-        const segLen = torsoHeight * 0.28;
-        const seg = new THREE.Mesh(getCylinderGeometry(r, nextR, segLen, 10), animalMat);
+        const nextR = r * 0.88;
+        const segLen = torsoHeight * 0.32;
+        const waveX = Math.sin(i * 0.65) * 0.18;
+        const waveY = Math.cos(i * 0.5) * 0.04;
+        
+        // Main body segment
+        const seg = new THREE.Mesh(getCylinderGeometry(r, nextR, segLen, 12), isSerpent ? scaleMatBody : animalMat);
         seg.rotation.x = -Math.PI / 2;
-        seg.position.set(Math.sin(i * 0.45) * 0.12, y, z - segLen / 2);
+        seg.position.set(waveX, y + waveY, z - segLen / 2);
         seg.castShadow = true;
+        seg.receiveShadow = true;
         bodyTrail.add(seg);
-        // ring ridges for worm
+        
+        // Scale ridge rings (every segment for serpent, every other for worm)
         if (variant === "worm" && i % 2 === 0) {
           const ring = new THREE.Mesh(getCylinderGeometry(r * 1.08, r * 1.08, segLen * 0.15, 10), animalDark);
           ring.rotation.x = -Math.PI / 2;
           ring.position.copy(seg.position);
           bodyTrail.add(ring);
+        } else if (isSerpent) {
+          // Subtle scale ridge rings
+          const ridge = new THREE.Mesh(getCylinderGeometry(r * 1.04, nextR * 1.04, segLen * 0.12, 12), scaleMatBody);
+          ridge.rotation.x = -Math.PI / 2;
+          ridge.position.copy(seg.position);
+          bodyTrail.add(ridge);
         }
-        z -= segLen * 0.95;
-        y -= segLen * 0.04;
+        
+        // === DORSAL FIN CREST (serpent only) ===
+        if (isSerpent && i < segs - 2) {
+          const finHeight = r * (1.4 - i * 0.06);
+          const finGeo = new THREE.ConeGeometry(r * 0.55, finHeight, 5);
+          const fin = new THREE.Mesh(finGeo, finMat);
+          fin.name = `serpent-dorsal-fin-${i}`;
+          fin.position.set(waveX, y + waveY + r + finHeight * 0.35, z - segLen * 0.5);
+          fin.rotation.x = -Math.PI * 0.12;
+          fin.castShadow = true;
+          bodyTrail.add(fin);
+          
+          // Side finlets every few segments
+          if (i % 3 === 1) {
+            [-1, 1].forEach((side) => {
+              const sideFin = new THREE.Mesh(
+                getBoxGeometry(0.03, r * 0.7, r * 0.5),
+                finMat
+              );
+              sideFin.name = `serpent-side-fin-${i}-${side}`;
+              sideFin.position.set(
+                waveX + side * r * 0.85,
+                y + waveY,
+                z - segLen * 0.5
+              );
+              sideFin.rotation.set(0, 0, side * Math.PI * 0.25);
+              sideFin.castShadow = true;
+              bodyTrail.add(sideFin);
+            });
+          }
+        }
+        
+        // === TAIL FIN FLUKE (last segment, serpent only) ===
+        if (isSerpent && i === segs - 1) {
+          const tailFinMat = new THREE.MeshStandardMaterial({
+            color: new THREE.Color(config.clothingColor || "#15803d"),
+            roughness: 0.4,
+            transparent: true,
+            opacity: 0.82,
+            side: THREE.DoubleSide,
+            name: "serpent-tail-fin",
+          });
+          // Forked tail fluke - left lobe
+          const tailL = new THREE.Mesh(
+            getBoxGeometry(r * 1.8, 0.035, r * 1.4),
+            tailFinMat
+          );
+          tailL.name = "serpent-tail-fin-L";
+          tailL.position.set(waveX - r * 0.5, y + waveY, z - segLen * 0.8);
+          tailL.rotation.set(0, 0, Math.PI * 0.18);
+          tailL.castShadow = true;
+          bodyTrail.add(tailL);
+          // Forked tail fluke - right lobe
+          const tailR = new THREE.Mesh(
+            getBoxGeometry(r * 1.8, 0.035, r * 1.4),
+            tailFinMat
+          );
+          tailR.name = "serpent-tail-fin-R";
+          tailR.position.set(waveX + r * 0.5, y + waveY, z - segLen * 0.8);
+          tailR.rotation.set(0, 0, -Math.PI * 0.18);
+          tailR.castShadow = true;
+          bodyTrail.add(tailR);
+          // Center tail spine
+          const tailSpine = new THREE.Mesh(
+            getCylinderGeometry(r * 0.35, 0.015, r * 1.8, 6),
+            scaleMatBody
+          );
+          tailSpine.name = "serpent-tail-spine";
+          tailSpine.rotation.x = -Math.PI / 2;
+          tailSpine.position.set(waveX, y + waveY, z - segLen * 1.1);
+          bodyTrail.add(tailSpine);
+        }
+        
+        z -= segLen * 0.92;
+        y -= segLen * 0.03;
         r = nextR;
       }
       torso.add(bodyTrail);
-      torso.scale.set(0.85, 0.9, 1.4);
+      // Serpent is longer / more sinuous
+      torso.scale.set(isSerpent ? 0.78 : 0.85, 0.9, 1.4);
     } else if (variant === "bat" || variant === "crow") {
       // Small biped legs + big wings
       leftLeg = isOrganic ? createSkinnedLimb(false, true) : createClassicLimb(false, true);

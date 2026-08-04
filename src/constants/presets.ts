@@ -84,11 +84,13 @@ export const CREATURE_VARIANTS: Record<string, CreatureVariantPreset> = {
   },
   snake: {
     label: "🐍 Serpent",
-    skinColor: "#166534",
-    hairColor: "#14532d",
+    skinColor: "#1a4d2e",
+    hairColor: "#0d3b1e",
     hairStyle: "none",
-    clothingColor: "#15803d",
-    pantsColor: "#14532d",
+    clothingColor: "#2d8a4e",
+    pantsColor: "#0f2818",
+    materialRoughness: 0.35,
+    materialMetalness: 0.12,
     accessories: [],
   },
   bat: {
