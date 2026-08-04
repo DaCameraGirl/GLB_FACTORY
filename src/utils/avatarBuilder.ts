@@ -419,18 +419,8 @@ export function buildAvatar(
     procCtx.fillStyle = config.skinColor;
     procCtx.fillRect(0, 0, 256, 256);
 
-    // Only draw default 2D cartoon eyes & expression overlay if there is NO photo texture
-    if (!hasPhotoTexture) {
-      procCtx.fillStyle = "#141414";
-      procCtx.fillRect(60, 90, 32, 32);
-      procCtx.fillRect(164, 90, 32, 32);
-
-      procCtx.fillStyle = "#ffffff";
-      procCtx.fillRect(60, 90, 12, 12);
-      procCtx.fillRect(164, 90, 12, 12);
-
-      drawExpressionOverlay(procCtx, 256, 256, expressionVal);
-    }
+    // Face texture stays blank (skin color only) — no cartoon eyes/mouth.
+    // Photos map onto a clean face.
   }
 
   // 2. Bake final face map: procedural <-> photo morph on canvas
@@ -712,19 +702,8 @@ export function buildAvatar(
     ? actualHeadSize * (config.headShape === "rounded-cube" ? 0.52 : 0.48)
     : actualHeadSize * 0.5;
 
-  // 1. Nose
-  // Hide the nose completely when a photo is uploaded to avoid clashing with the real nose
-  if (!hasPhotoTexture) {
-    const noseGeo = isOrganicHead
-      ? getSphereGeometry(0.032 * headSize, radialSeg, radialSeg)
-      : getBoxGeometry(0.12 * headSize, 0.12 * headSize, 0.12 * headSize);
-    const nose = new THREE.Mesh(noseGeo, skinMaterial);
-    nose.name = "nose";
-    nose.position.set(0, -0.05 * headSize, isOrganicHead ? skullRadiusVal * 0.86 : skullRadiusVal);
-    nose.scale.set(noseWidthScale, noseScale, noseScale);
-    nose.castShadow = true;
-    head.add(nose);
-  }
+
+  // 1. Nose — removed, blank face avatar (photo-only)
 
   // 2. Ears
   const ears = new THREE.Group();
@@ -748,18 +727,8 @@ export function buildAvatar(
   
   head.add(ears);
 
-  // 3. Chin — hide when a photo texture is mapped (same reason as nose: clashes with real photo jaw)
-  if (!hasPhotoTexture) {
-    const chinGeo = isOrganicHead
-      ? getSphereGeometry(0.11 * headSize, radialSeg, radialSeg)
-      : getBoxGeometry(0.24 * headSize, 0.12 * headSize, 0.18 * headSize);
-    const chin = new THREE.Mesh(chinGeo, skinMaterial);
-    chin.name = "chin";
-    chin.position.set(0, -skullRadiusVal * 0.8, skullRadiusVal * 0.35);
-    chin.scale.set(1.0, chinScale.y, chinScale.z);
-    chin.castShadow = true;
-    head.add(chin);
-  }
+
+  // 3. Chin — removed, blank face avatar (photo-only)
 
   // --- CREATURE VARIANT: EXTRA DISTINGUISHING HEAD DETAIL ---
   if (config.creatureVariant === "monster" && !hasPhotoTexture) {
