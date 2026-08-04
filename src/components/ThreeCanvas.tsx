@@ -1035,6 +1035,10 @@ export default function ThreeCanvas({
   }, [onSceneReady]);
 
   // 5. Re-build Avatar ONLY when layout, geometry, or appearance configurations change
+  // NOTE: Do NOT call fitCameraToAvatar here - that resets the user's
+  // OrbitControls zoom/pan position every time a slider changes (feather,
+  // crop, colors, etc). Camera framing is handled separately by the
+  // cameraPreset/cameraFov effect above.
   useEffect(() => {
     if (!sceneRef.current) return;
 
@@ -1048,15 +1052,6 @@ export default function ThreeCanvas({
       const avatarGroup = buildAvatar(config, faceCanvas);
       sceneRef.current.add(avatarGroup);
       avatarGroupRef.current = avatarGroup;
-
-      if (cameraRef.current) {
-        fitCameraToAvatar(
-          cameraRef.current,
-          controlsRef.current,
-          avatarGroup,
-          config.cameraPreset
-        );
-      }
 
       if (onSceneReadyRef.current) {
         onSceneReadyRef.current(avatarGroup);
