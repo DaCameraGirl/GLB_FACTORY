@@ -377,7 +377,7 @@ export const PRESET_HEROES: PresetHero[] = [
       clothingColor: "#120e2e",
       pantsColor: "#020617",
       shoesColor: "#d946ef",
-      hairStyle: "short",
+      hairStyle: "none",
       bodyType: "chibi",
       headShape: "organic-smooth",
       accessories: ["cat-ears", "wings", "halo"],

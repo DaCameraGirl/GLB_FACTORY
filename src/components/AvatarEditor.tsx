@@ -137,7 +137,7 @@ export default function AvatarEditor({
                             ? {
                                 skinColor: "#e5a65d",
                                 hairColor: "#211510",
-                                hairStyle: "short" as const,
+                                hairStyle: "none" as const,
                                 accessories: [],
                               }
                             : {}),

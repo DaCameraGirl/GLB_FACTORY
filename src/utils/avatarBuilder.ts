@@ -64,7 +64,8 @@ export function validateAvatarConfig(config: AvatarConfig): AvatarConfig {
   const validBodyTypes: BodyType[] = ["normal", "chibi", "tall", "athletic"];
 
   if (!validHeadShapes.includes(validated.headShape)) validated.headShape = "organic-smooth";
-  if (!validHairStyles.includes(validated.hairStyle)) validated.hairStyle = "none";
+  // Force blank bald head - no hair ever (photo mapping needs clean face)
+  validated.hairStyle = "none";
   if (!validBodyTypes.includes(validated.bodyType)) validated.bodyType = "normal";
 
   const validCreatureVariants = [
@@ -1521,139 +1522,11 @@ export function buildAvatar(
   }
 
   // ==========================================
-  // 3. HAIR STYLE (WITH COLLISION CLAMP INORGANICS)
+  // 3. HAIR — REMOVED, blank bald head for photo mapping
   // ==========================================
-  const hairGroup = new THREE.Group();
-  hairGroup.name = "hairGroup";
-  head.add(hairGroup);
-
-  if (config.hairStyle !== "none" && !hasPhotoTexture) { // No hair when photo is mapped — keeps face clean
-    if (config.headShape === "organic-smooth" || config.headShape === "rounded-cube") {
-      const skullRadius = actualHeadSize * (config.headShape === "rounded-cube" ? 0.52 : 0.48);
-
-      if (config.hairStyle === "short") {
-        const hairGeo = getSphereGeometry(skullRadius * 1.05, radialSeg, radialSeg);
-        const hair = new THREE.Mesh(hairGeo, hairMaterial);
-        hair.name = "hair-short";
-        hair.rotation.x = -Math.PI * 0.06;
-        hair.castShadow = true;
-        hairGroup.add(hair);
-
-      } else if (config.hairStyle === "long") {
-        const hairGeo = getSphereGeometry(skullRadius * 1.06, radialSeg, radialSeg);
-        const hair = new THREE.Mesh(hairGeo, hairMaterial);
-        hair.name = "hair-long";
-        hair.scale.set(1.02, 1.35, 1.08);
-        hair.position.set(0, -skullRadius * 0.25, -skullRadius * 0.05);
-        hair.castShadow = true;
-        hairGroup.add(hair);
-
-      } else if (config.hairStyle === "afro") {
-        // Big rounded puff, flattened slightly front-to-back and shifted up/back so it
-        // frames the face instead of swallowing it.
-        const afroScaleMultiplier = config.headShape === "organic-smooth" ? 1.45 : 1.55;
-        const hairGeo = getSphereGeometry(skullRadius * afroScaleMultiplier, radialSeg, radialSeg);
-        const hair = new THREE.Mesh(hairGeo, hairMaterial);
-        hair.name = "hair-afro";
-        hair.scale.set(1.0, 1.0, 0.82);
-        hair.position.set(0, skullRadius * 0.32, -skullRadius * 0.22);
-        hair.castShadow = true;
-        hairGroup.add(hair);
-
-      } else if (config.hairStyle === "ponytail") {
-        const capGeo = getSphereGeometry(skullRadius * 1.05, radialSeg, radialSeg);
-        const cap = new THREE.Mesh(capGeo, hairMaterial);
-        cap.name = "hair-ponytail-cap";
-        cap.rotation.x = -Math.PI * 0.06;
-        cap.castShadow = true;
-        hairGroup.add(cap);
-
-        const tailGeo = getCylinderGeometry(0.08, 0.16, actualHeadSize * 0.8, radialSeg);
-        const tail = new THREE.Mesh(tailGeo, hairMaterial);
-        tail.name = "hair-ponytail-tail";
-        tail.position.set(0, -actualHeadSize * 0.25, -skullRadius * 1.15);
-        tail.rotation.x = Math.PI * 0.12;
-        tail.castShadow = true;
-        hairGroup.add(tail);
-
-      } else if (config.hairStyle === "cap") {
-        const capDomeGeo = getSphereGeometry(skullRadius * 1.07, radialSeg, radialSeg);
-        const capDome = new THREE.Mesh(capDomeGeo, clothingMaterial);
-        capDome.name = "cap-dome";
-        capDome.position.y = 0.02;
-        capDome.castShadow = true;
-        hairGroup.add(capDome);
-
-        const capBillGeo = getBoxGeometry(actualHeadSize * 0.75, 0.03, actualHeadSize * 0.45);
-        const capBill = new THREE.Mesh(capBillGeo, clothingMaterial);
-        capBill.name = "cap-bill";
-        capBill.position.set(0, actualHeadSize * 0.14, skullRadius * 1.1);
-        capBill.rotation.x = Math.PI * 0.05;
-        capBill.castShadow = true;
-        hairGroup.add(capBill);
-      }
-    } else {
-      // Boxy voxel hairstyles
-      if (config.hairStyle === "short") {
-        const hairGeo = getBoxGeometry(actualHeadSize + 0.04, actualHeadSize * 0.55, actualHeadSize + 0.04);
-        const hair = new THREE.Mesh(hairGeo, hairMaterial);
-        hair.name = "hair-block-short";
-        hair.position.set(0, actualHeadSize * 0.25, -actualHeadSize * 0.05);
-        hair.castShadow = true;
-        hairGroup.add(hair);
-
-      } else if (config.hairStyle === "long") {
-        const hairGeo = getBoxGeometry(actualHeadSize + 0.04, actualHeadSize * 1.1, actualHeadSize + 0.04);
-        const hair = new THREE.Mesh(hairGeo, hairMaterial);
-        hair.name = "hair-block-long";
-        hair.position.set(0, -actualHeadSize * 0.05, -actualHeadSize * 0.05);
-        hair.castShadow = true;
-        hairGroup.add(hair);
-
-      } else if (config.hairStyle === "afro") {
-        const hairGeo = getBoxGeometry(actualHeadSize * 1.55, actualHeadSize * 1.5, actualHeadSize * 1.3);
-        const hair = new THREE.Mesh(hairGeo, hairMaterial);
-        hair.name = "hair-block-afro";
-        hair.position.set(0, actualHeadSize * 0.35, -actualHeadSize * 0.15);
-        hair.castShadow = true;
-        hairGroup.add(hair);
-
-      } else if (config.hairStyle === "ponytail") {
-        const capGeo = getBoxGeometry(actualHeadSize + 0.04, actualHeadSize * 0.55, actualHeadSize + 0.04);
-        const cap = new THREE.Mesh(capGeo, hairMaterial);
-        cap.name = "hair-block-ponytail-cap";
-        cap.position.set(0, actualHeadSize * 0.25, -actualHeadSize * 0.05);
-        cap.castShadow = true;
-        hairGroup.add(cap);
-
-        const tailGeo = getBoxGeometry(0.2, 0.55, 0.2);
-        const tail = new THREE.Mesh(tailGeo, hairMaterial);
-        tail.name = "hair-block-ponytail-tail";
-        tail.position.set(0, -0.15, -actualHeadSize / 2 - 0.15);
-        tail.rotation.x = Math.PI / 12;
-        tail.castShadow = true;
-        hairGroup.add(tail);
-
-      } else if (config.hairStyle === "cap") {
-        const capBaseGeo = getBoxGeometry(actualHeadSize + 0.06, 0.3, actualHeadSize + 0.06);
-        const capBase = new THREE.Mesh(capBaseGeo, clothingMaterial);
-        capBase.name = "cap-block-base";
-        capBase.position.y = actualHeadSize / 2 + 0.08;
-        capBase.castShadow = true;
-        hairGroup.add(capBase);
-
-        const capBillGeo = getBoxGeometry(actualHeadSize - 0.08, 0.04, 0.44);
-        const capBill = new THREE.Mesh(capBillGeo, clothingMaterial);
-        capBill.name = "cap-block-bill";
-        capBill.position.set(0, actualHeadSize / 2 - 0.02, actualHeadSize / 2 + 0.16);
-        capBill.castShadow = true;
-        hairGroup.add(capBill);
-      }
-    }
-  }
 
   // ==========================================
-  // 4. ACCESSORY SOCKETS & meshes
+  // 4 ACCESSORIES. ACCESSORY SOCKETS & meshes
   // ==========================================
   const accessories = config.accessories || [];
 

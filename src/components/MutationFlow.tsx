@@ -85,7 +85,7 @@ export default function MutationFlow({ currentConfig, onApplyMutation, onClose }
   const [shoesColor, setShoesColor] = useState(currentConfig.shoesColor);
   
   // Step 3: Style
-  const [hairStyle, setHairStyle] = useState<HairStyle>(currentConfig.hairStyle || "short");
+  const [hairStyle, setHairStyle] = useState<HairStyle>(currentConfig.hairStyle || "none");
   const [accessories, setAccessories] = useState<Array<"glasses" | "backpack" | "headphones" | "halo" | "crown" | "cat-ears" | "wizard-hat">>(
     currentConfig.accessories || []
   );
