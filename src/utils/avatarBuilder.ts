@@ -1558,12 +1558,69 @@ export function buildAvatar(
         ear.rotation.z = side * 0.25;
         head.add(ear);
       });
-    } else {
-      const ruff = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.55, 10, 10), darkMat);
-      ruff.name = "crow-ruff";
-      ruff.scale.set(1.1, 0.7, 1.0);
-      ruff.position.set(0, -actualHeadSize * 0.15, -actualHeadSize * 0.1);
-      head.add(ruff);
+    }
+  }
+
+  // MURDER CROW — glossy black corvid overhaul
+  if (config.creatureVariant === "crow" && !hasPhotoTexture) {
+    const crowBlack = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.25, metalness: 0.35, name: "crow-feather" });
+    const beakMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.35, metalness: 0.15, name: "crow-beak" });
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.05, metalness: 0.1, name: "crow-eye" });
+
+    // Remove the basic beak/ruff from the shared bat/crow block
+    const oldBeak = head.getObjectByName("crow-beak");
+    if (oldBeak) head.remove(oldBeak);
+    const oldRuff = head.getObjectByName("crow-ruff");
+    if (oldRuff) head.remove(oldRuff);
+
+    // Heavy curved corvid beak
+    const beakBase = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.14, actualHeadSize * 0.48, 6), beakMat);
+    beakBase.name = "crow-beak";
+    beakBase.rotation.x = Math.PI / 2;
+    beakBase.position.set(0, -actualHeadSize * 0.06, actualHeadSize * 0.58);
+    beakBase.castShadow = true;
+    head.add(beakBase);
+
+    // Beak hook tip
+    const beakTip = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.045, actualHeadSize * 0.12, 5), beakMat);
+    beakTip.name = "crow-beak-tip";
+    beakTip.rotation.x = Math.PI / 2 + 0.35;
+    beakTip.position.set(0, -actualHeadSize * 0.14, actualHeadSize * 0.78);
+    head.add(beakTip);
+
+    // Glossy black eyes — small, beady, murderous
+    [-1, 1].forEach((side) => {
+      const eye = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.065, 10, 10), eyeMat);
+      eye.name = `crow-eye-${side > 0 ? "right" : "left"}`;
+      eye.position.set(side * actualHeadSize * 0.22, actualHeadSize * 0.08, actualHeadSize * 0.42);
+      head.add(eye);
+      // eye glint
+      const glint = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.018, 6, 6), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.05, name: "crow-eye-glint" }));
+      glint.position.set(side * actualHeadSize * 0.22 + side * 0.008, actualHeadSize * 0.095, actualHeadSize * 0.46);
+      head.add(glint);
+    });
+
+    // Feathered crown / head tuft
+    for (let i = 0; i < 5; i++) {
+      const feather = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.06, actualHeadSize * 0.22, 0.015), crowBlack);
+      feather.name = `crow-crest-${i}`;
+      const angle = (i - 2) * 0.22;
+      feather.position.set(Math.sin(angle) * actualHeadSize * 0.12, actualHeadSize * 0.42, -actualHeadSize * 0.08);
+      feather.rotation.z = angle * 0.6;
+      feather.rotation.x = -0.3;
+      feather.castShadow = true;
+      head.add(feather);
+    }
+
+    // Neck ruff — shaggy throat feathers
+    for (let i = 0; i < 7; i++) {
+      const ruffFeather = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.08, actualHeadSize * 0.18, 0.012), crowBlack);
+      ruffFeather.name = `crow-ruff-${i}`;
+      const angle = (i / 6 - 0.5) * Math.PI * 0.8;
+      ruffFeather.position.set(Math.sin(angle) * actualHeadSize * 0.28, -actualHeadSize * 0.28, Math.cos(angle) * actualHeadSize * 0.18 + actualHeadSize * 0.05);
+      ruffFeather.rotation.y = angle;
+      ruffFeather.rotation.x = 0.5;
+      head.add(ruffFeather);
     }
   }
 
@@ -2636,8 +2693,8 @@ export function buildAvatar(
       torso.add(bodyTrail);
       // Serpent is longer / more sinuous
       torso.scale.set(isSerpent ? 0.78 : 0.85, 0.9, 1.4);
-    } else if (variant === "bat" || variant === "crow") {
-      // Small biped legs + big wings
+    } else if (variant === "bat") {
+      // BAT — small biped legs + membrane wings
       leftLeg = isOrganic ? createSkinnedLimb(false, true) : createClassicLimb(false, true);
       leftLeg.name = "left-leg";
       leftLeg.scale.set(0.7, 0.75, 0.7);
@@ -2653,28 +2710,148 @@ export function buildAvatar(
         color: config.skinColor || "#18181b",
         roughness: 0.6,
         side: THREE.DoubleSide,
-        transparent: variant === "bat",
-        opacity: variant === "bat" ? 0.85 : 1,
-        name: "animal-wing",
+        transparent: true,
+        opacity: 0.85,
+        name: "bat-wing",
       });
       [-1, 1].forEach((side) => {
         const wing = new THREE.Mesh(getBoxGeometry(torsoWidth * 1.6, torsoHeight * 0.08, torsoDepth * 1.4), wingMat);
-        wing.name = `${variant}-wing-${side}`;
+        wing.name = `bat-wing-${side}`;
         wing.position.set(side * torsoWidth * 0.9, torsoHeight * 0.15, -torsoDepth * 0.2);
         wing.rotation.set(0.15, side * 0.35, side * 0.5);
         wing.castShadow = true;
         torso.add(wing);
-        if (variant === "bat") {
-          // Finger spars
-          for (let f = 0; f < 3; f++) {
-            const spar = new THREE.Mesh(getCylinderGeometry(0.02, 0.015, torsoWidth * 1.2, 5), animalDark);
-            spar.rotation.z = side * (0.9 + f * 0.15);
-            spar.position.set(side * torsoWidth * 0.5, torsoHeight * 0.2, -torsoDepth * (0.1 + f * 0.15));
-            torso.add(spar);
-          }
+        // Finger spars
+        for (let f = 0; f < 3; f++) {
+          const spar = new THREE.Mesh(getCylinderGeometry(0.02, 0.015, torsoWidth * 1.2, 5), animalDark);
+          spar.rotation.z = side * (0.9 + f * 0.15);
+          spar.position.set(side * torsoWidth * 0.5, torsoHeight * 0.2, -torsoDepth * (0.1 + f * 0.15));
+          torso.add(spar);
         }
       });
       torso.scale.set(0.9, 0.95, 1.0);
+    } else if (variant === "crow") {
+      // MURDER CROW — glossy corvid with feathered wings, talons, tail fan
+      const crowFeather = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.28, metalness: 0.4, name: "crow-feather" });
+      const crowBeakMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.35, metalness: 0.15, name: "crow-beak" });
+      const crowTalMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.5, metalness: 0.1, name: "crow-talon" });
+
+      // Kill the default human arms/legs — crow gets its own
+      leftArm = null as any;
+      rightArm = null as any;
+      leftLeg = null as any;
+      rightLeg = null as any;
+
+      // Feathered wings — layered primary feathers
+      [-1, 1].forEach((side) => {
+        const wingRoot = new THREE.Group();
+        wingRoot.name = `crow-wing-${side > 0 ? "right" : "left"}`;
+
+        // Upper arm / shoulder coverts
+        const upperWing = new THREE.Mesh(getBoxGeometry(torsoWidth * 0.42, torsoHeight * 0.14, 0.06), crowFeather);
+        upperWing.position.set(side * 0.12, 0, 0);
+        upperWing.rotation.z = side * -0.35;
+        upperWing.castShadow = true;
+        wingRoot.add(upperWing);
+
+        // Primary flight feathers — 6 long quills fanning out
+        for (let f = 0; f < 6; f++) {
+          const featherLen = 0.72 - f * 0.055;
+          const feather = new THREE.Mesh(getBoxGeometry(0.065, featherLen, 0.012), crowFeather);
+          feather.position.set(side * (0.32 + f * 0.09), -0.18 - f * 0.04, -0.02 + f * 0.015);
+          feather.rotation.z = side * (-0.55 - f * 0.12);
+          feather.rotation.y = f * 0.08;
+          feather.castShadow = true;
+          wingRoot.add(feather);
+          // quill shaft
+          const shaft = new THREE.Mesh(getCylinderGeometry(0.006, 0.003, featherLen * 0.88, 4), crowBeakMat);
+          shaft.position.set(side * (0.32 + f * 0.09), -0.18 - f * 0.04, -0.012 + f * 0.015);
+          shaft.rotation.z = side * (-0.55 - f * 0.12) + Math.PI / 2;
+          wingRoot.add(shaft);
+        }
+
+        // Secondary coverts — shorter feathers along upper wing
+        for (let c = 0; c < 4; c++) {
+          const covert = new THREE.Mesh(getBoxGeometry(0.055, 0.28, 0.01), crowFeather);
+          covert.position.set(side * (0.14 + c * 0.06), -0.06, 0.015);
+          covert.rotation.z = side * (-0.28 - c * 0.06);
+          wingRoot.add(covert);
+        }
+
+        wingRoot.position.set(side * torsoWidth * 0.52, torsoHeight * 0.18, -torsoDepth * 0.08);
+        wingRoot.rotation.y = side * 0.15;
+        torso.add(wingRoot);
+      });
+
+      // Bird legs — scaly, thin, with murder talons
+      [-1, 1].forEach((side) => {
+        const birdLeg = new THREE.Group();
+        birdLeg.name = `crow-leg-${side > 0 ? "right" : "left"}`;
+
+        // Tarsus — scaly bird shin
+        const tarsus = new THREE.Mesh(getCylinderGeometry(0.032, 0.026, 0.52, 6), crowTalMat);
+        tarsus.position.set(0, -0.26, 0.02);
+        tarsus.castShadow = true;
+        birdLeg.add(tarsus);
+
+        // Toes — 3 forward, 1 back (zygodactyl-ish)
+        const toePos: Array<[number, number, number, number]> = [
+          [-0.055, -0.52, 0.045, -0.35],  // left toe
+          [0,      -0.52, 0.065, 0     ],  // middle toe
+          [ 0.055, -0.52, 0.045,  0.35],  // right toe
+          [0,      -0.48, -0.045, Math.PI], // hallux (back toe)
+        ];
+        toePos.forEach(([tx, ty, tlen, trot], ti) => {
+          const toe = new THREE.Mesh(getCylinderGeometry(0.014, 0.01, tlen, 4), crowTalMat);
+          toe.position.set(tx, ty, ti === 3 ? -0.018 : 0.012);
+          toe.rotation.x = Math.PI / 2;
+          toe.rotation.y = trot;
+          toe.castShadow = true;
+          birdLeg.add(toe);
+          // talon claw
+          const talon = new THREE.Mesh(new THREE.ConeGeometry(0.011, 0.048, 4), crowBeakMat);
+          const clawDir = ti === 3 ? -1 : 1;
+          toePos[ti][1] = ty; // keep TS happy
+          const cx = tx + Math.sin(trot) * tlen * 0.55;
+          const cz = (ti === 3 ? -0.018 : 0.012) + Math.cos(trot) * tlen * 0.55;
+          talon.position.set(cx, ty - 0.01, cz);
+          talon.rotation.x = Math.PI / 2 + 0.4 * clawDir;
+          talon.rotation.z = trot;
+          birdLeg.add(talon);
+        });
+
+        birdLeg.position.set(side * torsoWidth * 0.22, -torsoHeight * 0.42, torsoDepth * 0.04);
+        torso.add(birdLeg);
+      });
+
+      // Tail fan — spread crow tail feathers
+      const tailFan = new THREE.Group();
+      tailFan.name = "crow-tail";
+      for (let t = 0; t < 7; t++) {
+        const tailFeather = new THREE.Mesh(getBoxGeometry(0.058, 0.52, 0.011), crowFeather);
+        const spread = (t - 3) * 0.18;
+        tailFeather.position.set(spread * 0.38, -0.24, -0.02);
+        tailFeather.rotation.z = spread * 0.22;
+        tailFeather.rotation.x = Math.PI / 2 - 0.15;
+        tailFeather.castShadow = true;
+        tailFan.add(tailFeather);
+      }
+      tailFan.position.set(0, -torsoHeight * 0.38, -torsoDepth * 0.42);
+      tailFan.rotation.x = 0.35;
+      torso.add(tailFan);
+
+      // Chest fluff — layered breast feathers
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const fluff = new THREE.Mesh(getBoxGeometry(0.11, 0.085, 0.01), crowFeather);
+          fluff.position.set((c - 1) * 0.13, torsoHeight * (0.12 - r * 0.14), torsoDepth * 0.32);
+          fluff.rotation.x = -0.25 - r * 0.08;
+          torso.add(fluff);
+        }
+      }
+
+      torso.scale.set(0.88, 1.05, 0.92);
+
     } else if (variant === "rat") {
       // Four short legs + long tail
       for (let i = 0; i < 4; i++) {
