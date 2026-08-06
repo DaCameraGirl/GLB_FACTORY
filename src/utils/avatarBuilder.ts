@@ -2836,7 +2836,7 @@ export function buildAvatar(
         torso.add(raptor);
       });
 
-      // Walking legs - 4 rear legs, thin but visible
+      // Walking legs - 4 rear legs, LONG & SPINY
       const walkLegPos: Array<[number, number, number]> = [
         [-1, 0.02, 0.08], [1, 0.02, 0.08],
         [-1, -0.28, -0.06], [1, -0.28, -0.06],
@@ -2844,18 +2844,58 @@ export function buildAvatar(
       walkLegPos.forEach(([side, yOff, zOff], i) => {
         const wleg = new THREE.Group();
         wleg.name = "mantis-walk-leg-" + i;
-        const thigh = new THREE.Mesh(getCylinderGeometry(0.055, 0.045, 0.42, 6), mantisChitin);
-        thigh.rotation.z = side * 0.55;
-        thigh.rotation.x = -0.2;
+
+        // Coxa - short thick hip joint
+        const coxa = new THREE.Mesh(getCylinderGeometry(0.05, 0.04, 0.18, 6), mantisChitin);
+        coxa.rotation.z = side * 0.65;
+        wleg.add(coxa);
+
+        // Femur - LONG upper leg, thin
+        const thighLen = 1.15;
+        const thigh = new THREE.Mesh(getCylinderGeometry(0.042, 0.032, thighLen, 6), mantisChitin);
+        thigh.position.set(side * 0.12, -thighLen * 0.5 - 0.06, -0.02);
+        thigh.rotation.z = side * 0.28;
+        thigh.castShadow = true;
         wleg.add(thigh);
-        const shin = new THREE.Mesh(getCylinderGeometry(0.038, 0.028, 0.48, 5), mantisChitin);
-        shin.position.set(side * 0.16, -0.38, -0.04);
-        shin.rotation.z = side * -0.35;
+
+        // Spines along femur
+        for (let s = 0; s < 5; s++) {
+          const spine = new THREE.Mesh(new THREE.ConeGeometry(0.014, 0.07, 4), mantisDark);
+          spine.position.set(side * 0.035, -0.18 - s * 0.18, 0.032);
+          spine.rotation.x = -Math.PI / 2.1;
+          wleg.add(spine);
+        }
+
+        // Tibia - LONG lower leg, very thin
+        const shinLen = 1.25;
+        const shin = new THREE.Mesh(getCylinderGeometry(0.026, 0.018, shinLen, 5), mantisChitin);
+        shin.position.set(side * 0.22, -thighLen - 0.45, -0.03);
+        shin.rotation.z = side * -0.18;
+        shin.castShadow = true;
         wleg.add(shin);
-        const foot = new THREE.Mesh(getCylinderGeometry(0.018, 0.012, 0.16, 4), mantisDark);
-        foot.position.set(side * 0.28, -0.62, -0.02);
-        foot.rotation.z = side * -0.2;
+
+        // Spines along tibia
+        for (let s = 0; s < 6; s++) {
+          const spine = new THREE.Mesh(new THREE.ConeGeometry(0.011, 0.055, 4), mantisDark);
+          spine.position.set(side * 0.018, -thighLen - 0.28 - s * 0.15, 0.022);
+          spine.rotation.x = -Math.PI / 2.1;
+          wleg.add(spine);
+        }
+
+        // Tarsus - long thin foot / claw tip
+        const footLen = 0.38;
+        const foot = new THREE.Mesh(getCylinderGeometry(0.014, 0.008, footLen, 4), mantisDark);
+        foot.position.set(side * 0.28, -thighLen - shinLen - 0.38, 0.02);
+        foot.rotation.z = side * -0.12;
+        foot.castShadow = true;
         wleg.add(foot);
+
+        // Tiny terminal claw
+        const tarsalClaw = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.06, 4), mantisDark);
+        tarsalClaw.position.set(side * 0.29, -thighLen - shinLen - footLen - 0.48, 0.03);
+        tarsalClaw.rotation.x = Math.PI;
+        wleg.add(tarsalClaw);
+
         wleg.position.set(side * torsoWidth * 0.32, torsoHeight * yOff, torsoDepth * zOff);
         torso.add(wleg);
       });
