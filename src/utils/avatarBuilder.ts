@@ -2750,14 +2750,76 @@ export function buildAvatar(
       torso.add(rightLeg);
       torso.scale.set(1.35, 0.65, 1.25);
     } else if (variant === "scorpion") {
-      // 8 legs + pincers + tail stinger
+      // 8 FUZZY legs, long + bent knee — + pincers + tail stinger
+      const scorpLegMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#7c2d12", roughness: 0.92, name: "scorpion-leg" });
+      const scorpFuzzMat = new THREE.MeshStandardMaterial({ color: 0x4a2415, roughness: 0.95, name: "scorpion-fuzz" });
+
       for (let i = 0; i < 8; i++) {
         const side = i < 4 ? -1 : 1;
         const slot = i % 4;
-        const leg = makeSegmentedLimb(`scorpion-leg-${i}`, 3, 0.07, limbLength * 0.4, 0.03);
-        leg.position.set(side * torsoWidth * 0.5, -torsoHeight * 0.2, (slot - 1.5) * torsoDepth * 0.4);
-        leg.rotation.z = side * 0.95;
-        torso.add(leg);
+        const legGroup = new THREE.Group();
+        legGroup.name = `scorpion-leg-${i}`;
+
+        // Coxa — hip joint
+        const coxaR = 0.055;
+        const coxa = new THREE.Mesh(getCylinderGeometry(coxaR, coxaR * 0.9, 0.16, 6), scorpLegMat);
+        coxa.rotation.z = side * 0.5;
+        legGroup.add(coxa);
+
+        // Femur — upper leg, LONG
+        const femurLen = 0.72;
+        const femur = new THREE.Mesh(getCylinderGeometry(0.05, 0.038, femurLen, 6), scorpLegMat);
+        femur.position.set(side * 0.1, -0.34, 0);
+        femur.rotation.z = side * 0.42;
+        femur.castShadow = true;
+        legGroup.add(femur);
+
+        // Fuzzy hairs on femur
+        for (let f = 0; f < 8; f++) {
+          const ang = (f / 8) * Math.PI * 2;
+          const fuzz = new THREE.Mesh(getCylinderGeometry(0.0035, 0.0015, 0.045 + Math.random() * 0.025, 3), scorpFuzzMat);
+          fuzz.position.set(Math.cos(ang) * 0.042, -0.18 - (f % 3) * 0.16, Math.sin(ang) * 0.042);
+          fuzz.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.3;
+          fuzz.rotation.z = ang;
+          legGroup.add(fuzz);
+        }
+
+        // Tibia / patella — BENT KNEE joint, lower leg
+        const tibiaLen = 0.68;
+        const tibia = new THREE.Mesh(getCylinderGeometry(0.034, 0.024, tibiaLen, 5), scorpLegMat);
+        tibia.position.set(side * 0.22, -0.72, -0.02);
+        // bent knee
+        tibia.rotation.z = side * -0.55;
+        tibia.castShadow = true;
+        legGroup.add(tibia);
+
+        // Fuzzy hairs on tibia
+        for (let f = 0; f < 7; f++) {
+          const ang = (f / 7) * Math.PI * 2;
+          const fuzz = new THREE.Mesh(getCylinderGeometry(0.0028, 0.001, 0.038 + Math.random() * 0.022, 3), scorpFuzzMat);
+          fuzz.position.set(side * 0.22 + Math.cos(ang) * 0.028, -0.58 - (f % 3) * 0.13, -0.02 + Math.sin(ang) * 0.028);
+          fuzz.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.4;
+          fuzz.rotation.z = ang;
+          legGroup.add(fuzz);
+        }
+
+        // Tarsus — thin foot
+        const tarsusLen = 0.32;
+        const tarsus = new THREE.Mesh(getCylinderGeometry(0.016, 0.01, tarsusLen, 4), scorpLegMat);
+        tarsus.position.set(side * 0.34, -1.08, 0.01);
+        tarsus.rotation.z = side * -0.18;
+        tarsus.castShadow = true;
+        legGroup.add(tarsus);
+
+        // claw tip
+        const claw = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.05, 4), scorpLegMat);
+        claw.position.set(side * 0.35, -1.25, 0.015);
+        claw.rotation.x = Math.PI;
+        legGroup.add(claw);
+
+        legGroup.position.set(side * torsoWidth * 0.5, -torsoHeight * 0.2, (slot - 1.5) * torsoDepth * 0.4);
+        legGroup.rotation.z = side * 0.18;
+        torso.add(legGroup);
       }
       [-1, 1].forEach((side) => {
         const claw = new THREE.Group();
