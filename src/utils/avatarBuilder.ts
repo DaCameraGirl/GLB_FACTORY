@@ -1588,7 +1588,7 @@ export function buildAvatar(
     });
   }
 
-  if (config.creatureVariant === "centipede" || config.creatureVariant === "scorpion" || config.creatureVariant === "mantis") {
+  if (config.creatureVariant === "centipede" || config.creatureVariant === "scorpion") {
     const chitin = new THREE.MeshStandardMaterial({ color: config.skinColor || "#854d0e", roughness: 0.5, name: "bug-chitin" });
     if (!hasPhotoTexture) {
       [-1, 1].forEach((side) => {
@@ -1605,13 +1605,73 @@ export function buildAvatar(
         eye.position.set(side * actualHeadSize * 0.28, actualHeadSize * 0.08, actualHeadSize * 0.38);
         head.add(eye);
       });
-      if (config.creatureVariant === "mantis") {
-        const plate = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.7, actualHeadSize * 0.55, actualHeadSize * 0.35), chitin);
-        plate.name = "mantis-head-plate";
-        plate.position.set(0, actualHeadSize * 0.1, actualHeadSize * 0.15);
-        head.add(plate);
-      }
     }
+  }
+
+  // --- PRAYING MANTIS HEAD - triangular insect head, big bulging eyes, antennae ---
+  if (config.creatureVariant === "mantis" && !hasPhotoTexture) {
+    const chitinMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#65a34a", roughness: 0.55, name: "mantis-chitin" });
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0x0a0f0a, roughness: 0.08, metalness: 0.3, name: "mantis-eye" });
+    const eyeShineMat = new THREE.MeshStandardMaterial({ color: 0x334233, roughness: 0.1, metalness: 0.6, name: "mantis-eye-shine" });
+
+    const crown = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.72, actualHeadSize * 0.52, actualHeadSize * 0.36), chitinMat);
+    crown.name = "mantis-head-crown";
+    crown.position.set(0, actualHeadSize * 0.14, actualHeadSize * 0.08);
+    crown.castShadow = true;
+    crown.receiveShadow = true;
+    head.add(crown);
+
+    [-1, 1].forEach((side) => {
+      const eyeBulb = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.22, 12, 12), eyeMat);
+      eyeBulb.name = `mantis-eye-${side}`;
+      eyeBulb.scale.set(0.75, 1.05, 0.9);
+      eyeBulb.position.set(side * actualHeadSize * 0.34, actualHeadSize * 0.06, actualHeadSize * 0.28);
+      eyeBulb.castShadow = true;
+      head.add(eyeBulb);
+      const pupil = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.06, 8, 8), eyeShineMat);
+      pupil.name = `mantis-pupil-${side}`;
+      pupil.position.set(side * actualHeadSize * 0.38, actualHeadSize * 0.06, actualHeadSize * 0.46);
+      head.add(pupil);
+    });
+
+    const facePlate = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.18, actualHeadSize * 0.28, 3), chitinMat);
+    facePlate.name = "mantis-face-plate";
+    facePlate.rotation.x = Math.PI / 2;
+    facePlate.position.set(0, actualHeadSize * 0.02, actualHeadSize * 0.38);
+    facePlate.castShadow = true;
+    head.add(facePlate);
+
+    [-1, 1].forEach((side) => {
+      const jaw = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.07, actualHeadSize * 0.16, 4), chitinMat);
+      jaw.name = `mantis-mandible-${side}`;
+      jaw.rotation.set(Math.PI * 0.55, 0, side * 0.35);
+      jaw.position.set(side * actualHeadSize * 0.1, -actualHeadSize * 0.18, actualHeadSize * 0.42);
+      jaw.castShadow = true;
+      head.add(jaw);
+    });
+
+    [-1, 1].forEach((side) => {
+      const antenna = new THREE.Group();
+      antenna.name = `mantis-antenna-${side}`;
+      const antMat = new THREE.MeshStandardMaterial({ color: 0x1a2514, roughness: 0.6, name: "mantis-antenna" });
+      for (let i = 0; i < 3; i++) {
+        const seg = new THREE.Mesh(getCylinderGeometry(0.012 - i * 0.003, 0.015 - i * 0.003, actualHeadSize * 0.32, 5), antMat);
+        seg.position.y = i * actualHeadSize * 0.28;
+        seg.rotation.z = side * (0.1 + i * 0.12);
+        seg.rotation.x = -0.15 - i * 0.1;
+        antenna.add(seg);
+      }
+      antenna.position.set(side * actualHeadSize * 0.12, actualHeadSize * 0.38, actualHeadSize * 0.08);
+      antenna.rotation.z = side * 0.25;
+      head.add(antenna);
+    });
+
+    const pronotum = new THREE.Mesh(getCylinderGeometry(actualHeadSize * 0.22, actualHeadSize * 0.28, actualHeadSize * 0.38, 8), chitinMat);
+    pronotum.name = "mantis-pronotum";
+    pronotum.rotation.x = Math.PI / 2.3;
+    pronotum.position.set(0, -actualHeadSize * 0.18, -actualHeadSize * 0.12);
+    pronotum.castShadow = true;
+    head.add(pronotum);
   }
 
   if (config.creatureVariant === "toad") {
@@ -2720,29 +2780,120 @@ export function buildAvatar(
       torso.add(stinger);
       torso.scale.set(1.2, 0.65, 1.3);
     } else if (variant === "mantis") {
-      // Tall body, raptorial forearms, thin rear legs
-      leftArm = makeSegmentedLimb("left-arm", 4, 0.1, limbLength * 0.55, 0.04);
-      leftArm.position.set(-torsoWidth * 0.5, torsoHeight * 0.2, torsoDepth * 0.3);
-      leftArm.rotation.set(-0.8, 0, 0.9);
-      torso.add(leftArm);
-      rightArm = makeSegmentedLimb("right-arm", 4, 0.1, limbLength * 0.55, 0.04);
-      rightArm.position.set(torsoWidth * 0.5, torsoHeight * 0.2, torsoDepth * 0.3);
-      rightArm.rotation.set(-0.8, 0, -0.9);
-      torso.add(rightArm);
-      // Blade tips
+      // PRAYING MANTIS - folded raptorial forelegs, elongated thorax/abdomen, wings
+      const mantisChitin = new THREE.MeshStandardMaterial({ color: config.skinColor || "#65a34a", roughness: 0.55, name: "mantis-chitin" });
+      const mantisDark = new THREE.MeshStandardMaterial({ color: 0x2d4a20, roughness: 0.5, name: "mantis-dark" });
+      const wingMat = new THREE.MeshStandardMaterial({ color: 0x7db55a, roughness: 0.6, transparent: true, opacity: 0.88, side: THREE.DoubleSide, name: "mantis-wing" });
+
+      // Elongated pronotum / upper thorax plate
+      const prothorax = new THREE.Mesh(getBoxGeometry(torsoWidth * 0.55, torsoHeight * 0.55, torsoDepth * 0.5), mantisChitin);
+      prothorax.name = "mantis-prothorax";
+      prothorax.position.set(0, torsoHeight * 0.35, torsoDepth * 0.05);
+      prothorax.castShadow = true;
+      torso.add(prothorax);
+
+      // Raptorial forelegs - the iconic folded praying pose
       [-1, 1].forEach((side) => {
-        const blade = new THREE.Mesh(getBoxGeometry(0.06, 0.35, 0.12), animalDark);
-        blade.position.set(side * torsoWidth * 0.55, -torsoHeight * 0.15, torsoDepth * 0.55);
-        blade.rotation.z = side * 0.3;
-        torso.add(blade);
+        const raptor = new THREE.Group();
+        raptor.name = "mantis-raptor-" + (side > 0 ? "right" : "left");
+
+        // Coxa - shoulder joint
+        const coxa = new THREE.Mesh(getCylinderGeometry(0.11, 0.13, 0.22, 7), mantisChitin);
+        coxa.rotation.z = side * 0.45;
+        coxa.rotation.x = 0.3;
+        raptor.add(coxa);
+
+        // Femur - the thick spiked upper claw arm
+        const femur = new THREE.Mesh(getBoxGeometry(0.12, 0.52, 0.14), mantisChitin);
+        femur.position.set(0, -0.28, 0.06);
+        femur.rotation.z = side * -0.15;
+        femur.castShadow = true;
+        raptor.add(femur);
+
+        // Spiked teeth along the femur gripping edge
+        for (let i = 0; i < 4; i++) {
+          const spike = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.08, 4), mantisDark);
+          spike.position.set(side * 0.01, -0.12 - i * 0.11, 0.1);
+          spike.rotation.x = -Math.PI / 2.2;
+          raptor.add(spike);
+        }
+
+        // Tibia - the folding blade / lower claw that snaps shut against the femur
+        const tibia = new THREE.Mesh(getBoxGeometry(0.08, 0.44, 0.1), mantisDark);
+        tibia.position.set(0, -0.58, 0.04);
+        tibia.rotation.x = Math.PI * 0.75;
+        tibia.castShadow = true;
+        raptor.add(tibia);
+
+        // Terminal claw / tarsus tip
+        const clawTip = new THREE.Mesh(new THREE.ConeGeometry(0.032, 0.13, 5), mantisDark);
+        clawTip.position.set(0, -0.82, 0.02);
+        clawTip.rotation.x = Math.PI;
+        raptor.add(clawTip);
+
+        raptor.position.set(side * torsoWidth * 0.38, torsoHeight * 0.22, torsoDepth * 0.32);
+        raptor.rotation.set(-0.25, side * 0.35, side * 0.15);
+        torso.add(raptor);
       });
-      leftLeg = makeSegmentedLimb("left-leg", 4, 0.07, limbLength * 0.7, 0.02);
-      leftLeg.position.set(-torsoWidth * 0.25, -torsoHeight * 0.4, -torsoDepth * 0.15);
-      torso.add(leftLeg);
-      rightLeg = makeSegmentedLimb("right-leg", 4, 0.07, limbLength * 0.7, 0.02);
-      rightLeg.position.set(torsoWidth * 0.25, -torsoHeight * 0.4, -torsoDepth * 0.15);
-      torso.add(rightLeg);
-      torso.scale.set(0.75, 1.25, 0.85);
+
+      // Walking legs - 4 rear legs, thin but visible
+      const walkLegPos: Array<[number, number, number]> = [
+        [-1, 0.02, 0.08], [1, 0.02, 0.08],
+        [-1, -0.28, -0.06], [1, -0.28, -0.06],
+      ];
+      walkLegPos.forEach(([side, yOff, zOff], i) => {
+        const wleg = new THREE.Group();
+        wleg.name = "mantis-walk-leg-" + i;
+        const thigh = new THREE.Mesh(getCylinderGeometry(0.055, 0.045, 0.42, 6), mantisChitin);
+        thigh.rotation.z = side * 0.55;
+        thigh.rotation.x = -0.2;
+        wleg.add(thigh);
+        const shin = new THREE.Mesh(getCylinderGeometry(0.038, 0.028, 0.48, 5), mantisChitin);
+        shin.position.set(side * 0.16, -0.38, -0.04);
+        shin.rotation.z = side * -0.35;
+        wleg.add(shin);
+        const foot = new THREE.Mesh(getCylinderGeometry(0.018, 0.012, 0.16, 4), mantisDark);
+        foot.position.set(side * 0.28, -0.62, -0.02);
+        foot.rotation.z = side * -0.2;
+        wleg.add(foot);
+        wleg.position.set(side * torsoWidth * 0.32, torsoHeight * yOff, torsoDepth * zOff);
+        torso.add(wleg);
+      });
+
+      // Elongated abdomen - tapered mantis tail
+      const abdomenSegs = 4;
+      for (let i = 0; i < abdomenSegs; i++) {
+        const t = i / abdomenSegs;
+        const w = torsoWidth * (0.48 - t * 0.28);
+        const h = torsoHeight * (0.22 - t * 0.035);
+        const seg = new THREE.Mesh(getBoxGeometry(w, h, torsoDepth * 0.58), mantisChitin);
+        seg.name = "mantis-abdomen-" + i;
+        seg.position.set(0, -torsoHeight * (0.18 + i * 0.22), -torsoDepth * (0.15 + i * 0.1));
+        seg.castShadow = true;
+        torso.add(seg);
+      }
+
+      // Leaf-like wings folded along the back
+      [-0.5, 0.5].forEach((xOff, wi) => {
+        const wing = new THREE.Mesh(getBoxGeometry(torsoWidth * 0.38, torsoHeight * 0.72, 0.022), wingMat);
+        wing.name = "mantis-wing-" + wi;
+        wing.position.set(xOff * torsoWidth * 0.28, torsoHeight * -0.05, -torsoDepth * 0.32);
+        wing.rotation.y = xOff * 0.18;
+        wing.rotation.z = xOff * 0.06;
+        wing.castShadow = false;
+        wing.receiveShadow = true;
+        torso.add(wing);
+        const vein = new THREE.Mesh(getBoxGeometry(0.018, torsoHeight * 0.62, 0.025), mantisDark);
+        vein.position.set(xOff * torsoWidth * 0.28, torsoHeight * -0.05, -torsoDepth * 0.305);
+        torso.add(vein);
+      });
+
+      leftArm = null as any;
+      rightArm = null as any;
+      leftLeg = null as any;
+      rightLeg = null as any;
+
+      torso.scale.set(0.92, 1.15, 0.92);
     }
   }
 
