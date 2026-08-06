@@ -3182,6 +3182,8 @@ export function buildAvatar(
     : null;
 
   if (accessories.includes("gun")) {
+    const gunTarget = rightHand || rightArm || torso;
+    if (gunTarget) {
     const gun = new THREE.Group();
     gun.name = "gun";
     const gunMat = new THREE.MeshStandardMaterial({ color: 0x27272a, roughness: 0.3, metalness: 0.8, name: "gun-metal" });
@@ -3211,11 +3213,14 @@ export function buildAvatar(
     glowTip.position.set(0, 0.02, 0.42);
     gun.add(glowTip);
 
-    gun.rotation.set(0, Math.PI / 2, 0);
-    (rightHand || rightArm).add(gun);
+      gun.rotation.set(0, Math.PI / 2, 0);
+      gunTarget.add(gun);
+    }
   }
 
   if (accessories.includes("knife")) {
+    const knifeTarget = rightHand || rightArm || torso;
+    if (knifeTarget) {
     const knife = new THREE.Group();
     knife.name = "knife";
     const bladeMat = new THREE.MeshStandardMaterial({ color: 0xd4d4d8, roughness: 0.15, metalness: 0.9, name: "blade-steel" });
@@ -3235,8 +3240,9 @@ export function buildAvatar(
     grip.position.set(0, 0.06, 0);
     knife.add(grip);
 
-    knife.rotation.set(0, 0, Math.PI);
-    (rightHand || rightArm).add(knife);
+      knife.rotation.set(0, 0, Math.PI);
+      knifeTarget.add(knife);
+    }
   }
 
   if (accessories.includes("herb-pouch")) {
