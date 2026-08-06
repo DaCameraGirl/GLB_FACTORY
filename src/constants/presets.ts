@@ -89,8 +89,6 @@ export const CREATURE_VARIANTS: Record<string, CreatureVariantPreset> = {
     hairStyle: "none",
     clothingColor: "#2d8a4e",
     pantsColor: "#0f2818",
-    materialRoughness: 0.35,
-    materialMetalness: 0.12,
     accessories: [],
   },
   bat: {
