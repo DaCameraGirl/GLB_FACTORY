@@ -1645,7 +1645,7 @@ export function buildAvatar(
     });
   }
 
-  if (config.creatureVariant === "centipede" || config.creatureVariant === "scorpion") {
+  if (config.creatureVariant === "centipede") {
     const chitin = new THREE.MeshStandardMaterial({ color: config.skinColor || "#854d0e", roughness: 0.5, name: "bug-chitin" });
     if (!hasPhotoTexture) {
       [-1, 1].forEach((side) => {
@@ -1662,6 +1662,112 @@ export function buildAvatar(
         eye.position.set(side * actualHeadSize * 0.28, actualHeadSize * 0.08, actualHeadSize * 0.38);
         head.add(eye);
       });
+    }
+  }
+
+  // --- EMPEROR SCORPION — BIG, MEAN, SHINY AND BRIGHT ---
+  if (config.creatureVariant === "scorpion") {
+    // Glossy obsidian carapace with amber highlights
+    const carapaceMat = new THREE.MeshStandardMaterial({
+      color: config.skinColor || "#0a0a0a",
+      roughness: 0.12,
+      metalness: 0.35,
+      name: "scorpion-carapace",
+    });
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xffae00,
+      roughness: 0.15,
+      metalness: 0.85,
+      emissive: new THREE.Color(0xff6b00),
+      emissiveIntensity: 0.35,
+      name: "scorpion-gold",
+    });
+
+    // Armored carapace plates on the head
+    const carapace = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.52, 14, 14), carapaceMat);
+    carapace.name = "scorpion-carapace";
+    carapace.scale.set(1.15, 0.75, 1.25);
+    carapace.position.set(0, actualHeadSize * 0.08, actualHeadSize * 0.02);
+    carapace.castShadow = true;
+    carapace.receiveShadow = true;
+    head.add(carapace);
+
+    // Glowing red predator eyes — cluster of 6 (scorpion eye layout)
+    const eyeGlowMat = new THREE.MeshStandardMaterial({
+      color: 0xff0033,
+      emissive: new THREE.Color(0xff0033),
+      emissiveIntensity: 2.2,
+      roughness: 0.05,
+      metalness: 0.1,
+      name: "scorpion-eye-glow",
+    });
+    // Main median eyes — BIG
+    [-1, 1].forEach((side) => {
+      const eye = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.09, 10, 10), eyeGlowMat);
+      eye.name = `scorpion-eye-${side > 0 ? "right" : "left"}`;
+      eye.position.set(side * actualHeadSize * 0.16, actualHeadSize * 0.18, actualHeadSize * 0.44);
+      head.add(eye);
+    });
+    // Lateral eye cluster — 2 per side, smaller
+    [-1, 1].forEach((side) => {
+      for (let i = 0; i < 2; i++) {
+        const lateralEye = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.038, 8, 8), eyeGlowMat);
+        lateralEye.name = `scorpion-lateral-eye-${side}-${i}`;
+        lateralEye.position.set(
+          side * actualHeadSize * (0.32 + i * 0.07),
+          actualHeadSize * 0.06,
+          actualHeadSize * (0.28 - i * 0.08)
+        );
+        head.add(lateralEye);
+      }
+    });
+
+    // Massive chelicerae / fangs — dripping venom glow
+    const fangVenomMat = new THREE.MeshStandardMaterial({
+      color: 0xffae00,
+      roughness: 0.1,
+      metalness: 0.7,
+      emissive: new THREE.Color(0xff6b00),
+      emissiveIntensity: 0.8,
+      name: "scorpion-fang-venom",
+    });
+    [-1, 1].forEach((side) => {
+      const fang = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.1, actualHeadSize * 0.32, 6), carapaceMat);
+      fang.name = `scorpion-fang-${side}`;
+      fang.rotation.set(Math.PI * 0.72, 0, side * 0.35);
+      fang.position.set(side * actualHeadSize * 0.14, -actualHeadSize * 0.22, actualHeadSize * 0.42);
+      fang.castShadow = true;
+      head.add(fang);
+      // Venom drip tip — glowing
+      const venomTip = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.045, 8, 8), fangVenomMat);
+      venomTip.name = `scorpion-venom-tip-${side}`;
+      venomTip.position.set(side * actualHeadSize * 0.14, -actualHeadSize * 0.36, actualHeadSize * 0.48);
+      head.add(venomTip);
+    });
+
+    // Pedipalp bases — armored jaw plates
+    [-1, 1].forEach((side) => {
+      const jawPlate = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.18, actualHeadSize * 0.14, actualHeadSize * 0.22), carapaceMat);
+      jawPlate.name = `scorpion-jaw-plate-${side}`;
+      jawPlate.position.set(side * actualHeadSize * 0.26, -actualHeadSize * 0.08, actualHeadSize * 0.28);
+      jawPlate.rotation.z = side * 0.22;
+      jawPlate.castShadow = true;
+      head.add(jawPlate);
+    });
+
+    // Crown spikes — menacing head crest
+    for (let i = 0; i < 5; i++) {
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.038, actualHeadSize * 0.18, 5), goldMat);
+      spike.name = `scorpion-crown-spike-${i}`;
+      const angle = ((i / 4) - 0.5) * 1.4;
+      spike.position.set(
+        Math.sin(angle) * actualHeadSize * 0.28,
+        actualHeadSize * 0.48,
+        Math.cos(angle) * actualHeadSize * 0.08
+      );
+      spike.rotation.x = -0.2;
+      spike.castShadow = true;
+      head.add(spike);
     }
   }
 
@@ -2927,97 +3033,205 @@ export function buildAvatar(
       torso.add(rightLeg);
       torso.scale.set(1.35, 0.65, 1.25);
     } else if (variant === "scorpion") {
-      // 8 FUZZY legs, long + bent knee — + pincers + tail stinger
-      const scorpLegMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#7c2d12", roughness: 0.92, name: "scorpion-leg" });
-      const scorpFuzzMat = new THREE.MeshStandardMaterial({ color: 0x4a2415, roughness: 0.95, name: "scorpion-fuzz" });
+      // EMPEROR SCORPION — BIG, MEAN, SHINY AND BRIGHT
+      // Glossy obsidian carapace with molten gold accents — no fuzz, all shine
+      const scorpChitin = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(config.skinColor || "#0a0a0a"),
+        roughness: 0.12,
+        metalness: 0.45,
+        name: "scorpion-chitin",
+      });
+      const scorpGold = new THREE.MeshStandardMaterial({
+        color: 0xffae00,
+        roughness: 0.15,
+        metalness: 0.85,
+        emissive: new THREE.Color(0xff6b00),
+        emissiveIntensity: 0.55,
+        name: "scorpion-gold",
+      });
+      const scorpVenom = new THREE.MeshStandardMaterial({
+        color: 0xff0033,
+        roughness: 0.08,
+        metalness: 0.3,
+        emissive: new THREE.Color(0xff0033),
+        emissiveIntensity: 1.8,
+        name: "scorpion-venom",
+      });
 
+      // 8 ARMORED LEGS — glossy, spiked, MEAN — BIGGER
       for (let i = 0; i < 8; i++) {
         const side = i < 4 ? -1 : 1;
         const slot = i % 4;
         const legGroup = new THREE.Group();
         legGroup.name = `scorpion-leg-${i}`;
 
-        // Coxa — hip joint
-        const coxaR = 0.055;
-        const coxa = new THREE.Mesh(getCylinderGeometry(coxaR, coxaR * 0.9, 0.16, 6), scorpLegMat);
+        // Coxa — armored hip joint, bigger
+        const coxaR = 0.075;
+        const coxa = new THREE.Mesh(getCylinderGeometry(coxaR, coxaR * 0.88, 0.2, 8), scorpChitin);
         coxa.rotation.z = side * 0.5;
+        coxa.castShadow = true;
         legGroup.add(coxa);
+        // gold armor ring on coxa
+        const coxaRing = new THREE.Mesh(getCylinderGeometry(coxaR * 1.15, coxaR * 1.15, 0.035, 8), scorpGold);
+        coxaRing.rotation.z = side * 0.5;
+        legGroup.add(coxaRing);
 
-        // Femur — upper leg, LONG
-        const femurLen = 0.72;
-        const femur = new THREE.Mesh(getCylinderGeometry(0.05, 0.038, femurLen, 6), scorpLegMat);
-        femur.position.set(side * 0.1, -0.34, 0);
+        // Femur — THICK armored upper leg
+        const femurLen = 0.88;
+        const femur = new THREE.Mesh(getCylinderGeometry(0.068, 0.05, femurLen, 8), scorpChitin);
+        femur.position.set(side * 0.12, -0.4, 0);
         femur.rotation.z = side * 0.42;
         femur.castShadow = true;
         legGroup.add(femur);
-
-        // Fuzzy hairs on femur
-        for (let f = 0; f < 8; f++) {
-          const ang = (f / 8) * Math.PI * 2;
-          const fuzz = new THREE.Mesh(getCylinderGeometry(0.0035, 0.0015, 0.045 + Math.random() * 0.025, 3), scorpFuzzMat);
-          fuzz.position.set(Math.cos(ang) * 0.042, -0.18 - (f % 3) * 0.16, Math.sin(ang) * 0.042);
-          fuzz.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.3;
-          fuzz.rotation.z = ang;
-          legGroup.add(fuzz);
+        // Spikes along femur — mean
+        for (let s = 0; s < 3; s++) {
+          const spike = new THREE.Mesh(new THREE.ConeGeometry(0.018, 0.07, 5), scorpGold);
+          spike.position.set(side * 0.045, -0.18 - s * 0.22, 0.038);
+          spike.rotation.x = -Math.PI / 2;
+          legGroup.add(spike);
         }
 
-        // Tibia / patella — BENT KNEE joint, lower leg
-        const tibiaLen = 0.68;
-        const tibia = new THREE.Mesh(getCylinderGeometry(0.034, 0.024, tibiaLen, 5), scorpLegMat);
-        tibia.position.set(side * 0.22, -0.72, -0.02);
-        // bent knee
+        // Tibia — BENT KNEE, armored, longer
+        const tibiaLen = 0.78;
+        const tibia = new THREE.Mesh(getCylinderGeometry(0.045, 0.03, tibiaLen, 6), scorpChitin);
+        tibia.position.set(side * 0.26, -0.82, -0.02);
         tibia.rotation.z = side * -0.55;
         tibia.castShadow = true;
         legGroup.add(tibia);
+        // Knee spike
+        const kneeSpike = new THREE.Mesh(new THREE.ConeGeometry(0.016, 0.055, 5), scorpGold);
+        kneeSpike.position.set(side * 0.22, -0.62, 0.03);
+        kneeSpike.rotation.z = side * -0.55;
+        legGroup.add(kneeSpike);
 
-        // Fuzzy hairs on tibia
-        for (let f = 0; f < 7; f++) {
-          const ang = (f / 7) * Math.PI * 2;
-          const fuzz = new THREE.Mesh(getCylinderGeometry(0.0028, 0.001, 0.038 + Math.random() * 0.022, 3), scorpFuzzMat);
-          fuzz.position.set(side * 0.22 + Math.cos(ang) * 0.028, -0.58 - (f % 3) * 0.13, -0.02 + Math.sin(ang) * 0.028);
-          fuzz.rotation.x = Math.PI / 2 + (Math.random() - 0.5) * 0.4;
-          fuzz.rotation.z = ang;
-          legGroup.add(fuzz);
-        }
-
-        // Tarsus — thin foot
-        const tarsusLen = 0.32;
-        const tarsus = new THREE.Mesh(getCylinderGeometry(0.016, 0.01, tarsusLen, 4), scorpLegMat);
-        tarsus.position.set(side * 0.34, -1.08, 0.01);
+        // Tarsus — clawed foot, glossy
+        const tarsusLen = 0.38;
+        const tarsus = new THREE.Mesh(getCylinderGeometry(0.022, 0.014, tarsusLen, 5), scorpChitin);
+        tarsus.position.set(side * 0.4, -1.22, 0.01);
         tarsus.rotation.z = side * -0.18;
         tarsus.castShadow = true;
         legGroup.add(tarsus);
 
-        // claw tip
-        const claw = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.05, 4), scorpLegMat);
-        claw.position.set(side * 0.35, -1.25, 0.015);
-        claw.rotation.x = Math.PI;
-        legGroup.add(claw);
+        // GLOWING claw tip
+        const clawTip = new THREE.Mesh(new THREE.ConeGeometry(0.018, 0.075, 5), scorpVenom);
+        clawTip.position.set(side * 0.41, -1.42, 0.015);
+        clawTip.rotation.x = Math.PI;
+        legGroup.add(clawTip);
 
-        legGroup.position.set(side * torsoWidth * 0.5, -torsoHeight * 0.2, (slot - 1.5) * torsoDepth * 0.4);
+        legGroup.position.set(side * torsoWidth * 0.55, -torsoHeight * 0.18, (slot - 1.5) * torsoDepth * 0.42);
         legGroup.rotation.z = side * 0.18;
         torso.add(legGroup);
       }
+
+      // MASSIVE CRUSHING PINCERS — big, mean, shiny
       [-1, 1].forEach((side) => {
         const claw = new THREE.Group();
         claw.name = `scorpion-pincer-${side}`;
-        const arm = new THREE.Mesh(getCylinderGeometry(0.08, 0.06, torsoWidth * 0.7, 6), animalMat);
+
+        // Pedipalp arm — THICK, armored, glossy
+        const arm = new THREE.Mesh(getCylinderGeometry(0.14, 0.11, torsoWidth * 0.95, 8), scorpChitin);
         arm.rotation.z = side * Math.PI / 2;
+        arm.castShadow = true;
         claw.add(arm);
-        const pincer = new THREE.Mesh(getBoxGeometry(0.2, 0.12, 0.28), animalDark);
-        pincer.position.set(side * torsoWidth * 0.45, 0, torsoDepth * 0.35);
-        claw.add(pincer);
-        claw.position.set(side * torsoWidth * 0.5, torsoHeight * 0.1, torsoDepth * 0.3);
+        // Gold armor bands on arm
+        for (let b = 0; b < 3; b++) {
+          const band = new THREE.Mesh(getCylinderGeometry(0.145, 0.145, 0.03, 8), scorpGold);
+          band.position.set(side * (0.15 + b * 0.22), 0, 0);
+          band.rotation.z = Math.PI / 2;
+          claw.add(band);
+        }
+
+        // MANUS — the big crushing claw base
+        const manus = new THREE.Mesh(getSphereGeometry(0.18, 10, 10), scorpChitin);
+        manus.name = `scorpion-manus-${side}`;
+        manus.scale.set(1.4, 0.85, 1.1);
+        manus.position.set(side * torsoWidth * 0.55, 0, torsoDepth * 0.38);
+        manus.castShadow = true;
+        claw.add(manus);
+
+        // Fixed finger
+        const fixedFinger = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.28, 5), scorpChitin);
+        fixedFinger.position.set(side * torsoWidth * 0.55, 0, torsoDepth * 0.54);
+        fixedFinger.rotation.x = Math.PI / 2;
+        fixedFinger.castShadow = true;
+        claw.add(fixedFinger);
+
+        // Movable finger — BIGGER, with venom glow tip
+        const moveFinger = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.26, 5), scorpChitin);
+        moveFinger.position.set(side * (torsoWidth * 0.55 + 0.08), 0.06, torsoDepth * 0.52);
+        moveFinger.rotation.set(Math.PI / 2, 0, side * -0.25);
+        moveFinger.castShadow = true;
+        claw.add(moveFinger);
+        const pincerTip = new THREE.Mesh(getSphereGeometry(0.032, 8, 8), scorpVenom);
+        pincerTip.position.set(side * (torsoWidth * 0.55 + 0.1), 0.08, torsoDepth * 0.64);
+        claw.add(pincerTip);
+
+        claw.position.set(side * torsoWidth * 0.55, torsoHeight * 0.12, torsoDepth * 0.28);
+        claw.rotation.y = side * -0.15;
         torso.add(claw);
       });
-      const stinger = makeSegmentedLimb("scorpion-tail", 6, torsoWidth * 0.12, torsoHeight * 0.2, -0.15);
-      stinger.position.set(0, torsoHeight * 0.2, -torsoDepth * 0.5);
-      stinger.rotation.x = -0.8;
-      const barb = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.28, 5), animalDark);
-      barb.position.set(0, torsoHeight * 0.9, -torsoDepth * 0.2);
-      stinger.add(barb);
-      torso.add(stinger);
-      torso.scale.set(1.2, 0.65, 1.3);
+
+      // CURVED TAIL — BIG, arched over the back, GLOWING STINGER
+      const tailGroup = new THREE.Group();
+      tailGroup.name = "scorpion-tail";
+      let tailR = torsoWidth * 0.16;
+      let tailZ = -torsoDepth * 0.42;
+      let tailY = torsoHeight * 0.15;
+      const tailSegs = 7;
+      for (let i = 0; i < tailSegs; i++) {
+        const segLen = torsoHeight * 0.26;
+        const nextR = tailR * 0.84;
+        const seg = new THREE.Mesh(getCylinderGeometry(tailR, nextR, segLen, 8), scorpChitin);
+        seg.rotation.x = -Math.PI / 2 + 0.15 * i;
+        seg.position.set(0, tailY, tailZ - segLen / 2);
+        seg.castShadow = true;
+        tailGroup.add(seg);
+        // Gold armor ring per segment
+        const ring = new THREE.Mesh(getCylinderGeometry(tailR * 1.08, tailR * 1.08, segLen * 0.14, 8), scorpGold);
+        ring.rotation.x = -Math.PI / 2 + 0.15 * i;
+        ring.position.set(0, tailY, tailZ - segLen * 0.5);
+        tailGroup.add(ring);
+        // Dorsal spine per segment
+        const spine = new THREE.Mesh(new THREE.ConeGeometry(tailR * 0.28, tailR * 0.9, 5), scorpGold);
+        spine.position.set(0, tailY + tailR * 0.85, tailZ - segLen * 0.5);
+        spine.rotation.x = -0.15;
+        tailGroup.add(spine);
+        tailZ -= segLen * 0.82;
+        tailY += segLen * (0.38 - i * 0.04); // arch over back
+        tailR = nextR;
+      }
+      tailGroup.rotation.x = -0.3; // arch up and forward
+      torso.add(tailGroup);
+
+      // THE STINGER — BIG, GLOWING VENOM BARB
+      const stingerBase = new THREE.Mesh(new THREE.ConeGeometry(tailR * 2.8, tailR * 3.5, 6), scorpVenom);
+      stingerBase.name = "scorpion-stinger";
+      stingerBase.position.set(0, tailY + tailR * 0.5, tailZ);
+      stingerBase.rotation.x = Math.PI * 0.85;
+      stingerBase.castShadow = true;
+      tailGroup.add(stingerBase);
+      // Venom glow core
+      const venomCore = new THREE.Mesh(getSphereGeometry(tailR * 1.6, 10, 10), scorpVenom);
+      venomCore.position.set(0, tailY + tailR * 0.5, tailZ);
+      tailGroup.add(venomCore);
+      // Dripping venom point
+      const venomDrip = new THREE.Mesh(new THREE.ConeGeometry(tailR * 0.8, tailR * 1.8, 5), scorpVenom);
+      venomDrip.position.set(0, tailY + tailR * 1.8, tailZ + tailR * 0.3);
+      venomDrip.rotation.x = Math.PI;
+      tailGroup.add(venomDrip);
+
+      // Armored carapace plates along the back
+      for (let p = 0; p < 5; p++) {
+        const plate = new THREE.Mesh(getBoxGeometry(torsoWidth * (0.85 - p * 0.08), 0.045, torsoDepth * 0.22), scorpGold);
+        plate.name = `scorpion-back-plate-${p}`;
+        plate.position.set(0, torsoHeight * (0.32 - p * 0.12), -torsoDepth * (0.1 + p * 0.08));
+        plate.rotation.x = 0.15 + p * 0.04;
+        plate.castShadow = true;
+        torso.add(plate);
+      }
+
+      // BIGGER — bulk up the whole scorpion
+      torso.scale.set(1.55, 0.82, 1.55);
     } else if (variant === "mantis") {
       // PRAYING MANTIS - folded raptorial forelegs, elongated thorax/abdomen, wings
       const mantisChitin = new THREE.MeshStandardMaterial({ color: config.skinColor || "#65a34a", roughness: 0.55, name: "mantis-chitin" });

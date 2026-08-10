@@ -148,12 +148,13 @@ export const CREATURE_VARIANTS: Record<string, CreatureVariantPreset> = {
     accessories: [],
   },
   scorpion: {
-    label: "🦂 Desert Scorpion",
-    skinColor: "#b45309",
-    hairColor: "#78350f",
+    label: "🦂 Emperor Scorpion",
+    skinColor: "#0a0a0a",
+    hairColor: "#ffae00",
     hairStyle: "none",
-    clothingColor: "#92400e",
-    pantsColor: "#78350f",
+    clothingColor: "#1a1a1a",
+    pantsColor: "#0a0a0a",
+    materialEmissive: "#ff0033",
     accessories: [],
   },
   worm: {
