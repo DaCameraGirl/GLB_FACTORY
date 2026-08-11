@@ -290,7 +290,7 @@ export default function App() {
   ]);
 
   // Visual parameters
-  const [autoRotate, setAutoRotate] = useState(true);
+  const [autoRotate, setAutoRotate] = useState(false);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [meltActive, setMeltActive] = useState(false);
 
