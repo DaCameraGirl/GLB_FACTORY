@@ -1701,14 +1701,14 @@ export function buildAvatar(
       metalness: 0.1,
       name: "scorpion-eye-glow",
     });
-    // Main median eyes — BIG
+    // Main median eyes — BIG — pushed forward to sit ON carapace surface
     [-1, 1].forEach((side) => {
       const eye = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.09, 10, 10), eyeGlowMat);
       eye.name = `scorpion-eye-${side > 0 ? "right" : "left"}`;
-      eye.position.set(side * actualHeadSize * 0.16, actualHeadSize * 0.18, actualHeadSize * 0.44);
+      eye.position.set(side * actualHeadSize * 0.16, actualHeadSize * 0.18, actualHeadSize * 0.68);
       head.add(eye);
     });
-    // Lateral eye cluster — 2 per side, smaller
+    // Lateral eye cluster — 2 per side, smaller — pushed forward
     [-1, 1].forEach((side) => {
       for (let i = 0; i < 2; i++) {
         const lateralEye = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.038, 8, 8), eyeGlowMat);
@@ -1716,7 +1716,7 @@ export function buildAvatar(
         lateralEye.position.set(
           side * actualHeadSize * (0.32 + i * 0.07),
           actualHeadSize * 0.06,
-          actualHeadSize * (0.28 - i * 0.08)
+          actualHeadSize * (0.58 - i * 0.08)
         );
         head.add(lateralEye);
       }
@@ -1735,13 +1735,13 @@ export function buildAvatar(
       const fang = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.1, actualHeadSize * 0.32, 6), carapaceMat);
       fang.name = `scorpion-fang-${side}`;
       fang.rotation.set(Math.PI * 0.72, 0, side * 0.35);
-      fang.position.set(side * actualHeadSize * 0.14, -actualHeadSize * 0.22, actualHeadSize * 0.42);
+      fang.position.set(side * actualHeadSize * 0.14, -actualHeadSize * 0.22, actualHeadSize * 0.68);
       fang.castShadow = true;
       head.add(fang);
       // Venom drip tip — glowing
       const venomTip = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.045, 8, 8), fangVenomMat);
       venomTip.name = `scorpion-venom-tip-${side}`;
-      venomTip.position.set(side * actualHeadSize * 0.14, -actualHeadSize * 0.36, actualHeadSize * 0.48);
+      venomTip.position.set(side * actualHeadSize * 0.14, -actualHeadSize * 0.36, actualHeadSize * 0.75);
       head.add(venomTip);
     });
 
@@ -1749,7 +1749,7 @@ export function buildAvatar(
     [-1, 1].forEach((side) => {
       const jawPlate = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.18, actualHeadSize * 0.14, actualHeadSize * 0.22), carapaceMat);
       jawPlate.name = `scorpion-jaw-plate-${side}`;
-      jawPlate.position.set(side * actualHeadSize * 0.26, -actualHeadSize * 0.08, actualHeadSize * 0.28);
+      jawPlate.position.set(side * actualHeadSize * 0.26, -actualHeadSize * 0.08, actualHeadSize * 0.56);
       jawPlate.rotation.z = side * 0.22;
       jawPlate.castShadow = true;
       head.add(jawPlate);
@@ -1763,7 +1763,7 @@ export function buildAvatar(
       spike.position.set(
         Math.sin(angle) * actualHeadSize * 0.28,
         actualHeadSize * 0.48,
-        Math.cos(angle) * actualHeadSize * 0.08
+        actualHeadSize * (0.35 + Math.cos(angle) * 0.08)
       );
       spike.rotation.x = -0.2;
       spike.castShadow = true;
