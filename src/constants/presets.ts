@@ -29,7 +29,7 @@ export const CREATURE_VARIANTS: Record<string, CreatureVariantPreset> = {
   cat: { label: "🐱 Cat", skinColor: "#ea9a3e", hairColor: "#78350f", accessories: ["cat-ears", "tail", "whiskers"] },
   dog: { label: "🐶 Dog", skinColor: "#92400e", hairColor: "#451a03", accessories: ["tail"] },
   lizard: { label: "🦎 Lizard", skinColor: "#4d7c0f", hairColor: "#1a2e05", accessories: ["tail"] },
-  possum: { label: "🐀 Possum", skinColor: "#d6d3d1", hairColor: "#57534e", accessories: ["tail", "whiskers"] },
+  possum: { label: "🐀 Possum", skinColor: "#5b5b4a", hairColor: "#2d2419", clothingColor: "#3d2a1e", pantsColor: "#2d2419", accessories: [] },
   tigerfish: { label: "🐠 Tiger Fish", skinColor: "#ea580c", hairColor: "#1c1917", accessories: ["fins", "tail"] },
   lionfish: { label: "🦁🐟 Lionfish", skinColor: "#fde68a", hairColor: "#b91c1c", accessories: ["fins"] },
   clown: {
