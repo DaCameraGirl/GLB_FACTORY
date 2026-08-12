@@ -1692,11 +1692,11 @@ export function buildAvatar(
     carapace.receiveShadow = true;
     head.add(carapace);
 
-    // Glowing red predator eyes — cluster of 6 (scorpion eye layout)
+    // Glowing BLUE predator eyes — cluster of 6 (scorpion eye layout)
     const eyeGlowMat = new THREE.MeshStandardMaterial({
-      color: 0x00d4ff,
-      emissive: new THREE.Color(0x00a8ff),
-      emissiveIntensity: 2.5,
+      color: 0x00f0ff,
+      emissive: new THREE.Color(0x00d4ff),
+      emissiveIntensity: 5.0,
       roughness: 0.05,
       metalness: 0.1,
       name: "scorpion-eye-glow",
