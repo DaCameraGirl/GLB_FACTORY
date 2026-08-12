@@ -1026,27 +1026,107 @@ export function buildAvatar(
 
   if (config.creatureVariant === "possum") {
     if (!hasPhotoTexture) {
-      const snoutMat = new THREE.MeshStandardMaterial({ color: 0xf5d0c5, roughness: 0.6, name: "possum-snout" });
-      const snout = new THREE.Mesh(getCylinderGeometry(actualHeadSize * 0.08, actualHeadSize * 0.15, actualHeadSize * 0.3, radialSeg), snoutMat);
+      // Furry grey/white possum snout — longer + pointier
+      const snoutFur = new THREE.MeshStandardMaterial({ color: config.skinColor || "#9a9a9a", roughness: 0.85, name: "possum-fur" });
+      const snout = new THREE.Mesh(getCylinderGeometry(actualHeadSize * 0.1, actualHeadSize * 0.18, actualHeadSize * 0.42, 8), snoutFur);
       snout.name = "possum-snout";
       snout.rotation.x = Math.PI / 2;
-      snout.position.set(0, -actualHeadSize * 0.06, actualHeadSize * 0.46);
+      snout.position.set(0, -actualHeadSize * 0.08, actualHeadSize * 0.52);
       snout.castShadow = true;
       head.add(snout);
 
-      const noseMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.3, name: "possum-nose" });
-      const nose = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.05, 8, 8), noseMat);
+      // Pink fleshy nose
+      const noseMat = new THREE.MeshStandardMaterial({ color: 0xf9a8d4, roughness: 0.4, name: "possum-nose" });
+      const nose = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.055, 8, 8), noseMat);
       nose.name = "possum-nose";
-      nose.position.set(0, -actualHeadSize * 0.06, actualHeadSize * 0.6);
+      nose.scale.set(1.3, 0.8, 0.9);
+      nose.position.set(0, -actualHeadSize * 0.08, actualHeadSize * 0.72);
       head.add(nose);
+
+      // BEADY BLACK EYES — tiny, shiny, dead stare 👀
+      const eyeBlack = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.05, metalness: 0.3, name: "possum-eye" });
+      const eyeShine = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.05, metalness: 0.8, name: "possum-eye-shine" });
+      [-1, 1].forEach((side) => {
+        const eye = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.055, 10, 10), eyeBlack);
+        eye.name = `possum-eye-${side > 0 ? "right" : "left"}`;
+        eye.position.set(side * actualHeadSize * 0.22, actualHeadSize * 0.08, actualHeadSize * 0.38);
+        head.add(eye);
+        // Tiny white glint — beady possum stare
+        const glint = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.016, 6, 6), eyeShine);
+        glint.name = `possum-eye-glint-${side > 0 ? "right" : "left"}`;
+        glint.position.set(side * actualHeadSize * 0.23, actualHeadSize * 0.1, actualHeadSize * 0.42);
+        head.add(glint);
+      });
+
+      // HISSSSS — open snarling mouth
+      const mouthMat = new THREE.MeshStandardMaterial({ color: 0x1a0f15, roughness: 0.5, name: "possum-mouth" });
+      const mouth = new THREE.Mesh(getBoxGeometry(actualHeadSize * 0.42, actualHeadSize * 0.08, actualHeadSize * 0.12), mouthMat);
+      mouth.name = "possum-mouth";
+      mouth.position.set(0, -actualHeadSize * 0.24, actualHeadSize * 0.56);
+      head.add(mouth);
+
+      // 50 TEETH — possums have FIFTY TEETH, more than any other North American mammal 🦷
+      const toothMat = new THREE.MeshStandardMaterial({ color: 0xf5f5dc, roughness: 0.35, name: "possum-tooth" });
+      // Upper needle teeth — 12 across
+      for (let i = 0; i < 12; i++) {
+        const t = i / 11;
+        const x = (t - 0.5) * actualHeadSize * 0.36;
+        const zOffset = Math.sin(t * Math.PI) * actualHeadSize * 0.04;
+        const tooth = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.014, actualHeadSize * 0.06, 4), toothMat);
+        tooth.name = `possum-tooth-upper-${i}`;
+        tooth.rotation.x = Math.PI;
+        tooth.position.set(x, -actualHeadSize * 0.21, actualHeadSize * 0.58 + zOffset);
+        head.add(tooth);
+      }
+      // Lower needle teeth — 12 across  
+      for (let i = 0; i < 12; i++) {
+        const t = i / 11;
+        const x = (t - 0.5) * actualHeadSize * 0.32;
+        const zOffset = Math.sin(t * Math.PI) * actualHeadSize * 0.03;
+        const tooth = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.012, actualHeadSize * 0.045, 4), toothMat);
+        tooth.name = `possum-tooth-lower-${i}`;
+        tooth.rotation.x = 0;
+        tooth.position.set(x, -actualHeadSize * 0.27, actualHeadSize * 0.56 + zOffset);
+        head.add(tooth);
+      }
+      // The FANGS — 4 big canines — SCARY
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([side, upper], idx) => {
+        const fang = new THREE.Mesh(new THREE.ConeGeometry(actualHeadSize * 0.022, actualHeadSize * 0.1, 5), toothMat);
+        fang.name = `possum-fang-${idx}`;
+        fang.rotation.x = upper < 0 ? Math.PI : 0;
+        fang.position.set(side * actualHeadSize * 0.14, -actualHeadSize * (upper < 0 ? 0.19 : 0.29), actualHeadSize * 0.6);
+        head.add(fang);
+      });
+
+      // Whiskers — long, twitchy
+      const whiskerMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.6, name: "possum-whisker" });
+      [-1, 1].forEach((side) => {
+        for (let i = 0; i < 3; i++) {
+          const whisker = new THREE.Mesh(getCylinderGeometry(0.002, 0.004, actualHeadSize * 0.35, 4), whiskerMat);
+          whisker.name = `possum-whisker-${side}-${i}`;
+          whisker.rotation.z = side * (Math.PI / 2 + 0.15 * i);
+          whisker.rotation.x = 0.1 * i;
+          whisker.position.set(side * actualHeadSize * 0.16, -actualHeadSize * (0.12 + i * 0.04), actualHeadSize * 0.58);
+          head.add(whisker);
+        }
+      });
     }
 
-    const earMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, roughness: 0.6, name: "possum-ear" });
+    // Big round NAKED PINK EARS — classic possum
+    const earMat = new THREE.MeshStandardMaterial({ color: 0xf9a8d4, roughness: 0.55, name: "possum-ear" });
+    const earFurMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#9a9a9a", roughness: 0.85, name: "possum-ear-fur" });
     [-1, 1].forEach((side) => {
+      // Ear back — furry grey
+      const earBack = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.18, 10, 10), earFurMat);
+      earBack.name = `possum-ear-back-${side > 0 ? "right" : "left"}`;
+      earBack.scale.set(1.0, 1.3, 0.22);
+      earBack.position.set(side * actualHeadSize * 0.4, actualHeadSize * 0.32, -actualHeadSize * 0.06);
+      head.add(earBack);
+      // Ear inner — naked pink
       const ear = new THREE.Mesh(getSphereGeometry(actualHeadSize * 0.14, 10, 10), earMat);
-      ear.name = `possum-ear-${side}`;
-      ear.scale.set(1.0, 1.0, 0.3);
-      ear.position.set(side * actualHeadSize * 0.4, actualHeadSize * 0.3, -actualHeadSize * 0.05);
+      ear.name = `possum-ear-${side > 0 ? "right" : "left"}`;
+      ear.scale.set(1.0, 1.2, 0.15);
+      ear.position.set(side * actualHeadSize * 0.4, actualHeadSize * 0.31, -actualHeadSize * 0.02);
       head.add(ear);
     });
   }
@@ -2973,6 +3053,79 @@ export function buildAvatar(
       tail.position.set(0, -torsoHeight * 0.2, -torsoDepth * 0.5);
       torso.add(tail);
       torso.scale.set(1.1, 0.75, 1.25);
+    } else if (variant === "possum") {
+      // GREASY TRASH GOBLIN BODY — hunched, mangy, NASTY
+      const possumFur = new THREE.MeshStandardMaterial({ color: 0x7c7c7c, roughness: 0.92, name: "possum-body-fur" });
+      const pinkSkin = new THREE.MeshStandardMaterial({ color: 0xf9a8d4, roughness: 0.55, name: "possum-pink-skin" });
+      const clawMat = new THREE.MeshStandardMaterial({ color: 0x1c1917, roughness: 0.4, name: "possum-claw" });
+
+      // CLAW HANDS — long creepy possum fingers with black needle claws
+      const makePossumHand = (side: number) => {
+        const hand = new THREE.Group();
+        hand.name = `possum-hand-${side > 0 ? "right" : "left"}`;
+        const palm = new THREE.Mesh(getSphereGeometry(0.06, 8, 8), pinkSkin);
+        palm.scale.set(1.3, 0.7, 1.1);
+        hand.add(palm);
+        // 5 long spindly fingers + claws
+        for (let f = 0; f < 5; f++) {
+          const angle = ((f / 4) - 0.5) * 1.3;
+          const finger = new THREE.Mesh(getCylinderGeometry(0.014, 0.01, 0.14, 5), pinkSkin);
+          finger.position.set(Math.sin(angle) * 0.05, -0.07, Math.cos(angle) * 0.04);
+          finger.rotation.x = 0.15;
+          finger.rotation.z = angle * 0.4;
+          hand.add(finger);
+          // Black needle claw tip
+          const claw = new THREE.Mesh(new THREE.ConeGeometry(0.01, 0.045, 4), clawMat);
+          claw.position.set(Math.sin(angle) * 0.06, -0.14, Math.cos(angle) * 0.05);
+          claw.rotation.x = Math.PI;
+          hand.add(claw);
+        }
+        return hand;
+      };
+      const leftClaw = makePossumHand(-1);
+      leftClaw.position.set(-torsoWidth * 0.58, torsoHeight * 0.08, torsoDepth * 0.15);
+      leftClaw.rotation.z = -0.4;
+      torso.add(leftClaw);
+      const rightClaw = makePossumHand(1);
+      rightClaw.position.set(torsoWidth * 0.58, torsoHeight * 0.08, torsoDepth * 0.15);
+      rightClaw.rotation.z = 0.4;
+      torso.add(rightClaw);
+
+      // NAKED PINK RAT TAIL — long, scaly, disgusting — THE POSSUM SPECIAL
+      const tailSegs = 14;
+      const possumTail = new THREE.Group();
+      possumTail.name = "possum-tail";
+      let tailR = torsoWidth * 0.065;
+      let tailY = -torsoHeight * 0.28;
+      let tailZ = -torsoDepth * 0.42;
+      for (let i = 0; i < tailSegs; i++) {
+        const segLen = torsoHeight * 0.16;
+        const nextR = tailR * 0.88;
+        const seg = new THREE.Mesh(getCylinderGeometry(tailR, nextR, segLen, 6), pinkSkin);
+        seg.rotation.x = Math.PI / 2 - 0.08 * i;
+        seg.position.set(0, tailY, tailZ - segLen / 2);
+        seg.castShadow = true;
+        possumTail.add(seg);
+        // Scaly ring bands — nasty
+        if (i % 2 === 0) {
+          const ring = new THREE.Mesh(getCylinderGeometry(tailR * 1.12, tailR * 1.12, segLen * 0.18, 6), new THREE.MeshStandardMaterial({ color: 0xe4b4c8, roughness: 0.5, name: "possum-tail-ring" }));
+          ring.rotation.x = Math.PI / 2 - 0.08 * i;
+          ring.position.set(0, tailY, tailZ - segLen * 0.5);
+          possumTail.add(ring);
+        }
+        tailZ -= segLen * 0.82;
+        tailY -= segLen * 0.15;
+        tailR = nextR;
+      }
+      possumTail.position.y = torsoHeight * -0.05;
+      torso.add(possumTail);
+
+      // Hunch that back — greasy trash goblin posture
+      torso.scale.set(1.15, 0.88, 1.08);
+      torso.rotation.x = 0.18;
+
+      leftArm = null as any;
+      rightArm = null as any;
     } else if (variant === "centipede") {
       const segs = 10;
       const trail = new THREE.Group();
