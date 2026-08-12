@@ -346,13 +346,29 @@ export default function ThreeCanvas({
         }
       }
 
-      // Possum jaw: SNARL CHOMP — nasty
+      // Possum jaw: RABID SNARL CHOMP — VIOLENT
       if (avatarGroupRef.current && activeConfig.creatureVariant === "possum") {
         const jawPivot = avatarGroupRef.current.getObjectByName("possum-jaw");
         if (jawPivot) {
-          const chompCycle = Math.max(0, Math.sin(elapsedTime * 8.5));
-          jawPivot.rotation.x = chompCycle * 0.38;
+          const chompCycle = Math.max(0, Math.sin(elapsedTime * 11.0));
+          jawPivot.rotation.x = chompCycle * 0.62;
         }
+        // Rotting drool drip anim — bob the drool strands
+        for (let d = 0; d < 6; d++) {
+          const drool = avatarGroupRef.current.getObjectByName(`possum-drool-${d}`);
+          if (drool) {
+            drool.position.y += Math.sin(elapsedTime * (7 + d) + d) * 0.0008;
+            drool.rotation.z = Math.sin(elapsedTime * (5 + d)) * 0.15;
+          }
+        }
+        // Maggots wriggling in the tail 🤢
+        avatarGroupRef.current.traverse((obj) => {
+          if (obj.name && obj.name.startsWith("possum-maggot-")) {
+            const idx = parseInt(obj.name.split("-")[2] || "0") || 0;
+            obj.rotation.z += 0.08 + Math.sin(elapsedTime * 12 + idx) * 0.03;
+            obj.position.x += Math.sin(elapsedTime * 9 + idx * 1.7) * 0.0004;
+          }
+        });
       }
 
       // Bounce/squish dynamic soft-body calculations
