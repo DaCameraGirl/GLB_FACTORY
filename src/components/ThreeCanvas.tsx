@@ -346,6 +346,15 @@ export default function ThreeCanvas({
         }
       }
 
+      // Possum jaw: SNARL CHOMP — nasty
+      if (avatarGroupRef.current && activeConfig.creatureVariant === "possum") {
+        const jawPivot = avatarGroupRef.current.getObjectByName("possum-jaw");
+        if (jawPivot) {
+          const chompCycle = Math.max(0, Math.sin(elapsedTime * 8.5));
+          jawPivot.rotation.x = chompCycle * 0.38;
+        }
+      }
+
       // Bounce/squish dynamic soft-body calculations
       let bounceY = 0;
       let squishY = 1.0;
