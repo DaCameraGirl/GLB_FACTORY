@@ -3204,45 +3204,6 @@ export function buildAvatar(
         torso.add(sore);
       }
 
-      // BLOODY ROTTING CLAW HANDS — HUGE, DIRTY, NASTY
-      const makePossumHand = (side: number) => {
-        const hand = new THREE.Group();
-        hand.name = `possum-hand-${side > 0 ? "right" : "left"}`;
-        const palm = new THREE.Mesh(getSphereGeometry(0.075, 8, 8), rotSkinMat);
-        palm.scale.set(1.4, 0.8, 1.2);
-        hand.add(palm);
-        // 5 LONG GNARLED ROTTING FINGERS + BLOODY CLAWS
-        for (let f = 0; f < 5; f++) {
-          const angle = ((f / 4) - 0.5) * 1.4;
-          const bend = (Math.random() - 0.5) * 0.3;
-          const fingerLen = 0.16 + Math.random() * 0.06;
-          const finger = new THREE.Mesh(getCylinderGeometry(0.018, 0.013, fingerLen, 5), rotSkinMat);
-          finger.position.set(Math.sin(angle) * 0.06, -0.08 - bend * 0.03, Math.cos(angle) * 0.045);
-          finger.rotation.x = 0.18 + bend;
-          finger.rotation.z = angle * 0.45;
-          hand.add(finger);
-          // BIG BLOODY ROTTING CLAW — LONG
-          const clawLen = 0.065 + Math.random() * 0.025;
-          const claw = new THREE.Mesh(new THREE.ConeGeometry(0.014, clawLen, 4), clawMat);
-          claw.position.set(Math.sin(angle) * 0.075, -0.08 - fingerLen - 0.015, Math.cos(angle) * 0.055);
-          claw.rotation.x = Math.PI + bend * 0.5;
-          hand.add(claw);
-          // Blood on the claw tip
-          const bloodTip = new THREE.Mesh(getSphereGeometry(0.011, 5, 5), bloodMat);
-          bloodTip.position.set(Math.sin(angle) * 0.075, -0.08 - fingerLen - clawLen * 0.45, Math.cos(angle) * 0.055);
-          hand.add(bloodTip);
-        }
-        return hand;
-      };
-      const leftClaw = makePossumHand(-1);
-      leftClaw.position.set(-torsoWidth * 0.62, torsoHeight * 0.06, torsoDepth * 0.18);
-      leftClaw.rotation.z = -0.5;
-      torso.add(leftClaw);
-      const rightClaw = makePossumHand(1);
-      rightClaw.position.set(torsoWidth * 0.62, torsoHeight * 0.06, torsoDepth * 0.18);
-      rightClaw.rotation.z = 0.5;
-      torso.add(rightClaw);
-
       // DISEASED RAT TAIL — ROTTING, OOZING, MAGGOTS — PURE NIGHTMARE 🐀🤢💀
       const tailSegs = 22;
       const possumTail = new THREE.Group();
@@ -3318,53 +3279,57 @@ export function buildAvatar(
       leftLeg = null as any;
       rightLeg = null as any;
 
-      // Add 4 possum legs — 2 front + 2 back — ON THE GROUND
-      const makePossumLeg = (isFront: boolean) => {
+      // 4 SHORT SPRAWLING POSSUM LEGS — belly drags the ground
+      const makePossumCrawlLeg = (isFront: boolean) => {
         const legGroup = new THREE.Group();
-        legGroup.name = `possum-quad-leg-${isFront ? 'front' : 'back'}`;
-        const upperLen = isFront ? 0.24 : 0.28;
-        const upper = new THREE.Mesh(getCylinderGeometry(0.055, 0.042, upperLen, 6), mangeFurMat);
+        legGroup.name = `possum-leg-${isFront ? 'front' : 'back'}`;
+        // Upper leg — thick, splayed OUTWARD
+        const upperLen = isFront ? 0.18 : 0.22;
+        const upper = new THREE.Mesh(getCylinderGeometry(0.052, 0.04, upperLen, 6), mangeFurMat);
         upper.position.y = -upperLen / 2;
+        upper.rotation.z = 0.55; // splay OUT
         legGroup.add(upper);
-        const lowerLen = isFront ? 0.18 : 0.22;
-        const lower = new THREE.Mesh(getCylinderGeometry(0.038, 0.028, lowerLen, 6), rotSkinMat);
-        lower.position.set(0.01, -upperLen - lowerLen / 2, 0.01);
-        lower.rotation.z = 0.12;
+        // Lower leg — bends DOWN to the ground
+        const lowerLen = isFront ? 0.16 : 0.19;
+        const lower = new THREE.Mesh(getCylinderGeometry(0.035, 0.026, lowerLen, 6), rotSkinMat);
+        lower.position.set(0.065, -upperLen - lowerLen / 2 + 0.02, 0);
+        lower.rotation.z = -0.35; // bend back IN toward body, foot hits ground
         legGroup.add(lower);
-        // Paw + 4 toes + claws
+        // PAW — 4 splayed toes + black needle claws — FLAT ON GROUND
         for (let t = 0; t < 4; t++) {
-          const angle = ((t / 3) - 0.5) * 0.9;
-          const toe = new THREE.Mesh(getCylinderGeometry(0.011, 0.008, 0.055, 4), rotSkinMat);
-          toe.position.set(Math.sin(angle) * 0.022, -upperLen - lowerLen - 0.02, Math.cos(angle) * 0.018);
-          toe.rotation.x = 0.25;
+          const angle = ((t / 3) - 0.5) * 1.1;
+          const toe = new THREE.Mesh(getCylinderGeometry(0.01, 0.007, 0.048, 4), rotSkinMat);
+          toe.position.set(0.078 + Math.sin(angle) * 0.018, -upperLen - lowerLen - 0.012, Math.cos(angle) * 0.016);
+          toe.rotation.x = Math.PI / 2 - 0.15; // flat on ground
+          toe.rotation.z = angle * 0.3;
           legGroup.add(toe);
-          const claw = new THREE.Mesh(new THREE.ConeGeometry(0.008, 0.032, 4), clawMat);
-          claw.position.set(Math.sin(angle) * 0.028, -upperLen - lowerLen - 0.052, Math.cos(angle) * 0.022);
-          claw.rotation.x = Math.PI * 0.1;
+          const claw = new THREE.Mesh(new THREE.ConeGeometry(0.007, 0.028, 4), clawMat);
+          claw.position.set(0.078 + Math.sin(angle) * 0.024, -upperLen - lowerLen - 0.038, Math.cos(angle) * 0.02);
+          claw.rotation.x = Math.PI / 2 - 0.1;
           legGroup.add(claw);
         }
         return legGroup;
       };
-      // Front paws
+      // Front legs — splayed wide, reaching DOWN
       [-1, 1].forEach(side => {
-        const fl = makePossumLeg(true);
-        fl.position.set(side * torsoWidth * 0.38, -torsoHeight * 0.22, torsoDepth * 0.28);
-        fl.rotation.z = side * 0.08;
+        const fl = makePossumCrawlLeg(true);
+        fl.position.set(side * torsoWidth * 0.42, -torsoHeight * 0.18, torsoDepth * 0.32);
+        fl.rotation.y = side * 0.25; // toes point slightly outward
         torso.add(fl);
       });
-      // Back paws
+      // Back legs — splayed wide, reaching DOWN
       [-1, 1].forEach(side => {
-        const bl = makePossumLeg(false);
-        bl.position.set(side * torsoWidth * 0.35, -torsoHeight * 0.2, -torsoDepth * 0.32);
-        bl.rotation.z = side * 0.06;
+        const bl = makePossumCrawlLeg(false);
+        bl.position.set(side * torsoWidth * 0.4, -torsoHeight * 0.16, -torsoDepth * 0.3);
+        bl.rotation.y = side * 0.18;
         torso.add(bl);
       });
 
       // === GROUND CRAWLER POSTURE ===
-      // Torso horizontal, low to the ground, head forward
-      torso.rotation.x = Math.PI / 2 - 0.15;
-      torso.scale.set(1.35, 0.72, 1.45);
-      torso.position.y -= torsoHeight * 0.25;
+      // Squat low, wide, long — belly to the ground — NO torso rotation
+      // (keeps head/tail/shell/ribs all in correct positions)
+      torso.scale.set(1.45, 0.52, 1.65);
+      torso.position.y -= torsoHeight * 0.38;
 
       leftArm = null as any;
       rightArm = null as any;
