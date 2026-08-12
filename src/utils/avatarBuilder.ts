@@ -3314,9 +3314,57 @@ export function buildAvatar(
       possumTail.position.y = torsoHeight * -0.05;
       torso.add(possumTail);
 
-      // Hunch that back — GREASY RABID TRASH DEMON posture
-      torso.scale.set(1.08, 0.92, 1.05);
-      torso.rotation.x = 0.22;
+      // === QUADRUPED GROUND CRAWLER — KILL HUMAN LEGS ===
+      leftLeg = null as any;
+      rightLeg = null as any;
+
+      // Add 4 possum legs — 2 front + 2 back — ON THE GROUND
+      const makePossumLeg = (isFront: boolean) => {
+        const legGroup = new THREE.Group();
+        legGroup.name = `possum-quad-leg-${isFront ? 'front' : 'back'}`;
+        const upperLen = isFront ? 0.24 : 0.28;
+        const upper = new THREE.Mesh(getCylinderGeometry(0.055, 0.042, upperLen, 6), mangeFurMat);
+        upper.position.y = -upperLen / 2;
+        legGroup.add(upper);
+        const lowerLen = isFront ? 0.18 : 0.22;
+        const lower = new THREE.Mesh(getCylinderGeometry(0.038, 0.028, lowerLen, 6), rotSkinMat);
+        lower.position.set(0.01, -upperLen - lowerLen / 2, 0.01);
+        lower.rotation.z = 0.12;
+        legGroup.add(lower);
+        // Paw + 4 toes + claws
+        for (let t = 0; t < 4; t++) {
+          const angle = ((t / 3) - 0.5) * 0.9;
+          const toe = new THREE.Mesh(getCylinderGeometry(0.011, 0.008, 0.055, 4), rotSkinMat);
+          toe.position.set(Math.sin(angle) * 0.022, -upperLen - lowerLen - 0.02, Math.cos(angle) * 0.018);
+          toe.rotation.x = 0.25;
+          legGroup.add(toe);
+          const claw = new THREE.Mesh(new THREE.ConeGeometry(0.008, 0.032, 4), clawMat);
+          claw.position.set(Math.sin(angle) * 0.028, -upperLen - lowerLen - 0.052, Math.cos(angle) * 0.022);
+          claw.rotation.x = Math.PI * 0.1;
+          legGroup.add(claw);
+        }
+        return legGroup;
+      };
+      // Front paws
+      [-1, 1].forEach(side => {
+        const fl = makePossumLeg(true);
+        fl.position.set(side * torsoWidth * 0.38, -torsoHeight * 0.22, torsoDepth * 0.28);
+        fl.rotation.z = side * 0.08;
+        torso.add(fl);
+      });
+      // Back paws
+      [-1, 1].forEach(side => {
+        const bl = makePossumLeg(false);
+        bl.position.set(side * torsoWidth * 0.35, -torsoHeight * 0.2, -torsoDepth * 0.32);
+        bl.rotation.z = side * 0.06;
+        torso.add(bl);
+      });
+
+      // === GROUND CRAWLER POSTURE ===
+      // Torso horizontal, low to the ground, head forward
+      torso.rotation.x = Math.PI / 2 - 0.15;
+      torso.scale.set(1.35, 0.72, 1.45);
+      torso.position.y -= torsoHeight * 0.25;
 
       leftArm = null as any;
       rightArm = null as any;
