@@ -1027,9 +1027,9 @@ export function buildAvatar(
   if (config.creatureVariant === "possum") {
     // UGLY STINKIN SCARY POSSUM — DUMPSTER DEMON MODE
     if (!hasPhotoTexture) {
-      // MANGY ROTTING SNOUT — patchy grey with bald sores
-      const snoutFur = new THREE.MeshStandardMaterial({ color: config.skinColor || "#7a7a6b", roughness: 0.92, name: "possum-fur" });
-      const mangeSkin = new THREE.MeshStandardMaterial({ color: 0xc9a8a8, roughness: 0.5, name: "possum-mange" });
+      // MANGY SNOUT — white / tan brown fur with bald sores
+      const snoutFur = new THREE.MeshStandardMaterial({ color: config.skinColor || "#e8e0d0", roughness: 0.92, name: "possum-fur" });
+      const mangeSkin = new THREE.MeshStandardMaterial({ color: 0xd4a276, roughness: 0.5, name: "possum-mange" });
       const snout = new THREE.Mesh(getCylinderGeometry(actualHeadSize * 0.12, actualHeadSize * 0.22, actualHeadSize * 0.48, 8), snoutFur);
       snout.name = "possum-snout";
       snout.rotation.x = Math.PI / 2;
@@ -1175,8 +1175,8 @@ export function buildAvatar(
     }
 
     // RIPPED / TORN EARS — one ear chewed up, both NAKED PINK — GROSS
-    const earMat = new THREE.MeshStandardMaterial({ color: 0xc97a9a, roughness: 0.5, name: "possum-ear" });
-    const earFurMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#7a7a6b", roughness: 0.92, name: "possum-ear-fur" });
+    const earMat = new THREE.MeshStandardMaterial({ color: 0xf5d5c0, roughness: 0.5, name: "possum-ear" });
+    const earFurMat = new THREE.MeshStandardMaterial({ color: config.skinColor || "#e8e0d0", roughness: 0.92, name: "possum-ear-fur" });
     const earScarMat = new THREE.MeshStandardMaterial({ color: 0x7f1d1d, roughness: 0.6, name: "possum-ear-scar" });
     [-1, 1].forEach((side) => {
       const isTorn = side < 0;
@@ -3130,16 +3130,16 @@ export function buildAvatar(
       torso.add(tail);
       torso.scale.set(1.1, 0.75, 1.25);
     } else if (variant === "possum") {
-      // DUMPSTER DEMON BODY — ROTTING, MANGY, DISEASED
-      const mangeFurMat = new THREE.MeshStandardMaterial({ color: 0x5b5b4a, roughness: 0.95, name: "possum-body-fur" });
-      const rotSkinMat = new THREE.MeshStandardMaterial({ color: 0xb88a8a, roughness: 0.45, emissive: new THREE.Color(0x2a0a0a), emissiveIntensity: 0.12, name: "possum-rot-skin" });
-      const pinkSkin = new THREE.MeshStandardMaterial({ color: 0xf9a8d4, roughness: 0.55, name: "possum-pink-skin" });
+      // DUMPSTER DEMON BODY — WHITE / BROWN MANGY, NASTY
+      const mangeFurMat = new THREE.MeshStandardMaterial({ color: 0xe8e0d0, roughness: 0.95, name: "possum-body-fur" });
+      const rotSkinMat = new THREE.MeshStandardMaterial({ color: 0xd4a276, roughness: 0.45, emissive: new THREE.Color(0x2a0a0a), emissiveIntensity: 0.08, name: "possum-rot-skin" });
+      const pinkSkin = new THREE.MeshStandardMaterial({ color: 0xf5d5c0, roughness: 0.55, name: "possum-pink-skin" });
       const clawMat = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.3, metalness: 0.1, name: "possum-claw" });
       const bloodMat = new THREE.MeshStandardMaterial({ color: 0x7f1d1d, roughness: 0.35, emissive: new THREE.Color(0x3a0000), emissiveIntensity: 0.18, name: "possum-blood" });
-      // ROTTING CRACKED SHELL — oozing, broken, INFESTED
-      const shellRotMat = new THREE.MeshStandardMaterial({ color: 0x3d2a1e, roughness: 0.92, metalness: 0.0, name: "possum-shell" });
-      const shellCrackMat = new THREE.MeshStandardMaterial({ color: 0x1a0f08, roughness: 0.7, emissive: new THREE.Color(0x2a1a00), emissiveIntensity: 0.08, name: "possum-shell-crack" });
-      const oozeMat = new THREE.MeshStandardMaterial({ color: 0x84cc16, emissive: new THREE.Color(0x365314), emissiveIntensity: 0.55, roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.88, name: "possum-ooze" });
+      // CRACKED SHELL — warm brown, mangy
+      const shellRotMat = new THREE.MeshStandardMaterial({ color: 0x8b5a3c, roughness: 0.92, metalness: 0.0, name: "possum-shell" });
+      const shellCrackMat = new THREE.MeshStandardMaterial({ color: 0x5a3220, roughness: 0.7, emissive: new THREE.Color(0x2a1a00), emissiveIntensity: 0.05, name: "possum-shell-crack" });
+      const oozeMat = new THREE.MeshStandardMaterial({ color: 0x84cc16, emissive: new THREE.Color(0x365314), emissiveIntensity: 0.45, roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.88, name: "possum-ooze" });
 
       // Shell plates — 6 CRACKED ROTTING plates, BIGGER, SPIKIER
       for (let s = 0; s < 6; s++) {
@@ -3204,45 +3204,45 @@ export function buildAvatar(
         torso.add(sore);
       }
 
-      // DISEASED RAT TAIL — ROTTING, OOZING, MAGGOTS — PURE NIGHTMARE 🐀🤢💀
-      const tailSegs = 22;
+      // NAKED RAT TAIL — LONG, UGLY, DISGUSTING — PINK / BROWN SCABBY 🐀
+      const tailSegs = 34;
       const possumTail = new THREE.Group();
       possumTail.name = "possum-tail";
-      let tailR = torsoWidth * 0.085;
+      let tailR = torsoWidth * 0.095;
       let tailY = -torsoHeight * 0.28;
       let tailZ = -torsoDepth * 0.42;
-      const rotTailSkin = new THREE.MeshStandardMaterial({ color: 0xb88a8a, roughness: 0.4, emissive: new THREE.Color(0x1a0a0a), emissiveIntensity: 0.08, name: "possum-tail-rot" });
-      const wartMat = new THREE.MeshStandardMaterial({ color: 0x9f2d5a, roughness: 0.65, name: "possum-tail-wart" });
-      const soreMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, emissive: new THREE.Color(0x7f1d1d), emissiveIntensity: 0.22, roughness: 0.3, name: "possum-tail-sore" });
-      const pusMat = new THREE.MeshStandardMaterial({ color: 0xa3e635, emissive: new THREE.Color(0x4d7c0f), emissiveIntensity: 0.45, roughness: 0.02, metalness: 0.15, transparent: true, opacity: 0.88, name: "possum-pus" });
+      const rotTailSkin = new THREE.MeshStandardMaterial({ color: 0xd4a276, roughness: 0.4, emissive: new THREE.Color(0x1a0a0a), emissiveIntensity: 0.04, name: "possum-tail-rot" });
+      const wartMat = new THREE.MeshStandardMaterial({ color: 0x8b5a3c, roughness: 0.65, name: "possum-tail-wart" });
+      const soreMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, emissive: new THREE.Color(0x7f1d1d), emissiveIntensity: 0.18, roughness: 0.3, name: "possum-tail-sore" });
+      const pusMat = new THREE.MeshStandardMaterial({ color: 0xa3e635, emissive: new THREE.Color(0x4d7c0f), emissiveIntensity: 0.35, roughness: 0.02, metalness: 0.15, transparent: true, opacity: 0.88, name: "possum-pus" });
       const maggotMat = new THREE.MeshStandardMaterial({ color: 0xf5f5dc, roughness: 0.15, name: "possum-maggot" });
       for (let i = 0; i < tailSegs; i++) {
-        const segLen = torsoHeight * 0.13;
-        const nextR = tailR * 0.925;
-        const rot = Math.sin(i * 0.6) * 0.25;
+        const segLen = torsoHeight * 0.155;
+        const nextR = tailR * 0.94;
+        const rot = Math.sin(i * 0.7) * 0.35;
         const seg = new THREE.Mesh(getCylinderGeometry(tailR, nextR, segLen, 6), i % 3 === 0 ? rotTailSkin : pinkSkin);
-        seg.rotation.x = Math.PI / 2 - 0.028 * i;
-        seg.rotation.z = rot * 0.15;
-        seg.position.set(Math.sin(i * 0.55) * torsoWidth * 0.06, tailY, tailZ - segLen / 2);
+        seg.rotation.x = Math.PI / 2 - 0.025 * i;
+        seg.rotation.z = rot * 0.18;
+        seg.position.set(Math.sin(i * 0.65) * torsoWidth * 0.08, tailY, tailZ - segLen / 2);
         seg.castShadow = true;
         possumTail.add(seg);
-        // Crusty ring – thick and NASTY
-        const ring = new THREE.Mesh(getCylinderGeometry(tailR * 1.22, tailR * 1.22, segLen * 0.25, 6), new THREE.MeshStandardMaterial({ color: 0x7c2d3a, roughness: 0.6, name: "possum-tail-ring" }));
-        ring.rotation.x = Math.PI / 2 - 0.028 * i;
-        ring.position.set(Math.sin(i * 0.55) * torsoWidth * 0.06, tailY, tailZ - segLen * 0.5);
+        // Crusty ring – thick and NASTY – brown scab
+        const ring = new THREE.Mesh(getCylinderGeometry(tailR * 1.18, tailR * 1.18, segLen * 0.22, 6), new THREE.MeshStandardMaterial({ color: 0x8b5a3c, roughness: 0.6, name: "possum-tail-ring" }));
+        ring.rotation.x = Math.PI / 2 - 0.025 * i;
+        ring.position.set(Math.sin(i * 0.65) * torsoWidth * 0.08, tailY, tailZ - segLen * 0.5);
         possumTail.add(ring);
         // UGLY PUS-FILLED WARTS
         if (i % 2 === 0 && i > 1) {
           const wartSize = tailR * (0.5 + Math.random() * 0.4);
           const wart = new THREE.Mesh(getSphereGeometry(wartSize, 5, 5), wartMat);
           wart.name = `possum-tail-wart-${i}`;
-          wart.position.set(Math.sin(i * 0.55) * torsoWidth * 0.06 + tailR * (0.5 + Math.random() * 0.3), tailY + (Math.random() - 0.5) * 0.02, tailZ - segLen * 0.5);
+          wart.position.set(Math.sin(i * 0.65) * torsoWidth * 0.08 + tailR * (0.5 + Math.random() * 0.3), tailY + (Math.random() - 0.5) * 0.02, tailZ - segLen * 0.5);
           possumTail.add(wart);
           // Pus oozing from the wart
           if (Math.random() > 0.4) {
             const pus = new THREE.Mesh(getSphereGeometry(wartSize * 0.45, 5, 5), pusMat);
             pus.scale.set(0.7, 1.6, 0.7);
-            pus.position.set(Math.sin(i * 0.55) * torsoWidth * 0.06 + tailR * 0.65, tailY - wartSize * 0.4, tailZ - segLen * 0.5);
+            pus.position.set(Math.sin(i * 0.65) * torsoWidth * 0.08 + tailR * 0.65, tailY - wartSize * 0.4, tailZ - segLen * 0.5);
             possumTail.add(pus);
           }
         }
@@ -3251,7 +3251,7 @@ export function buildAvatar(
           const sore = new THREE.Mesh(getSphereGeometry(tailR * 0.42, 5, 5), soreMat);
           sore.name = `possum-tail-sore-${i}`;
           sore.scale.set(1.5, 0.45, 1.1);
-          sore.position.set(Math.sin(i * 0.55) * torsoWidth * 0.06 - tailR * 0.45, tailY, tailZ - segLen * 0.5);
+          sore.position.set(Math.sin(i * 0.65) * torsoWidth * 0.08 - tailR * 0.45, tailY, tailZ - segLen * 0.5);
           possumTail.add(sore);
         }
         // MAGGOTS — wriggling in the rot 🤢
@@ -3261,15 +3261,15 @@ export function buildAvatar(
             maggot.name = `possum-maggot-${i}-${mg}`;
             maggot.rotation.z = Math.PI / 2 + (Math.random() - 0.5) * 0.8;
             maggot.position.set(
-              Math.sin(i * 0.55) * torsoWidth * 0.06 + (Math.random() - 0.5) * tailR * 0.6,
+              Math.sin(i * 0.65) * torsoWidth * 0.08 + (Math.random() - 0.5) * tailR * 0.6,
               tailY + (Math.random() - 0.5) * 0.015,
               tailZ - segLen * (0.3 + Math.random() * 0.4)
             );
             possumTail.add(maggot);
           }
         }
-        tailZ -= segLen * 0.76;
-        tailY -= segLen * 0.1;
+        tailZ -= segLen * 0.82;
+        tailY -= segLen * 0.08;
         tailR = nextR;
       }
       possumTail.position.y = torsoHeight * -0.05;
