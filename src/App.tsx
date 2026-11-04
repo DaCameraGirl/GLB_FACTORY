@@ -15,6 +15,7 @@ import StudioLogs from "./components/StudioLogs";
 import MutationFlow from "./components/MutationFlow";
 import ModeSelect from "./components/ModeSelect";
 import PhotoPipeline from "./components/PhotoPipeline";
+import PhotoSculptPanel from "./components/PhotoSculptPanel";
 import AvatarEditor from "./components/AvatarEditor";
 import MutationLab from "./components/MutationLab";
 import SpecimenVault from "./components/SpecimenVault";
@@ -1439,6 +1440,10 @@ export default function App() {
               updateFaceTexture={updateFaceTexture}
               faceCanvas={faceCanvas}
             />
+            )}
+
+            {studioMode === "create" && (
+              <PhotoSculptPanel sourceImage={sourceImage} characterName={characterName} addLog={addLog} />
             )}
 
             <section className="bg-yellow-50/85 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_#141414]" id="meltdown-factory-panel">
