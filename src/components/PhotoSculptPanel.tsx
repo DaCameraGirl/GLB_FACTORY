@@ -18,10 +18,11 @@ type Settings = {
   tolerance: number;
   resolution: number;
   focus: { x: number; y: number } | null;
+  removeTaps: { x: number; y: number }[];
 };
-type SliderKey = Exclude<keyof Settings, "focus">;
+type SliderKey = Exclude<keyof Settings, "focus" | "removeTaps">;
 
-const START: Settings = { depth: 0.55, detail: 0.35, backDepth: 0.7, tolerance: 42, resolution: 180, focus: null };
+const START: Settings = { depth: 0.55, detail: 0.35, backDepth: 0.7, tolerance: 42, resolution: 180, focus: null, removeTaps: [] };
 
 export default function PhotoSculptPanel({ sourceImage, characterName, addLog }: PhotoSculptPanelProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -35,6 +36,7 @@ export default function PhotoSculptPanel({ sourceImage, characterName, addLog }:
   const [result, setResult] = useState<SculptResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tapMode, setTapMode] = useState<"keep" | "remove">("keep");
 
   // Viewer setup (once).
   useEffect(() => {
@@ -120,7 +122,8 @@ export default function PhotoSculptPanel({ sourceImage, characterName, addLog }:
   useEffect(() => {
     setResult(null);
     setError(null);
-    setSettings((p) => ({ ...p, focus: null }));
+    setSettings((p) => ({ ...p, focus: null, removeTaps: [] }));
+    setTapMode("keep");
   }, [sourceImage]);
 
   const build = async (s: Settings) => {
@@ -180,8 +183,21 @@ export default function PhotoSculptPanel({ sourceImage, characterName, addLog }:
     const rect = e.currentTarget.getBoundingClientRect();
     const x = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
     const y = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
-    setSettings((p) => ({ ...p, focus: { x, y } }));
+    if (tapMode === "remove") setSettings((p) => ({ ...p, removeTaps: [...p.removeTaps, { x, y }] }));
+    else setSettings((p) => ({ ...p, focus: { x, y } }));
   };
+
+  const modeBtn = (mode: "keep" | "remove", label: string) => (
+    <button
+      type="button"
+      onClick={() => setTapMode(mode)}
+      className={`flex-1 py-1.5 font-mono text-[10px] font-bold uppercase border-2 border-[#141414] rounded-none ${
+        tapMode === mode ? (mode === "keep" ? "bg-fuchsia-400" : "bg-red-400") : "bg-white/70"
+      }`}
+    >
+      {label}
+    </button>
+  );
 
   const slider = (key: SliderKey, label: string, min: number, max: number, step: number) => (
     <div className="space-y-1">
@@ -221,8 +237,12 @@ export default function PhotoSculptPanel({ sourceImage, characterName, addLog }:
       {sourceImage && (
         <div className="space-y-1">
           <label className="font-mono text-[10px] uppercase font-bold text-[#141414]/85">
-            Tap your subject {settings.focus ? "· got it" : "(helps with busy backgrounds)"}
+            {tapMode === "keep" ? "Tap your subject" : "Tap leftover background to remove it"}
           </label>
+          <div className="flex gap-2 max-w-[220px]">
+            {modeBtn("keep", "Keep")}
+            {modeBtn("remove", "Remove")}
+          </div>
           <div className="relative w-full max-w-[220px] border-2 border-[#141414] cursor-crosshair">
             <img src={sourceImage} alt="Tap the subject" onClick={tapSubject} className="w-full h-auto block select-none" draggable={false} />
             {settings.focus && (
@@ -231,7 +251,25 @@ export default function PhotoSculptPanel({ sourceImage, characterName, addLog }:
                 style={{ left: `${settings.focus.x * 100}%`, top: `${settings.focus.y * 100}%` }}
               />
             )}
+            {settings.removeTaps.map((t, k) => (
+              <div
+                key={k}
+                className="absolute w-4 h-4 -ml-2 -mt-2 rounded-full border-2 border-white bg-red-500 shadow pointer-events-none flex items-center justify-center text-[9px] text-white font-black"
+                style={{ left: `${t.x * 100}%`, top: `${t.y * 100}%` }}
+              >
+                ×
+              </div>
+            ))}
           </div>
+          {settings.removeTaps.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setSettings((p) => ({ ...p, removeTaps: [] }))}
+              className="text-[9px] font-mono font-bold uppercase underline text-[#141414]/70"
+            >
+              Clear remove taps
+            </button>
+          )}
         </div>
       )}
 

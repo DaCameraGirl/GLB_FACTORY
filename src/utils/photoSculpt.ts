@@ -27,6 +27,8 @@ export interface SculptOptions {
   tolerance?: number;
   /** Where the subject is in the photo (0-1 from top-left). Set when the user taps the photo. */
   focus?: { x: number; y: number } | null;
+  /** Spots the user tapped as background to remove (0-1 from top-left). */
+  removeTaps?: { x: number; y: number }[];
 }
 
 export interface SculptResult {
@@ -47,6 +49,7 @@ const DEFAULTS: Required<SculptOptions> = {
   backDepth: 0.7,
   tolerance: 42,
   focus: null,
+  removeTaps: [],
 };
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -339,6 +342,93 @@ export async function sculptFromPhoto(src: string, options: SculptOptions = {}):
   candidates.sort((p, q) => q.score - p.score);
   let mask = candidates[0]?.mask ?? new Uint8Array(N);
   let coverage = candidates[0]?.coverage ?? 0;
+
+  // ---------- 3b. Tighten on busy backgrounds ----------
+  // Learn which colors belong to the subject vs the background, then drop any part
+  // of the cutout whose colors look more like background. Repeated a few times so
+  // background that leaked in gets peeled away. The cutout can shrink here but only
+  // grow by a couple of pixels, so this can't add new leaks.
+  const removeSpots = (opt.removeTaps ?? []).map((t) => ({ x: t.x * W, y: t.y * H }));
+  const tapRad = Math.max(2, Math.round(Math.min(W, H) * 0.05));
+  if ((!plainBackground || removeSpots.length) && usable(coverage)) {
+    const BINS = 8;
+    const NB = BINS * BINS * BINS;
+    const bin = new Uint16Array(N);
+    for (let i = 0; i < N; i++) {
+      const r = Math.min(BINS - 1, (R[i] * BINS) >> 8);
+      const g = Math.min(BINS - 1, (G[i] * BINS) >> 8);
+      const b = Math.min(BINS - 1, (B[i] * BINS) >> 8);
+      bin[i] = (r * BINS + g) * BINS + b;
+    }
+    // Pixels near the subject's middle (or the tap) are the most trustworthy subject samples.
+    const sigma = 0.35 * Math.max(W, H);
+    const near = new Float32Array(N);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const dx = x - fx, dy = y - fy;
+      near[y * W + x] = Math.exp(-(dx * dx + dy * dy) / (2 * sigma * sigma));
+    }
+    const isBorderBand = new Uint8Array(N);
+    const band = Math.max(2, Math.round(Math.min(W, H) * 0.04));
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (y >= H * 0.6) continue; // bottom of frame often cuts through the subject
+      if (y < band || x < band || x >= W - band) isBorderBand[y * W + x] = 1;
+    }
+    // Allowed area: the first cutout, grown by 2 pixels.
+    const allowed = new Uint8Array(N);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      let any = 0;
+      for (let dy = -2; dy <= 2 && !any; dy++) for (let dx = -2; dx <= 2; dx++) {
+        const xx = x + dx, yy = y + dy;
+        if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+        if (mask[yy * W + xx]) { any = 1; break; }
+      }
+      allowed[y * W + x] = any;
+    }
+
+    // Pixels the user marked as background.
+    const removed = new Uint8Array(N);
+    for (const sp of removeSpots) {
+      for (let dy = -tapRad; dy <= tapRad; dy++) for (let dx = -tapRad; dx <= tapRad; dx++) {
+        const x = Math.round(sp.x) + dx, y = Math.round(sp.y) + dy;
+        if (x >= 0 && y >= 0 && x < W && y < H && dx * dx + dy * dy <= tapRad * tapRad) removed[y * W + x] = 1;
+      }
+    }
+
+    const startCoverage = coverage;
+    let cur = mask;
+    for (let iter = 0; iter < 4; iter++) {
+      const fg = new Float64Array(NB), bg = new Float64Array(NB);
+      let fgTotal = 0, bgTotal = 0;
+      for (let i = 0; i < N; i++) {
+        if (removed[i]) { bg[bin[i]] += 40; bgTotal += 40; } // strong "this is background" vote
+        else if (cur[i]) { const w = near[i]; fg[bin[i]] += w; fgTotal += w; }
+        else { const w = isBorderBand[i] ? 3 : 1; bg[bin[i]] += w; bgTotal += w; }
+      }
+      if (fgTotal === 0 || bgTotal === 0) break;
+      const logRatio = new Float32Array(N);
+      for (let i = 0; i < N; i++) {
+        const pf = (fg[bin[i]] + 0.5) / (fgTotal + NB * 0.5);
+        const pb = (bg[bin[i]] + 0.5) / (bgTotal + NB * 0.5);
+        logRatio[i] = Math.log(pf / pb);
+      }
+      const smooth = blurField(logRatio, W, H, 2, 2); // neighbors vote, so edges stay clean
+      const raw = new Uint8Array(N);
+      for (let i = 0; i < N; i++) raw[i] = allowed[i] && !removed[i] && smooth[i] > 0 ? 1 : 0;
+      if (opt.focus) {
+        const rad = Math.max(2, Math.round(Math.min(W, H) * 0.03));
+        for (let dy = -rad; dy <= rad; dy++) for (let dx = -rad; dx <= rad; dx++) {
+          const x = Math.round(fx) + dx, y = Math.round(fy) + dy;
+          if (x >= 0 && y >= 0 && x < W && y < H) raw[y * W + x] = 1;
+        }
+      }
+      const next = cleanMask(raw);
+      // Stop if it starts eating the subject itself.
+      if (!usable(next.coverage) || next.coverage < startCoverage * 0.3) break;
+      cur = next.mask;
+      coverage = next.coverage;
+    }
+    mask = cur;
+  }
 
   let usedFallbackMask = false;
   if (!usable(coverage)) {
