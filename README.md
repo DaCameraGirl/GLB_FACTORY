@@ -65,6 +65,10 @@ An automated GitHub Actions workflow (`.github/workflows/deploy.yml`) builds and
 
 To activate it on a fork: **Settings → Pages → Build and deployment → Source: GitHub Actions.** Progress shows under the **Actions** tab.
 
+Keep the source set to **GitHub Actions**, not a branch folder: the root `index.html` is Vite source and cannot run directly on Pages. The deployment uses `npm run build:pages` to publish only the browser app and enable local photo analysis without an API server.
+
+Regression checks: `npm run lint`, `node --import tsx --test scripts/export-skins.test.mjs`, then `npm run build:pages` and `node scripts/photo-workflow-qa.mjs` (requires the Playwright Chromium browser). The browser check covers portrait upload, character and sculpt GLB downloads, exported skin joints, and recovery from unreadable images.
+
 ---
 
 ## 🛠️ Local Development

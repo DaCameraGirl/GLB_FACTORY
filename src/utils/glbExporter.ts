@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
+import { clone as cloneWithSkeletons } from "three/addons/utils/SkeletonUtils.js";
 
 /**
  * Exports a Three.js Group/Mesh to a GLB (Binary glTF) file.
@@ -59,8 +60,9 @@ export function exportToGLB(group: THREE.Group, characterName: string = "avatar"
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
     tempScene.add(ambientLight);
     
-    // Clone the avatar group so we do not modify the original rendering group
-    const clonedGroup = group.clone();
+    // Copy the rig and rebind skin joints to the copied bones. Group.clone()
+    // retains the live skeleton, leaving exported skin joints outside the scene.
+    const clonedGroup = cloneWithSkeletons(group);
     
     // Reset position for exporting (centered on ground at 0, 0, 0)
     clonedGroup.position.set(0, 0, 0);

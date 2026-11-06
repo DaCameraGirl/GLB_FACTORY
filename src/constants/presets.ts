@@ -18,6 +18,7 @@ export interface CreatureVariantPreset {
   hairStyle?: HairStyle;
   clothingColor?: string;
   pantsColor?: string;
+  materialEmissive?: AvatarConfig["materialEmissive"];
   accessories: NonNullable<AvatarConfig["accessories"]>;
 }
 

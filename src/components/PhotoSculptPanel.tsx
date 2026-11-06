@@ -118,12 +118,15 @@ export default function PhotoSculptPanel({ sourceImage, characterName, addLog }:
     }
   }, [result]);
 
-  // New photo = start fresh.
+  // New photo = start fresh and discard any pending result from the previous photo.
   useEffect(() => {
+    ++runIdRef.current;
+    setBusy(false);
     setResult(null);
     setError(null);
     setSettings((p) => ({ ...p, focus: null, removeTaps: [] }));
     setTapMode("keep");
+    return () => { ++runIdRef.current; };
   }, [sourceImage]);
 
   const build = async (s: Settings) => {

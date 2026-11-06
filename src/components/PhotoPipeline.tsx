@@ -9,6 +9,7 @@ export interface PhotoPipelineProps {
   config: AvatarConfig;
   setConfig: React.Dispatch<React.SetStateAction<AvatarConfig>>;
   sourceImage: string | null;
+  uploadError: string | null;
   faceBox: [number, number, number, number] | null;
   setFaceBox: React.Dispatch<React.SetStateAction<[number, number, number, number] | null>>;
   imageRef: React.RefObject<HTMLImageElement | null>;
@@ -29,6 +30,7 @@ export default function PhotoPipeline({
   config,
   setConfig,
   sourceImage,
+  uploadError,
   faceBox,
   setFaceBox,
   imageRef,
@@ -85,6 +87,8 @@ export default function PhotoPipeline({
                     type="file"
                     id="portrait-file-input"
                     accept="image/*"
+                    aria-invalid={Boolean(uploadError)}
+                    aria-describedby={uploadError ? "portrait-upload-error" : undefined}
                     onChange={handleFileChange}
                     className="absolute inset-0 opacity-0 cursor-pointer z-20"
                   />
@@ -150,6 +154,12 @@ export default function PhotoPipeline({
                   )}
                 </div>
               </div>
+
+              {uploadError && (
+                <p id="portrait-upload-error" role="alert" className="text-[11px] font-mono text-red-700">
+                  {uploadError}
+                </p>
+              )}
 
               {/* Big Core Trigger Button */}
               <button

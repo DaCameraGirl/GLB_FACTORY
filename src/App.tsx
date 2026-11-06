@@ -24,6 +24,7 @@ import ExportPanel from "./components/ExportPanel";
 import MorphOverlay from "./components/MorphOverlay";
 import { prepareFaceTexture } from "./utils/texturePreparer";
 import { estimateFaceBox } from "./utils/faceDetector";
+import { readImageFile } from "./utils/imageUpload";
 import { playSynthSound } from "./utils/playSynthSound";
 import { PRESET_HEROES, PresetHero } from "./constants/presets";
 import { useMutationEngine } from "./hooks/useMutationEngine";
@@ -169,6 +170,7 @@ export default function App() {
   // 1. App State
   const [characterName, setCharacterName] = useState("");
   const [sourceImage, setSourceImage] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [mimeType, setMimeType] = useState<string>("image/jpeg");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -298,6 +300,14 @@ export default function App() {
   // Mutation engine (vault, chaos, breeding) — see hooks/useMutationEngine
   // Refs for Image element and exported group
   const imageRef = useRef<HTMLImageElement | null>(null);
+  const decodedImageRef = useRef<HTMLImageElement | null>(null);
+  const photoRunRef = useRef(0);
+  const analysisAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => {
+    photoRunRef.current++;
+    analysisAbortRef.current?.abort();
+  }, []);
   const avatarGroupRef = useRef<THREE.Group | null>(null);
   const meltdownTimerRef = useRef<number | null>(null);
   const genieMascotImgRef = useRef<HTMLImageElement | null>(null);
@@ -361,14 +371,14 @@ export default function App() {
 
   // 3. Texture computation
   const updateFaceTexture = () => {
-    if (!imageRef.current || !faceBox) {
+    if (!decodedImageRef.current || !faceBox) {
       setFaceCanvas(null);
       return;
     }
 
     try {
       const canvas = prepareFaceTexture(
-        imageRef.current,
+        decodedImageRef.current,
         faceBox,
         config.skinColor,
         config.featherEdges,
@@ -421,24 +431,29 @@ export default function App() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      processFile(files[0]);
+      void processFile(files[0]);
+      e.target.value = ""; // Allow retrying the same file after an error.
     }
   };
 
-  const processFile = (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      addLog("Unsupported file type. Please upload a JPG or PNG image.", "error");
-      return;
-    }
+  const processFile = async (file: File) => {
+    const runId = ++photoRunRef.current;
+    analysisAbortRef.current?.abort();
+    decodedImageRef.current = null;
+    setUploadError(null);
+    setSourceImage(null);
+    setFaceBox(null);
+    setFaceCanvas(null);
+    setIsSuccess(false);
+    setIsProcessing(true);
+    setCurrentStep("upload");
 
-    setMimeType(file.type);
-    const reader = new FileReader();
-    reader.onload = () => {
-      setSourceImage(reader.result as string);
-      // Reset crop/box state so the new photo doesn't inherit the previous one's manual framing
-      setFaceBox(null);
-      setFaceCanvas(null);
-      setIsSuccess(false);
+    try {
+      const { dataUrl, image } = await readImageFile(file);
+      if (runId !== photoRunRef.current) return;
+      decodedImageRef.current = image;
+      setMimeType(file.type || dataUrl.slice(5, dataUrl.indexOf(";")));
+      setSourceImage(dataUrl);
       setCurrentStep("texture");
       setConfig((prev) => ({
         ...prev,
@@ -449,9 +464,16 @@ export default function App() {
         cropScale: 1.0,
       }));
       addLog(`Loaded image: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`, "success");
-      addLog("Ready to build. Click 'BUILD AVATAR' to let Gemini auto-detect the face features.", "info");
-    };
-    reader.readAsDataURL(file);
+      addLog("Ready. Choose 'Morph Photo → 3D Avatar' for an avatar or 'Sculpt Real 3D' for a photo sculpt.", "info");
+    } catch (err: any) {
+      if (runId === photoRunRef.current) {
+        const message = err.message || "Could not load this image.";
+        setUploadError(message);
+        addLog(message, "error");
+      }
+    } finally {
+      if (runId === photoRunRef.current) setIsProcessing(false);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -576,138 +598,103 @@ export default function App() {
     }
   };
 
-  // 5. Trigger Face Detection API using server-side Gemini 3.5 Flash
+  // 5. Analyze locally on GitHub Pages; use the optional API elsewhere.
   const handleBuildAvatar = async () => {
-    if (!sourceImage) {
-      addLog("Please upload a photo first.", "warning");
+    const image = decodedImageRef.current;
+    if (!sourceImage || !image) {
+      addLog("Please upload a readable photo first.", "warning");
       return;
     }
+    if (isProcessing) return;
 
+    const runId = ++photoRunRef.current;
     setIsProcessing(true);
     setIsSuccess(false);
     setCurrentStep("texture");
-    addLog(`Running face-detection and feature extraction on ${characterName}...`, "info");
 
     try {
-      const response = await fetch("/api/crop-face", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          imageBase64: sourceImage,
-          mimeType,
-        }),
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || "Failed to process image");
-      }
-
-      const result: DetectionResult = await response.json();
-
-      if (!result.face_box || result.face_box.length !== 4) {
-        throw new Error("Invalid face bounding box returned from Gemini.");
-      }
-
-      addLog("Face bounding box detected successfully.", "success");
-      addLog(`Extracted features - Skin: ${result.skin_tone}, Hair: ${result.hair_color}, Clothes: ${result.clothing_color}`, "info");
-
-      // Apply detected values - First set the face box to trigger texture creation
-      setFaceBox(result.face_box);
-      
-      // Wait for face texture to be prepared before updating config
-      // This ensures the avatar is built with the photo texture
-      setTimeout(() => {
-        setConfig((prev) => ({
-          ...prev,
-          creatureVariant: "none",
-          photoMorphProgress: 1.0,
-          skinColor: prev.skinColor,
-          hairColor: result.hair_color || prev.hairColor,
-          clothingColor: result.clothing_color || prev.clothingColor,
-          hairStyle: (result.gender_style as HairStyle) || prev.hairStyle,
-          faceShape: result.face_shape,
-          noseSize: result.nose_size,
-          noseWidth: result.nose_width,
-          jawWidth: result.jaw_width,
-          chinShape: result.chin_shape,
-          cropX: 0,
-          cropY: 0,
-          cropScale: 1.0,
-        }));
-
-        setCurrentStep("mesh");
-        addLog("Constructing 3D avatar meshes...", "info");
-
-        // Small artificial delay to show transition animation beautifully
-        setTimeout(() => {
-          setCurrentStep("glb");
-          setIsSuccess(true);
-          setIsProcessing(false);
-          addLog(`Avatar mesh created and rendered. Ready to export!`, "success");
-        }, 1000);
-      }, 100);
-    } catch (err: any) {
-      addLog(`Backend analysis unavailable (${err.message}).`, "warning");
-      addLog("Switching to offline Client-Side Face Analysis Fallback...", "info");
-
-      try {
-        if (!imageRef.current) {
-          throw new Error("Source image element not loaded.");
+      let result: DetectionResult | undefined;
+      const isStaticSite = import.meta.env.VITE_STATIC_MODE === "true" || window.location.hostname.endsWith(".github.io");
+      if (!isStaticSite) {
+        const controller = new AbortController();
+        analysisAbortRef.current = controller;
+        const timeout = window.setTimeout(() => controller.abort(), 15000);
+        try {
+          const response = await fetch("/api/crop-face", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ imageBase64: sourceImage, mimeType }),
+            signal: controller.signal,
+          });
+          if (!response.ok) throw new Error(`Photo analysis returned HTTP ${response.status}.`);
+          const detected: DetectionResult = await response.json();
+          const box = detected.face_box;
+          if (!Array.isArray(box) || box.length !== 4 ||
+              box.some((v) => !Number.isFinite(v) || v < 0 || v > 100) ||
+              box[0] >= box[2] || box[1] >= box[3]) {
+            throw new Error("Photo analysis returned an invalid face region.");
+          }
+          result = detected;
+        } catch (err: any) {
+          if (runId !== photoRunRef.current) return;
+          addLog(`Online analysis unavailable (${err.name === "AbortError" ? "request timed out" : err.message}). Using local photo analysis.`, "info");
+        } finally {
+          window.clearTimeout(timeout);
+          if (analysisAbortRef.current === controller) analysisAbortRef.current = null;
         }
-
-        // Run client-side color pixel analysis
-        const result = analyzeColorsClientSide(imageRef.current);
-
-        addLog("Local color sampler analysis complete!", "success");
-        addLog(`Extracted local features - Skin: ${result.skin_tone}, Hair: ${result.hair_color}, Clothes: ${result.clothing_color}`, "info");
-
-        // Estimate the actual face region from skin-toned pixels; only fall
-        // back to a fixed center box if no confident skin blob is found.
-        const estimatedBox = estimateFaceBox(imageRef.current);
-        const localBox: [number, number, number, number] = estimatedBox || [20, 20, 80, 80];
-        addLog(
-          estimatedBox
-            ? "Estimated face region from photo (client-side heuristic)."
-            : "Could not confidently locate a face — using centered default crop.",
-          estimatedBox ? "success" : "warning"
-        );
-        setFaceBox(localBox);
-        
-        // Wait for face texture to be prepared before updating config
-        setTimeout(() => {
-          setConfig((prev) => ({
-            ...prev,
-            creatureVariant: "none",
-            photoMorphProgress: 1.0,
-            skinColor: result.skin_tone,
-            hairColor: result.hair_color,
-            clothingColor: result.clothing_color,
-            hairStyle: result.gender_style,
-            faceShape: "oval",
-            noseSize: "medium",
-            noseWidth: "medium",
-            jawWidth: "medium",
-            chinShape: "rounded",
-            cropX: 0,
-            cropY: 0,
-            cropScale: 1.0,
-          }));
-
-          setCurrentStep("mesh");
-          addLog("Constructing 3D avatar meshes...", "info");
-
-          setTimeout(() => {
-            setCurrentStep("glb");
-            setIsSuccess(true);
-            setIsProcessing(false);
-            addLog(`Avatar mesh created and rendered via local fallback. Ready to export!`, "success");
-          }, 1000);
-        }, 100);
-      } catch (localErr: any) {
-        setIsProcessing(false);
-        addLog(`Local analysis failed: ${localErr.message}`, "error");
       }
+      if (runId !== photoRunRef.current) return;
+
+      if (!result) {
+        addLog("Analyzing your photo in this browser...", "info");
+        const colors = analyzeColorsClientSide(image);
+        const estimatedBox = estimateFaceBox(image);
+        result = {
+          ...colors,
+          face_box: estimatedBox || [20, 20, 80, 80],
+          face_shape: "oval",
+          nose_size: "medium",
+          nose_width: "medium",
+          jaw_width: "medium",
+          chin_shape: "rounded",
+        };
+        addLog(
+          estimatedBox ? "Estimated face region from photo." : "Using a centered crop. Adjust it in Fine-Tune Face Texture if needed.",
+          estimatedBox ? "success" : "info"
+        );
+      }
+
+      const detected = result;
+      const skinColor = detected.skin_tone || config.skinColor;
+      // Prepare the texture before enabling export; a timer cannot guarantee readiness.
+      const texture = prepareFaceTexture(image, detected.face_box, skinColor,
+        config.featherEdges, config.featherRadius, 0, 0, 1);
+      setFaceBox(detected.face_box);
+      setFaceCanvas(texture);
+      setConfig((prev) => ({
+        ...prev,
+        creatureVariant: "none",
+        photoMorphProgress: 1.0,
+        skinColor,
+        hairColor: detected.hair_color || prev.hairColor,
+        clothingColor: detected.clothing_color || prev.clothingColor,
+        hairStyle: (detected.gender_style as HairStyle) || prev.hairStyle,
+        faceShape: detected.face_shape,
+        noseSize: detected.nose_size,
+        noseWidth: detected.nose_width,
+        jawWidth: detected.jaw_width,
+        chinShape: detected.chin_shape,
+        cropX: 0,
+        cropY: 0,
+        cropScale: 1.0,
+      }));
+      setCurrentStep("glb");
+      setIsSuccess(true);
+      addLog("Avatar prepared. Ready to export GLB!", "success");
+    } catch (err: any) {
+      if (runId === photoRunRef.current) addLog(`Photo analysis failed: ${err.message}`, "error");
+    } finally {
+      if (runId === photoRunRef.current) setIsProcessing(false);
     }
   };
 
@@ -1429,6 +1416,7 @@ export default function App() {
               sourceImage={sourceImage}
               faceBox={faceBox}
               setFaceBox={setFaceBox}
+              uploadError={uploadError}
               imageRef={imageRef}
               isDraggingFile={isDraggingFile}
               handleDragOver={handleDragOver}

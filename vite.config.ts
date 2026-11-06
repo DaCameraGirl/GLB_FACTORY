@@ -3,8 +3,11 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
   return {
+    define: {
+      "import.meta.env.VITE_STATIC_MODE": JSON.stringify(String(mode === "pages" || process.env.GITHUB_ACTIONS === "true")),
+    },
     plugins: [react(), tailwindcss()],
     base: process.env.GITHUB_ACTIONS === 'true' ? '/GLB_FACTORY/' : './',
     resolve: {
