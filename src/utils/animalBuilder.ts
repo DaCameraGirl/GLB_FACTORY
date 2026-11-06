@@ -312,10 +312,24 @@ export function buildAnimal(config: AvatarConfig): THREE.Group {
     if (!centipede) oval(body, 'abdomen', [0, mantis ? 0.85 : y + 0.04, mantis ? -0.55 : -0.62], [mantis ? 0.28 : scorpion ? 0.43 : 0.64, mantis ? 0.25 : 0.4, mantis ? 0.75 : 0.7], chitin);
     head = pivot(body, 'head', [0, mantis ? 1.67 : y + 0.05, mantis ? 0.45 : 0.69], 'head');
     oval(head, 'head-shell', [0, 0, 0], [mantis ? 0.34 : 0.3, 0.2, 0.23], chitin);
-    const eyes = !mantis && !scorpion && !centipede ? 8 : 2;
-    for (let i = 0; i < eyes; i++) {
-      const side = i % 2 ? 1 : -1, row = Math.floor(i / 2);
-      eye(head, [side * (mantis ? 0.29 : 0.1 + row * 0.045), 0.08 - row * 0.045, 0.2 - row * 0.012], mantis ? 0.12 : 0.045, mantis ? side : 0, scorpion ? gold : amber);
+    if (scorpion) {
+      // Keep the Emperor's original blue eye cluster independent of body emission.
+      const eyeGlow = new THREE.MeshStandardMaterial({
+        name: 'scorpion-eye-glow', color: 0x00f0ff, emissive: 0x00d4ff,
+        emissiveIntensity: 5, roughness: 0.05, metalness: 0.1,
+        wireframe: Boolean(config.wireframeMode),
+      });
+      for (const side of [-1, 1]) {
+        oval(head, `eye-${side < 0 ? 'left' : 'right'}`, [side * 0.09, 0.105, 0.184], [0.047, 0.047, 0.035], eyeGlow);
+        oval(head, `lateral-eye-${side}-0`, [side * 0.205, 0.055, 0.154], [0.025, 0.025, 0.024], eyeGlow);
+        oval(head, `lateral-eye-${side}-1`, [side * 0.259, 0.045, 0.1], [0.021, 0.021, 0.021], eyeGlow);
+      }
+    } else {
+      const eyes = !mantis && !centipede ? 8 : 2;
+      for (let i = 0; i < eyes; i++) {
+        const side = i % 2 ? 1 : -1, row = Math.floor(i / 2);
+        eye(head, [side * (mantis ? 0.29 : 0.1 + row * 0.045), 0.08 - row * 0.045, 0.2 - row * 0.012], mantis ? 0.12 : 0.045, mantis ? side : 0);
+      }
     }
     for (const side of [-1, 1]) {
       spike(head, 'mandible', [side * 0.11, -0.08, 0.16], [side * 0.07, -0.23, 0.33], 0.06, gold);

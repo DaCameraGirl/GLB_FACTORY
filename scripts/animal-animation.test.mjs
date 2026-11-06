@@ -39,6 +39,18 @@ function dispose(root) {
   for (const geometry of geometries) geometry.dispose();
   for (const material of materials) material.dispose();
 }
+function assertEmperorEyes(root) {
+  const eyes = [];
+  root.traverse(node => {
+    if (node.isMesh && node.material.name === 'scorpion-eye-glow') eyes.push(node);
+  });
+  assert.equal(eyes.length, 6, 'Emperor scorpion retains two median and four lateral eyes');
+  for (const eye of eyes) {
+    assert.equal(eye.material.color.getHexString(), '00f0ff');
+    assert.equal(eye.material.emissive.getHexString(), '00d4ff');
+    assert.ok(eye.material.emissiveIntensity >= 5, 'blue eyes remain self-lit through export');
+  }
+}
 
 test('every animal exports real looping Idle and locomotion clips with moving nodes after GLB reload', async t => {
   const original = globalThis.FileReader;
@@ -53,6 +65,7 @@ test('every animal exports real looping Idle and locomotion clips with moving no
         ...CREATURE_VARIANTS[variant], creatureVariant: variant,
       }, null);
       assert.equal(group.userData.bodyPlan, 'animal');
+      if (variant === 'scorpion') assertEmperorEyes(group);
       assert.deepEqual(group.animations.map(clip => clip.name), ['Idle', locomotion]);
       for (const clip of group.animations) {
         assert.ok(clip.duration > 0 && clip.tracks.length >= 2);
@@ -82,6 +95,11 @@ test('every animal exports real looping Idle and locomotion clips with moving no
         assert.ok(['translation', 'rotation', 'scale'].includes(channel.target.path));
       }
       const loaded = await new GLTFLoader().parseAsync(bytes, '');
+      if (variant === 'scorpion') {
+        assertEmperorEyes(loaded.scene);
+        const eyesMaterial = gltf.materials.find(material => material.name === 'scorpion-eye-glow');
+        assert.equal(eyesMaterial.extensions.KHR_materials_emissive_strength.emissiveStrength, 5);
+      }
       for (const clip of loaded.animations) assertMotion(loaded.scene, clip, `${variant}/reloaded/${clip.name}`);
       liveMixer.stopAllAction(); liveMixer.uncacheRoot(group);
       dispose(group); dispose(loaded.scene);
