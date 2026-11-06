@@ -26,5 +26,8 @@ jobs:
       - name: Check Types & Lint
         run: npm run lint
 
+      - name: Check animated GLB exports
+        run: npm test
+
       - name: Build Application
         run: npm run build

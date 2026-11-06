@@ -5,7 +5,7 @@ import { exportToGLB } from "../utils/glbExporter";
 
 /**
  * GLB / texture download helpers.
- * Exports are poseable mesh hierarchies with PBR materials — not skinned AnimationClip rigs.
+ * Exports include PBR materials, valid limb skeletons where present, and authored animal clips.
  */
 export function useAvatarExport(
   avatarGroupRef: RefObject<THREE.Group | null>,
@@ -21,19 +21,21 @@ export function useAvatarExport(
 
     try {
       addLog(`Packaging model and exporting GLB...`, "info");
-      const blob = await exportToGLB(avatarGroupRef.current, characterName);
+      const exportName = characterName || avatarGroupRef.current.userData.animalVariant || "specimen";
+      const filename = `${exportName.toLowerCase().replace(/[^a-z0-9_-]+/g, "_")}.glb`;
+      const blob = await exportToGLB(avatarGroupRef.current, exportName);
 
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${(characterName || "specimen").toLowerCase().replace(/\s+/g, "_")}.glb`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
       addLog(
-        `GLB exported and downloaded as ${(characterName || "specimen").toLowerCase().replace(/\s+/g, "_")}.glb!`,
+        `GLB exported and downloaded as ${filename}!`,
         "success"
       );
     } catch (err: any) {

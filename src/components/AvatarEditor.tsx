@@ -108,6 +108,8 @@ export default function AvatarEditor({
               <div className="space-y-1.5 pb-2 border-b border-[#141414]/10">
                 <label className="font-mono text-[10px] uppercase font-bold text-[#141414]/85">MESH STYLE / MODEL SHAPE</label>
                 <select
+                  id="mesh-style-select"
+                  aria-label="Animal or character model"
                   value={config.creatureVariant && config.creatureVariant !== "none" ? config.creatureVariant : config.headShape}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -123,6 +125,7 @@ export default function AvatarEditor({
                         bodyType: preset.bodyType || prev.bodyType,
                         clothingColor: preset.clothingColor || prev.clothingColor,
                         pantsColor: preset.pantsColor || prev.pantsColor,
+                        materialEmissive: preset.materialEmissive || "#000000",
                         accessories: preset.accessories,
                       }));
                       addLog(`Mesh style set to ${preset.label.replace(/^\S+\s/, "").toUpperCase()}. Skin, colors, and accessories auto-equipped.`, "success");
@@ -147,7 +150,7 @@ export default function AvatarEditor({
                   }}
                   className="w-full bg-white/70 border-2 border-[#141414] px-3 py-2 text-xs text-[#141414] font-mono font-bold focus:outline-none focus:bg-white shadow-[2px_2px_0px_0px_#141414]"
                 >
-                  <option value="organic-smooth">✪ ORGANIC HUMANOID (GAME-READY)</option>
+                  <option value="organic-smooth">✪ ORGANIC HUMANOID</option>
                   <option value="rounded-cube">Rounded Cube (Smooth Voxel)</option>
                   <option value="cube">Classic Box (Retro Blocky)</option>
                   {Object.entries(CREATURE_VARIANTS).map(([key, preset]) => (
@@ -156,7 +159,7 @@ export default function AvatarEditor({
                 </select>
                 {config.creatureVariant && config.creatureVariant !== "none" && (
                   <p className="text-[8px] text-[#141414]/60 italic">
-                    Creature variants build on the Organic Humanoid mesh with matching skin, proportions, and accessories auto-equipped. Tweak any of it below.
+                    Animal presets build their own 3D body, ready to export without a photo. Idle and species movement clips travel with the GLB. Adjust colors, materials, and proportions; human hair and clothing controls apply to humanoids.
                   </p>
                 )}
               </div>

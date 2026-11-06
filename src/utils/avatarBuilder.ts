@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { ANIMAL_VARIANTS, buildAnimal } from "./animalBuilder";
 import { AvatarConfig, HairStyle, BodyType, HeadShape } from "../types";
 
 // ==========================================
@@ -271,6 +272,7 @@ export function buildAvatar(
 ): THREE.Group {
   // Validate config first to ensure no broken configs or garbage values
   const config = validateAvatarConfig(rawConfig);
+  if (ANIMAL_VARIANTS.has(config.creatureVariant || "none")) return buildAnimal(config);
 
   const group = new THREE.Group();
   group.name = "avatar-root";

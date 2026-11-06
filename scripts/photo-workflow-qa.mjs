@@ -37,7 +37,7 @@ try {
   await build.click();
   await page.waitForFunction(() => !document.querySelector('#build-avatar-button')?.disabled);
   await page.locator('#download-glb-button').waitFor({ state: 'visible' });
-  const readDownload = async (selector) => {
+  const readDownload = async (selector, textured = true) => {
     const pending = page.waitForEvent('download');
     await page.locator(selector).click();
     const download = await pending;
@@ -47,7 +47,7 @@ try {
     assert.equal(bytes.readUInt32LE(8), bytes.length);
     const gltf = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString());
     assert.ok(gltf.meshes.length > 0);
-    assert.ok(gltf.images?.length > 0, 'photo texture included');
+    if (textured) assert.ok(gltf.images?.length > 0, 'photo texture included');
     for (const skin of gltf.skins || []) for (const joint of skin.joints) {
       assert.ok(Number.isInteger(joint) && gltf.nodes[joint], `invalid joint ${joint}`);
     }
@@ -72,6 +72,36 @@ try {
     await page.waitForFunction(() => !document.querySelector('#build-avatar-button')?.disabled);
     await readDownload('#download-glb-button');
     console.log('PASS corrupt image rejection, same-name retry, static offline workflow');
+  }
+  // Replacing a previously built portrait while an animal is selected must still decode.
+  await page.locator('#mesh-style-select').selectOption('cat');
+  await input.setInputFiles(path.join(root, 'src/assets/genie-mascot.png'));
+  await page.waitForFunction(() => !document.querySelector('#build-avatar-button')?.disabled);
+  await build.click();
+  await page.waitForFunction(() => !document.querySelector('#build-avatar-button')?.disabled);
+  const rebuiltPortrait = await readDownload('#download-glb-button');
+  assert.ok(rebuiltPortrait.skins?.length > 0, 'photo replacement after an animal builds a humanoid');
+  console.log('PASS portrait replacement while animal is selected');
+  // Animal presets must work independently of the portrait workflow.
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.locator('#mode-create-from-photo').click();
+  const speciesSelect = page.locator('#mesh-style-select');
+  const animals = await speciesSelect.locator('option').evaluateAll(options => options
+    .map(option => option.value)
+    .filter(value => !['organic-smooth', 'rounded-cube', 'cube', 'gremlin', 'monster', 'clown', 'fairy'].includes(value)));
+  assert.equal(animals.length, 22, 'complete animal inventory');
+  for (const animal of animals) {
+    await speciesSelect.selectOption(animal);
+    const gltf = await readDownload('#download-glb-button', false);
+    assert.equal(gltf.animations?.length, 2, `${animal}: Idle + movement`);
+    assert.ok(gltf.animations.some(clip => clip.name === 'Idle'), `${animal}: named Idle clip`);
+    for (const clip of gltf.animations) {
+      assert.ok(clip.channels.length > 0, `${animal}: clip has channels`);
+      for (const channel of clip.channels) {
+        assert.ok(Number.isInteger(channel.target.node) && gltf.nodes[channel.target.node], `${animal}: valid animation node`);
+      }
+    }
+    console.log(`PASS animal ${animal}: ${gltf.animations.map(clip => clip.name).join(', ')}`);
   }
   assert.deepEqual(errors, [], 'no uncaught browser errors');
   console.log('PASS photo to character and photo sculpt workflows');

@@ -4,6 +4,21 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { EffectComposer, EffectPass, RenderPass, DepthOfFieldEffect, BlendFunction } from "postprocessing";
 import { AvatarConfig } from "../types";
 import { buildAvatar } from "../utils/avatarBuilder";
+import { ANIMAL_LOCOMOTION, restoreAnimalRestPose } from "../utils/animalAnimations";
+
+/** Dedicated animals allocate private geometry/materials; legacy humanoids use shared caches. */
+function disposeAnimalResources(group: THREE.Group) {
+  if (group.userData.bodyPlan !== "animal") return;
+  const geometries = new Set<THREE.BufferGeometry>();
+  const materials = new Set<THREE.Material>();
+  group.traverse((node) => {
+    if (!(node instanceof THREE.Mesh)) return;
+    geometries.add(node.geometry);
+    for (const material of Array.isArray(node.material) ? node.material : [node.material]) materials.add(material);
+  });
+  geometries.forEach((geometry) => geometry.dispose());
+  materials.forEach((material) => material.dispose());
+}
 
 interface ThreeCanvasProps {
   config: AvatarConfig;
@@ -28,6 +43,8 @@ export default function ThreeCanvas({
   const controlsRef = useRef<OrbitControls | null>(null);
   const avatarGroupRef = useRef<THREE.Group | null>(null);
   const animationFrameIdRef = useRef<number | null>(null);
+  const animalMixerRef = useRef<THREE.AnimationMixer | null>(null);
+  const animalActionRef = useRef<THREE.AnimationAction | null>(null);
 
   const gridHelperRef = useRef<THREE.GridHelper | null>(null);
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
@@ -335,10 +352,42 @@ export default function ThreeCanvas({
       const activeAnimMode = animationModeRef.current;
       const activeBounceTime = bounceTimeRef.current;
 
-      const elapsedTime = clock.getElapsedTime();
+      const delta = Math.min(clock.getDelta(), 0.1);
+      const elapsedTime = clock.elapsedTime;
+      const animal = avatarGroupRef.current;
+      const animalMixer = animalMixerRef.current;
+      if (animal && animalMixer) {
+        if (activeAnimMode === "custom") {
+          animalMixer.stopAllAction();
+          animalActionRef.current = null;
+          restoreAnimalRestPose(animal);
+          animal.traverse((node) => {
+            const motion = node.userData.animalMotion;
+            if (motion?.role === "head") {
+              node.rotateY(THREE.MathUtils.degToRad(activeConfig.poseHeadYaw || 0));
+              node.rotateX(THREE.MathUtils.degToRad(activeConfig.poseHeadPitch || 0));
+            } else if (motion?.role === "leg") {
+              const angle = motion.side < 0 ? activeConfig.poseLeftLegRotationX : activeConfig.poseRightLegRotationX;
+              node.rotateX(THREE.MathUtils.degToRad(angle || 0));
+            }
+          });
+        } else {
+          const clip = animal.animations[activeAnimMode === "idle" || activeAnimMode === "spin" ? 0 : 1];
+          const action = animalMixer.clipAction(clip);
+          if (animalActionRef.current !== action) {
+            animalMixer.stopAllAction();
+            restoreAnimalRestPose(animal);
+            action.reset().play();
+            animalActionRef.current = action;
+          }
+          action.timeScale = activeAnimMode === "ninja" ? 1.8 : activeAnimMode === "zombie" ? 0.45 : activeAnimMode === "dance" ? 1.3 : 1;
+          animalMixer.update(delta);
+        }
+        animal.rotation.y = activeAnimMode === "spin" ? elapsedTime * 2 : 0;
+      }
 
       // Alligator jaw: chomp open/shut on a loop
-      if (avatarGroupRef.current && activeConfig.creatureVariant === "gator") {
+      if (avatarGroupRef.current && !animalMixer && activeConfig.creatureVariant === "gator") {
         const jawPivot = avatarGroupRef.current.getObjectByName("gator-jaw-pivot");
         if (jawPivot) {
           const chompCycle = Math.max(0, Math.sin(elapsedTime * 1.6));
@@ -347,7 +396,7 @@ export default function ThreeCanvas({
       }
 
       // Possum jaw: RABID SNARL CHOMP — VIOLENT
-      if (avatarGroupRef.current && activeConfig.creatureVariant === "possum") {
+      if (avatarGroupRef.current && !animalMixer && activeConfig.creatureVariant === "possum") {
         const jawPivot = avatarGroupRef.current.getObjectByName("possum-jaw");
         if (jawPivot) {
           const chompCycle = Math.max(0, Math.sin(elapsedTime * 11.0));
@@ -723,8 +772,8 @@ export default function ThreeCanvas({
         scene.background = new THREE.Color("#CCCCCC");
       }
 
-      // Rig joints active animations
-      if (avatarGroupRef.current) {
+      // Legacy humanoid poses; animal pivots are driven exclusively by their mixer.
+      if (avatarGroupRef.current && !animalMixer) {
         const torso = avatarGroupRef.current.getObjectByName("torso") as THREE.Object3D;
         const head = avatarGroupRef.current.getObjectByName("head") as THREE.Object3D;
         const leftArm = avatarGroupRef.current.getObjectByName("left-arm") as THREE.Object3D;
@@ -971,6 +1020,10 @@ export default function ThreeCanvas({
       if (animationFrameIdRef.current) {
         cancelAnimationFrame(animationFrameIdRef.current);
       }
+      animalMixerRef.current?.stopAllAction();
+      if (avatarGroupRef.current) disposeAnimalResources(avatarGroupRef.current);
+      animalMixerRef.current = null;
+      animalActionRef.current = null;
       resizeObserver.disconnect();
       dom.removeEventListener("mousemove", handleMouseMove);
       dom.removeEventListener("mouseenter", handleMouseMove);
@@ -1064,15 +1117,21 @@ export default function ThreeCanvas({
     if (!sceneRef.current) return;
 
     try {
-      // Remove old avatar group if exists
+      // New animal geometry owns its resources; release them when changing species.
+      animalMixerRef.current?.stopAllAction();
       if (avatarGroupRef.current) {
+        animalMixerRef.current?.uncacheRoot(avatarGroupRef.current);
         sceneRef.current.remove(avatarGroupRef.current);
+        disposeAnimalResources(avatarGroupRef.current);
       }
+      animalMixerRef.current = null;
+      animalActionRef.current = null;
 
       // Build new avatar
       const avatarGroup = buildAvatar(config, faceCanvas);
       sceneRef.current.add(avatarGroup);
       avatarGroupRef.current = avatarGroup;
+      if (avatarGroup.animations.length >= 2) animalMixerRef.current = new THREE.AnimationMixer(avatarGroup);
 
       if (cameraRef.current) {
         fitCameraToAvatar(
@@ -1267,7 +1326,7 @@ export default function ThreeCanvas({
                 : "bg-transparent text-[#141414] border-transparent hover:bg-[#141414]/10"
             }`}
           >
-            {mode}
+            {mode === "walk" ? ANIMAL_LOCOMOTION[config.creatureVariant || ""] || "walk" : mode}
           </button>
         ))}
       </div>

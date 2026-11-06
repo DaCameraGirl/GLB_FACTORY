@@ -31,8 +31,8 @@ export const CREATURE_VARIANTS: Record<string, CreatureVariantPreset> = {
   dog: { label: "🐶 Dog", skinColor: "#92400e", hairColor: "#451a03", accessories: ["tail"] },
   lizard: { label: "🦎 Lizard", skinColor: "#4d7c0f", hairColor: "#1a2e05", accessories: ["tail"] },
   possum: { label: "🐀 Possum", skinColor: "#5b5b4a", hairColor: "#2d2419", clothingColor: "#3d2a1e", pantsColor: "#2d2419", accessories: [] },
-  tigerfish: { label: "🐠 Tiger Fish", skinColor: "#ea580c", hairColor: "#1c1917", accessories: ["fins", "tail"] },
-  lionfish: { label: "🦁🐟 Lionfish", skinColor: "#fde68a", hairColor: "#b91c1c", accessories: ["fins"] },
+  tigerfish: { label: "🐠 Tiger Fish", skinColor: "#ea580c", hairColor: "#1c1917", clothingColor: "#ea580c", accessories: ["fins", "tail"] },
+  lionfish: { label: "🦁🐟 Lionfish", skinColor: "#fde68a", hairColor: "#b91c1c", clothingColor: "#b91c1c", accessories: ["fins"] },
   clown: {
     label: "🤡 Evil Clown",
     skinColor: "#f5f5f4",
@@ -45,6 +45,7 @@ export const CREATURE_VARIANTS: Record<string, CreatureVariantPreset> = {
   dragon: {
     label: "🐉 Dragon",
     skinColor: "#3f6212",
+    clothingColor: "#365314",
     hairColor: "#1c1917",
     bodyType: "athletic",
     hairStyle: "none",
@@ -60,6 +61,7 @@ export const CREATURE_VARIANTS: Record<string, CreatureVariantPreset> = {
   hammerhead: {
     label: "🔨🦈 Hammerhead Shark",
     skinColor: "#57606f",
+    clothingColor: "#57606f",
     hairColor: "#27272a",
     hairStyle: "none",
     accessories: [],

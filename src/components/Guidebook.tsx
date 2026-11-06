@@ -9,7 +9,7 @@ interface GuidebookProps {
 
 /**
  * Studio documentation — export language is intentionally accurate:
- * poseable mesh hierarchy + PBR, not skinned AnimationClip export.
+ * PBR + mesh hierarchy, with authored animation clips for animal presets.
  */
 export default function Guidebook({ wikiTab, setWikiTab }: GuidebookProps) {
   return (
@@ -102,8 +102,8 @@ export default function Guidebook({ wikiTab, setWikiTab }: GuidebookProps) {
                 <span className="font-bold text-gray-950 block">5. EXPORT</span>
                 <p className="normal-case pl-3 text-[14px] text-gray-700">
                   Click <strong className="text-gray-950">&quot;Export Final GLB&quot;</strong> for a customizable,
-                  poseable GLB character with PBR materials and an organized mesh hierarchy. Walk/dance cycles in the
-                  viewport are live mesh-group animation — they are not written as glTF AnimationClips yet.
+                  poseable GLB character with PBR materials and an organized mesh hierarchy. Animal presets include
+                  Idle and a species movement clip. Human walk/dance cycles remain preview-only.
                 </p>
               </div>
             </div>
@@ -184,14 +184,13 @@ export default function Guidebook({ wikiTab, setWikiTab }: GuidebookProps) {
             <div className="bg-amber-50 border border-amber-600/40 p-3 text-[13px] normal-case text-amber-950 space-y-2">
               <strong className="block font-bold uppercase text-[11px] tracking-wide">Export contract (current)</strong>
               <p>
-                Customizable, poseable GLB characters with PBR materials and an organized mesh hierarchy. The current
-                pose (group transforms) is preserved. The exporter intentionally ships{" "}
-                <code className="bg-amber-100 px-1 font-bold">animations: []</code> — viewport walk/dance cycles are not
-                baked into the file.
+                Animal presets include their 3D meshes, PBR materials, Idle, and a looping species movement clip.
+                Play these clips after importing the GLB. Human/fantasy presets preserve the current pose;
+                their preview walk/dance cycles are not included. Photo Sculpt produces a static mesh.
               </p>
               <p>
-                Do not assume Mixamo/Unity Humanoid auto-rig out of the box. For game engines, treat the asset as a
-                stylized static/poseable mesh hierarchy and re-rig externally when you need skinned clips.
+                Animal clips animate articulated parts. They do not require a human-shaped rig. A conventional
+                humanoid skeleton and retargeting setup are separate work if your game requires them.
               </p>
             </div>
             <div className="space-y-3 text-[14px] text-gray-700">
@@ -211,9 +210,8 @@ export default function Guidebook({ wikiTab, setWikiTab }: GuidebookProps) {
               <div className="bg-white border border-[#141414]/20 p-3 rounded space-y-1.5">
                 <strong className="text-gray-950 block font-bold">💃 MIXAMO / UNITY / UNREAL</strong>
                 <p className="normal-case text-gray-600">
-                  Mixamo auto-rig and engine Humanoid pipelines expect a conventional skinned character. Re-rig or
-                  retarget after import if you need clip-based locomotion. We plan to restore full skinned + AnimationClip
-                  claims only after bones, weights, and exported clips land in the pipeline.
+                  Animal GLBs contain named animation clips for a standard glTF animation player. Humanoid retargeting
+                  pipelines expect a conventional skinned character and need a separate rigging setup.
                 </p>
               </div>
             </div>

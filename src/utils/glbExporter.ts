@@ -1,15 +1,15 @@
 import * as THREE from "three";
 import { GLTFExporter } from "three/addons/exporters/GLTFExporter.js";
 import { clone as cloneWithSkeletons } from "three/addons/utils/SkeletonUtils.js";
+import { restoreAnimalRestPose } from "./animalAnimations";
 
 /**
  * Exports a Three.js Group/Mesh to a GLB (Binary glTF) file.
  * Returns a Promise that resolves to a Blob containing the binary data.
  *
- * Scope (accurate): mesh hierarchy, materials/textures, and current pose transforms.
- * Does NOT export AnimationClips — viewport walk/dance is mesh-group animation only.
- * Call this "customizable, poseable GLB with PBR + organized hierarchy" until
- * real bones, skin weights, and clips are wired into the parse options.
+ * Exports materials, textures, mesh hierarchies and authored AnimationClips.
+ * Animal Idle/locomotion clips animate articulated mesh pivots. Humanoid preview
+ * dance/pose controls are still not authored clips or a unified humanoid rig.
  */
 export function exportToGLB(group: THREE.Group, characterName: string = "avatar"): Promise<Blob> {
   // --- EXPORT SANITY CHECKS ---
@@ -56,13 +56,12 @@ export function exportToGLB(group: THREE.Group, characterName: string = "avatar"
     // Create a temporary parent scene to export to avoid exporting root transforms incorrectly
     const tempScene = new THREE.Scene();
     
-    // Add some ambient lighting so materials export with base color/roughness definitions correctly
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
-    tempScene.add(ambientLight);
-    
     // Copy the rig and rebind skin joints to the copied bones. Group.clone()
     // retains the live skeleton, leaving exported skin joints outside the scene.
     const clonedGroup = cloneWithSkeletons(group);
+    restoreAnimalRestPose(clonedGroup);
+    // Names on authored pivot tracks are unique and survive skeleton-safe cloning.
+    const clips = group.animations.map((clip) => clip.clone());
     
     // Reset position for exporting (centered on ground at 0, 0, 0)
     clonedGroup.position.set(0, 0, 0);
@@ -90,8 +89,7 @@ export function exportToGLB(group: THREE.Group, characterName: string = "avatar"
       },
       {
         binary: true,
-        // Empty until we author real THREE.AnimationClips on a skinned hierarchy.
-        animations: [],
+        animations: clips,
         includeCustomExtensions: false,
       }
     );

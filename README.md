@@ -21,7 +21,7 @@ Upload a portrait — or spin up the Mutation Lab — and export a customizable,
 1. **Create From Photo** — Upload portrait → build avatar → customize → export GLB  
 2. **Mutation Lab** — Generate specimens → collect rare mutations → breed two parents → export offspring
 
-> **Export honesty:** Viewport walk/dance/pose controls animate mesh groups in the browser. The GLB exporter currently ships an empty animation list. Treat downloads as poseable hierarchies with materials — not Mixamo-ready skinned AnimationClip characters — until full bones + clips land.
+> **Export scope:** All 22 animal presets export real 3D geometry, PBR materials, an Idle clip, and a species movement clip. These clips animate articulated parts and play after GLB import. Human/fantasy walk and dance remain preview-only; these assets are not automatically compatible with humanoid retargeting rigs. Photo Sculpt exports a static textured mesh.
 
 ### 🎭 Live from the Mesh Style dropdown — actual in-app renders, not concept art
 
@@ -51,11 +51,18 @@ Upload a portrait — or spin up the Mutation Lab — and export a customizable,
 | **Creature mesh styles** | 🧌 Gremlin, 👹 Monster, 🐊 Alligator, 🦝 Raccoon, 🐱 Cat, 🐶 Dog, 🦎 Lizard, 🐀 Possum, 🐠 Tiger Fish, 🦁🐟 Lionfish, 🤡 Evil Clown — each with its own head geometry (jaws, masks, fins, spikes, floppy ears — not just a recolor) |
 | **Individual creature parts** | Fins 🐟, Tail 🦎, Snout 🐽, Whiskers 🐱, Mushroom Cap 🍄 (mix onto any base mesh style) |
 | **Gear** | Blaster 🔫, Knife 🗡️, Herb Pouch 🌿, plus Glasses, Wings, Horns, Crown, Halo, Cyber Visor, Cape |
-| **Poses (in-viewer)** | Idle, Walk, Dance, Zombie, Spin, Ninja, or joint sliders — live mesh-group posing in the studio (not exported as AnimationClips yet) |
+| **Animal animation exports** | Idle plus Walk, Swim, Fly, Slither, Crawl, or Hop, depending on species. The preview and GLB use the same clips. |
+| **Humanoid poses (in-viewer)** | Idle, Walk, Dance, Zombie, Spin, Ninja, or joint sliders — human/fantasy preview poses are not exported as clips. |
 | **Snap Studio** | 3D particle lenses, big-head lens, VHS/Cyber/Sepia/Glitch color filters, custom caption overlay |
 | **Mutation Lab** | One click generates a new proportional/palette variant, ranked from `COMMON` up to the elusive `CHAOTIC-DIVINE` |
 
-More species (turtle, snake) and a moving-tentacle octopus variant are actively in progress.
+### Animal collection
+
+Choose an animal in **Parts → Mesh Style / Model Shape**. A photo is optional. Preview **Idle** or the movement button, then choose **Export Final GLB**. Animal anatomy is generated as geometry; a portrait does not replace its head. Human clothing and hair controls apply to humanoids.
+
+The 22 animal models are: alligator, raccoon, cat, dog, lizard, possum, tiger fish, lionfish, dragon, hammerhead shark, twelve-arm octopus, spider, snake, bat, crow, rat, centipede, biped lizard, toad, scorpion, worm, and mantis. The twelve-arm octopus and dragon intentionally retain the game's fantasy designs.
+
+Before/after captures render exported GLBs after re-import. The baseline exports contain no animations, so their comparison views are deliberately still. Improved views play embedded movement clips. These are stylized procedural models, not photorealistic reconstructions.
 
 ---
 
@@ -67,7 +74,7 @@ To activate it on a fork: **Settings → Pages → Build and deployment → Sour
 
 Keep the source set to **GitHub Actions**, not a branch folder: the root `index.html` is Vite source and cannot run directly on Pages. The deployment uses `npm run build:pages` to publish only the browser app and enable local photo analysis without an API server.
 
-Regression checks: `npm run lint`, `node --import tsx --test scripts/export-skins.test.mjs`, then `npm run build:pages` and `node scripts/photo-workflow-qa.mjs` (requires the Playwright Chromium browser). The browser check covers portrait upload, character and sculpt GLB downloads, exported skin joints, and recovery from unreadable images.
+Regression checks: `npm run lint`, `npm test`, then `npm run build:pages` and `node scripts/photo-workflow-qa.mjs` (requires the Playwright Chromium browser). The browser check covers portrait upload, character and sculpt GLB downloads, exported skin joints, unreadable-image recovery, and direct selection/export of all 22 animals. `npm test` reloads every animal GLB and checks both clips actually move its parts.
 
 ---
 

@@ -1103,9 +1103,9 @@ export default function App() {
         "Go to 'SCENE' tab to choose camera presets: Front, Side, Top, or Isometric.",
         "Toggle 'Show Grid' to visualize ground shadow planes.",
         "Tweak Ambient and Key spotlight intensities for ideal three-point contrast.",
-        "Click 'Export Final GLB' for a poseable mesh hierarchy with PBR materials (viewport animations are not baked into the file).",
+        "Click 'Export Final GLB' to save the model and materials. Animal presets include Idle and a species movement animation.",
       ],
-      tip: "💡 PRO TIP: Exports are binary glTFs with materials and hierarchy — re-rig externally if you need skinned AnimationClips.",
+      tip: "💡 PRO TIP: Animal GLBs include looping movement clips. Human walk/dance remains preview-only; humanoid retargeting needs a dedicated rig.",
       actionText: "Open Scene Tab",
       action: () => {
         setEditorTab("scene");
@@ -1582,7 +1582,20 @@ export default function App() {
                     autoRotate={autoRotate}
                     bounceTime={bounceTime}
                     onSceneReady={(group) => {
+                      const previousAnimal = avatarGroupRef.current?.userData.animalVariant;
                       avatarGroupRef.current = group;
+                      // Animal presets are complete assets without a portrait-processing step.
+                      if (group.animations.length > 0) {
+                        // Only a new species choice cancels pending photo analysis. A rebuild
+                        // while decoding another upload must not invalidate that upload.
+                        if (previousAnimal !== group.userData.animalVariant && analysisAbortRef.current) {
+                          ++photoRunRef.current;
+                          analysisAbortRef.current.abort();
+                          setIsProcessing(false);
+                        }
+                        setIsSuccess(true);
+                        setCurrentStep("glb");
+                      }
                     }}
                   />
                 </div>
