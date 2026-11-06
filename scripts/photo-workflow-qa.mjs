@@ -7,7 +7,7 @@ import { chromium } from 'playwright';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dist = path.join(root, 'dist');
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.wasm': 'application/wasm' };
 const server = http.createServer(async (req, res) => {
   try {
     const relative = decodeURIComponent(new URL(req.url, 'http://localhost').pathname).replace(/^\/GLB_FACTORY\//, '');
@@ -21,7 +21,7 @@ await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
-  page.setDefaultTimeout(30000);
+  page.setDefaultTimeout(90000);
   const errors = [], apiRequests = [], failedAssets = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('request', request => { if (request.url().includes('/api/')) apiRequests.push(request.url()); });
@@ -56,6 +56,10 @@ try {
   };
   const avatar = await readDownload('#download-glb-button');
   assert.ok(avatar.skins?.length > 0, 'organic avatar contains valid limb skeletons');
+  assert.ok(avatar.nodes.some(node => node.extras?.portraitFitted), 'export contains the actual fitted face');
+  assert.ok(avatar.nodes.some(node => node.name === 'skull' && node.extras?.frontVertexCount === 468), '468 landmark facial vertices');
+  await page.locator('#fitted-face-panel').waitFor();
+  assert.equal(await page.locator('#crop-tuning-panel').count(), 0, 'legacy crop cannot move photo away from its fitted landmarks');
   await page.locator('#photo-sculpt-button').click();
   await readDownload('#photo-sculpt-download');
   if (!remote) {
@@ -71,11 +75,22 @@ try {
     await build.click();
     await page.waitForFunction(() => !document.querySelector('#build-avatar-button')?.disabled);
     await readDownload('#download-glb-button');
-    console.log('PASS corrupt image rejection, same-name retry, static offline workflow');
+    console.log('PASS corrupt image rejection, same-name retry, local face-fitting workflow');
+  }
+  if (!remote) {
+    const blank = await page.evaluate(() => { const canvas = document.createElement('canvas'); canvas.width = canvas.height = 256; return canvas.toDataURL().split(',')[1]; });
+    await input.setInputFiles({ name: 'no-face.png', mimeType: 'image/png', buffer: Buffer.from(blank, 'base64') });
+    await page.waitForFunction(() => !document.querySelector('#build-avatar-button')?.disabled);
+    assert.equal(await page.locator('#download-glb-button').isDisabled(), true, 'new portrait invalidates old export');
+    await build.click();
+    await page.locator('#upload-panel [role=alert]').waitFor();
+    assert.match(await page.locator('#upload-panel [role=alert]').innerText(), /No clear face/);
+    assert.equal(await page.locator('#download-glb-button').isDisabled(), true, 'no-face image cannot export an old head');
+    console.log('PASS no-face detection error and stale-export protection');
   }
   // Replacing a previously built portrait while an animal is selected must still decode.
   await page.locator('#mesh-style-select').selectOption('cat');
-  await input.setInputFiles(path.join(root, 'src/assets/genie-mascot.png'));
+  await input.setInputFiles(path.join(root, 'src/assets/creatures/portrait-hero.png'));
   await page.waitForFunction(() => !document.querySelector('#build-avatar-button')?.disabled);
   await build.click();
   await page.waitForFunction(() => !document.querySelector('#build-avatar-button')?.disabled);

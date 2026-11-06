@@ -1,7 +1,6 @@
 import React from "react";
 import { Upload, Sparkles, RefreshCw, User, Sliders } from "lucide-react";
 import { AvatarConfig } from "../types";
-import { estimateFaceBox, analyzeColorsClientSide } from "../utils/faceDetector";
 
 export interface PhotoPipelineProps {
   characterName: string;
@@ -10,8 +9,8 @@ export interface PhotoPipelineProps {
   setConfig: React.Dispatch<React.SetStateAction<AvatarConfig>>;
   sourceImage: string | null;
   uploadError: string | null;
+  fitStatus: string;
   faceBox: [number, number, number, number] | null;
-  setFaceBox: React.Dispatch<React.SetStateAction<[number, number, number, number] | null>>;
   imageRef: React.RefObject<HTMLImageElement | null>;
   isDraggingFile: boolean;
   handleDragOver: (e: React.DragEvent) => void;
@@ -31,8 +30,8 @@ export default function PhotoPipeline({
   setConfig,
   sourceImage,
   uploadError,
+  fitStatus,
   faceBox,
-  setFaceBox,
   imageRef,
   isDraggingFile,
   handleDragOver,
@@ -50,7 +49,7 @@ export default function PhotoPipeline({
               <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-gradient-to-r from-cyan-300 via-fuchsia-300 to-lime-300">
                 <h2 className="font-serif text-[11px] italic text-[#141414] uppercase font-bold tracking-wider flex items-center gap-2">
                   <User className="w-3.5 h-3.5" />
-                  <span>01 // Character Identity & Portrait · Photo → 3D Morph</span>
+                  <span>01 // Character Identity &amp; Fitted 3D Face</span>
                 </h2>
               </div>
 
@@ -94,27 +93,13 @@ export default function PhotoPipeline({
                   />
 
                   {sourceImage ? (
-                    <div className="relative w-full aspect-square max-w-[180px] border-4 border-double border-[#141414] overflow-hidden group animate-melt shadow-[4px_4px_0px_0px_rgba(20,20,20,0.15)] bg-gradient-to-br from-[#D946EF]/20 via-transparent to-[#F59E0B]/20 p-2 flex items-center justify-center">
-                      <div className="w-full h-full overflow-hidden animate-melt border border-[#141414] relative bg-white/60">
+                    <div className="relative w-full aspect-square max-w-[180px] border-4 border-double border-[#141414] overflow-hidden group shadow-[4px_4px_0px_0px_rgba(20,20,20,0.15)] bg-gradient-to-br from-[#D946EF]/20 via-transparent to-[#F59E0B]/20 p-2 flex items-center justify-center">
+                      <div className="w-full h-full overflow-hidden border border-[#141414] relative bg-white/60">
                         <img
                           ref={imageRef}
                           src={sourceImage}
                           alt="Portrait source"
-                          className="w-full h-full object-cover"
-                          onLoad={() => {
-                            if (imageRef.current) {
-                              const est = estimateFaceBox(imageRef.current) || [20, 20, 80, 80];
-                              setFaceBox(est);
-                              const colors = analyzeColorsClientSide(imageRef.current);
-                              setConfig((prev) => ({
-                                ...prev,
-                                skinColor: colors.skin_tone,
-                                hairColor: colors.hair_color,
-                                clothingColor: colors.clothing_color,
-                                hairStyle: colors.gender_style,
-                              }));
-                            }
-                          }}
+                          className="w-full h-full object-contain"
                         />
                         <div className="absolute inset-0 bg-white/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 z-10">
                           <span className="text-[10px] bg-[#141414] text-white font-mono px-2 py-1 rounded-none uppercase font-bold tracking-wider">
@@ -122,23 +107,7 @@ export default function PhotoPipeline({
                           </span>
                         </div>
 
-                        {/* Display Face Bounding Box Overlay if available */}
-                        {faceBox && (
-                          <div
-                            className="absolute border-2 border-dashed border-[#141414] pointer-events-none z-10"
-                            style={{
-                              top: `${faceBox[0]}%`,
-                              left: `${faceBox[1]}%`,
-                              width: `${faceBox[3] - faceBox[1]}%`,
-                              height: `${faceBox[2] - faceBox[0]}%`,
-                            }}
-                            id="detected-face-box-overlay"
-                          >
-                            <span className="absolute -top-5 left-0 bg-[#141414] text-white text-[9px] font-mono font-bold px-1 rounded-none uppercase">
-                              FACE_BOX
-                            </span>
-                          </div>
-                        )}
+
                       </div>
                     </div>
                   ) : (
@@ -147,8 +116,8 @@ export default function PhotoPipeline({
                         <Upload className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-[#141414] uppercase tracking-wide">Drop a portrait to morph into 3D</p>
-                        <p className="text-[10px] text-[#141414]/60 font-mono mt-1 uppercase">or click · face texture + colors → mesh</p>
+                        <p className="text-xs font-bold text-[#141414] uppercase tracking-wide">Drop a clear, front-facing portrait</p>
+                        <p className="text-[10px] text-[#141414]/60 font-mono mt-1 uppercase">or click to fit facial shape and photo texture</p>
                       </div>
                     </div>
                   )}
@@ -160,6 +129,13 @@ export default function PhotoPipeline({
                   {uploadError}
                 </p>
               )}
+
+              <p className="text-[11px] leading-relaxed text-[#141414]/80">
+                Fits the visible face into a 3D surface using points detected in your photo.
+                This is a single-photo approximation: the back of the head is estimated;
+                the body uses a template, and hair is not reconstructed. Photo processing runs in your browser.
+              </p>
+              {fitStatus && <p role="status" className="text-[11px] font-mono" id="portrait-fit-status">{fitStatus}</p>}
 
               {/* Big Core Trigger Button */}
               <button
@@ -178,19 +154,27 @@ export default function PhotoPipeline({
                 {isProcessing ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Morphing Portrait → 3D…</span>
+                    <span>Fitting portrait...</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    <span>Morph Photo → 3D Avatar</span>
+                    <span>Fit Photo to 3D Face</span>
                   </>
                 )}
               </button>
             </section>
 
+            {config.portraitFace && sourceImage && config.headShape === "organic-smooth" && (!config.creatureVariant || config.creatureVariant === "none") && (
+              <section className="bg-white/60 border-2 border-[#141414] p-4 text-xs space-y-2" id="fitted-face-panel">
+                <p className="font-bold">468-point fitted face</p>
+                <p>The original photo follows the fitted nose, cheeks, lips, and jaw. Rotate to inspect the shape, or use Wireframe to see the surface.</p>
+                <p>Upload a new portrait to refit. Customize clothing and body proportions to finish your character.</p>
+              </section>
+            )}
+
             {/* INTERACTIVE CROP & BLENDING (If image loaded) */}
-            {sourceImage && faceBox && (
+            {sourceImage && faceBox && !config.portraitFace && (
               <section className="bg-white/40 border-2 border-[#141414] rounded-none p-5 space-y-4 shadow-[4px_4px_0px_0px_rgba(20,20,20,0.1)]" id="crop-tuning-panel">
                 <div className="-mx-5 -mt-5 p-3 border-b border-[#141414] bg-[#D4D3D0] flex items-center justify-between">
                   <h2 className="font-serif text-[11px] italic text-[#141414]/80 uppercase font-bold tracking-wider flex items-center gap-2">
@@ -313,7 +297,7 @@ export default function PhotoPipeline({
                       <img
                         src={faceCanvas.toDataURL()}
                         alt="Processed face"
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     </div>
                     <div className="text-xs">

@@ -1,3 +1,4 @@
+import { disposePortraitResources } from "../utils/portraitGeometry";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -24,6 +25,7 @@ interface ThreeCanvasProps {
   config: AvatarConfig;
   faceCanvas: HTMLCanvasElement | null;
   onSceneReady?: (avatarGroup: THREE.Group) => void;
+  onSceneError?: (error: Error) => void;
   autoRotate: boolean;
   bounceTime: number;
 }
@@ -32,6 +34,7 @@ export default function ThreeCanvas({
   config,
   faceCanvas,
   onSceneReady,
+  onSceneError,
   autoRotate,
   bounceTime,
 }: ThreeCanvasProps) {
@@ -101,7 +104,11 @@ export default function ThreeCanvas({
     avatarGroup: THREE.Group,
     cameraPreset: AvatarConfig["cameraPreset"] | undefined
   ) => {
-    const bounds = new THREE.Box3().setFromObject(avatarGroup);
+    const preset = cameraPreset || "front";
+    const fittedCloseUp = preset === "close-up" && avatarGroup.userData.portraitFitted;
+    const focus = fittedCloseUp ? avatarGroup.getObjectByName("head") || avatarGroup : avatarGroup;
+    avatarGroup.updateMatrixWorld(true);
+    const bounds = new THREE.Box3().setFromObject(focus);
     if (bounds.isEmpty()) return;
 
     const center = bounds.getCenter(new THREE.Vector3());
@@ -112,9 +119,7 @@ export default function ThreeCanvas({
 
     const fitHeightDistance = safeHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
     const fitWidthDistance = (safeWidth / Math.max(camera.aspect, 0.1)) / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
-    const distance = Math.max(fitHeightDistance, fitWidthDistance) * 1.45 + safeDepth * 0.9;
-
-    const preset = cameraPreset || "front";
+    const distance = Math.max(fitHeightDistance, fitWidthDistance) * (fittedCloseUp ? 1.18 : 1.45) + safeDepth * (fittedCloseUp ? 0.6 : 0.9);
     const direction =
       preset === "side"
         ? new THREE.Vector3(1, 0.2, 0)
@@ -146,7 +151,7 @@ export default function ThreeCanvas({
 
     if (controls) {
       controls.target.copy(center);
-      controls.minDistance = Math.max(distance * 0.45, 1.5);
+      controls.minDistance = Math.max(distance * 0.45, fittedCloseUp ? 0.4 : 1.5);
       controls.maxDistance = Math.max(distance * 2.5, controls.minDistance + 1);
       controls.update();
     } else {
@@ -781,7 +786,9 @@ export default function ThreeCanvas({
         const leftLeg = avatarGroupRef.current.getObjectByName("left-leg") as THREE.Object3D;
         const rightLeg = avatarGroupRef.current.getObjectByName("right-leg") as THREE.Object3D;
 
-        const baseHeight = activeConfig.bodyType === "chibi" ? 0.8 : activeConfig.bodyType === "tall" ? 1.6 : 1.35;
+        // Pose around the built torso height. A fixed height moved fitted heads
+        // out of the camera frame and discarded manual torso offsets.
+        const baseHeight = torso ? (torso.userData.restHeight ??= torso.position.y) : 1.35;
 
         if (activeAnimMode === "custom") {
           if (head) {
@@ -1021,7 +1028,7 @@ export default function ThreeCanvas({
         cancelAnimationFrame(animationFrameIdRef.current);
       }
       animalMixerRef.current?.stopAllAction();
-      if (avatarGroupRef.current) disposeAnimalResources(avatarGroupRef.current);
+      if (avatarGroupRef.current) { disposeAnimalResources(avatarGroupRef.current); disposePortraitResources(avatarGroupRef.current); }
       animalMixerRef.current = null;
       animalActionRef.current = null;
       resizeObserver.disconnect();
@@ -1108,27 +1115,30 @@ export default function ThreeCanvas({
 
   // 4. Stable callback ref for onSceneReady
   const onSceneReadyRef = useRef(onSceneReady);
+  const onSceneErrorRef = useRef(onSceneError);
   useEffect(() => {
     onSceneReadyRef.current = onSceneReady;
-  }, [onSceneReady]);
+    onSceneErrorRef.current = onSceneError;
+  }, [onSceneReady, onSceneError]);
 
   // 5. Re-build Avatar ONLY when layout, geometry, or appearance configurations change
   useEffect(() => {
     if (!sceneRef.current) return;
 
     try {
+      // Keep the last valid preview alive if a new fit cannot produce geometry.
+      const avatarGroup = buildAvatar(config, faceCanvas);
       // New animal geometry owns its resources; release them when changing species.
       animalMixerRef.current?.stopAllAction();
       if (avatarGroupRef.current) {
         animalMixerRef.current?.uncacheRoot(avatarGroupRef.current);
         sceneRef.current.remove(avatarGroupRef.current);
         disposeAnimalResources(avatarGroupRef.current);
+        disposePortraitResources(avatarGroupRef.current);
       }
       animalMixerRef.current = null;
       animalActionRef.current = null;
 
-      // Build new avatar
-      const avatarGroup = buildAvatar(config, faceCanvas);
       sceneRef.current.add(avatarGroup);
       avatarGroupRef.current = avatarGroup;
       if (avatarGroup.animations.length >= 2) animalMixerRef.current = new THREE.AnimationMixer(avatarGroup);
@@ -1147,6 +1157,7 @@ export default function ThreeCanvas({
       }
     } catch (err) {
       console.error("CRITICAL: Failed to build or render 3D Avatar group:", err);
+      onSceneErrorRef.current?.(err instanceof Error ? err : new Error("Unknown 3D build error"));
     }
   }, [
     config.skinColor,
@@ -1157,6 +1168,7 @@ export default function ThreeCanvas({
     config.hairStyle,
     config.bodyType,
     config.headShape,
+    config.portraitFace,
     config.creatureVariant,
     config.accessories,
     config.clothingStyle,

@@ -1,0 +1,37 @@
+{
+  "package": "@mediapipe/tasks-vision",
+  "version": "1.2.2",
+  "assets": [
+    {
+      "file": "face_landmarker.task",
+      "source": "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+      "bytes": 3758596,
+      "sha256": "64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff"
+    },
+    {
+      "file": "canonical_face_model.obj",
+      "source": "https://raw.githubusercontent.com/google-ai-edge/mediapipe/master/mediapipe/modules/face_geometry/data/canonical_face_model.obj",
+      "bytes": 45999,
+      "sha256": "8bac80443397e113f41a8b565ea72c59390bc031d9defab289dba7bc0c54e618"
+    },
+    {
+      "file": "LICENSE",
+      "source": "https://raw.githubusercontent.com/google-ai-edge/mediapipe/master/LICENSE",
+      "bytes": 12331,
+      "sha256": "8707eef0533987efc5b155d64761eeb6e20793f50b9bd1a68dad1cf4719d0ed8"
+    },
+    {
+      "file": "wasm/vision_wasm_internal.js",
+      "source": "https://registry.npmjs.org/@mediapipe/tasks-vision/-/tasks-vision-1.2.2.tgz",
+      "bytes": 334128,
+      "sha256": "f2b9c17131ea79716ec6bf07b117a087b2749a6f8a1e2f1f2e77a9382092db5b"
+    },
+    {
+      "file": "wasm/vision_wasm_internal.wasm",
+      "source": "https://registry.npmjs.org/@mediapipe/tasks-vision/-/tasks-vision-1.2.2.tgz",
+      "bytes": 14603354,
+      "sha256": "f5bd25147ac89d506074293ce2675969b10e827180db95a0d9689c2ed80764ab"
+    }
+  ],
+  "modelCard": "https://storage.googleapis.com/mediapipe-assets/Model%20Card%20MediaPipe%20Face%20Mesh%20V2.pdf"
+}

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { ANIMAL_VARIANTS, buildAnimal } from "./animalBuilder";
+import { createPortraitGeometry, FittedPortraitGeometry } from "./portraitGeometry";
 import { AvatarConfig, HairStyle, BodyType, HeadShape } from "../types";
 
 // ==========================================
@@ -258,6 +259,7 @@ function addMorphTargets(geometry: THREE.BufferGeometry, isSkull: boolean) {
     }
   }
 
+  geometry.morphTargetsRelative = true;
   geometry.morphAttributes.position = [];
   geometry.morphAttributes.position[0] = new THREE.Float32BufferAttribute(slenderPositions, 3);
   geometry.morphAttributes.position[1] = new THREE.Float32BufferAttribute(bulkPositions, 3);
@@ -485,7 +487,8 @@ export function buildAvatar(
     }
   }
 
-  const faceMap = new THREE.CanvasTexture(faceCanvas);
+  const fittedPortrait = config.portraitFace && faceTextureCanvas && config.headShape === "organic-smooth" && (!config.creatureVariant || config.creatureVariant === "none");
+  const faceMap = new THREE.CanvasTexture(fittedPortrait ? faceTextureCanvas : faceCanvas);
   faceMap.colorSpace = THREE.SRGBColorSpace;
   faceMap.wrapS = THREE.ClampToEdgeWrapping;
   faceMap.wrapT = THREE.ClampToEdgeWrapping;
@@ -638,8 +641,24 @@ export function buildAvatar(
   // ==========================================
   const actualHeadSize = 0.95 * headSize;
   let head: THREE.Group | THREE.Mesh;
+  let fittedGeometry: FittedPortraitGeometry | undefined;
 
-  if (config.headShape === "organic-smooth") {
+  if (fittedPortrait) {
+    head = new THREE.Group();
+    head.name = "head";
+    head.position.y = neck.position.y + actualHeadSize / 2 + 0.1;
+    torso.add(head);
+    fittedGeometry = createPortraitGeometry(config.portraitFace!, actualHeadSize);
+    const skull = new THREE.Mesh(fittedGeometry.geometry, [faceMaterial, skinMaterial]);
+    skull.name = "skull";
+    skull.castShadow = true;
+    skull.receiveShadow = true;
+    skull.userData = { ...fittedGeometry.geometry.userData, portraitGeometryOwned: true };
+    head.add(skull);
+    head.userData.portraitFitted = true;
+    group.userData.portraitFitted = true;
+    group.userData.portraitBackEstimated = true;
+  } else if (config.headShape === "organic-smooth") {
     head = new THREE.Group() as any;
     head.name = "head";
     head.position.y = neck.position.y + actualHeadSize / 2 + 0.1;
@@ -739,12 +758,14 @@ export function buildAvatar(
   const leftEar = new THREE.Mesh(earGeo, skinMaterial);
   leftEar.name = "left-ear";
   leftEar.position.set(-skullRadiusVal - (isOrganicHead ? 0.02 : 0.04) * headSize, 0, 0);
+  if (fittedGeometry) leftEar.position.copy(fittedGeometry.earAnchors[0]);
   leftEar.castShadow = true;
   ears.add(leftEar);
 
   const rightEar = new THREE.Mesh(earGeo, skinMaterial);
   rightEar.name = "right-ear";
   rightEar.position.set(skullRadiusVal + (isOrganicHead ? 0.02 : 0.04) * headSize, 0, 0);
+  if (fittedGeometry) rightEar.position.copy(fittedGeometry.earAnchors[1]);
   rightEar.castShadow = true;
   ears.add(rightEar);
   

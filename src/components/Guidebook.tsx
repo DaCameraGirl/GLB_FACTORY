@@ -73,28 +73,25 @@ export default function Guidebook({ wikiTab, setWikiTab }: GuidebookProps) {
                 <span className="font-bold text-gray-950 block">1. INITIAL PORTRAIT ACQUISITION</span>
                 <p className="normal-case pl-3 text-[14px] text-gray-700">
                   Drag and drop any front-facing portrait into the upload zone. Eye-level, facing forward, and even
-                  lighting produce the cleanest face crops and color samples.
+                  lighting help the browser fit the visible facial surface.
                 </p>
               </div>
               <div className="space-y-1">
                 <span className="font-bold text-gray-950 block">2. PIPELINE TRIGGER (BUILD 3D AVATAR)</span>
                 <p className="normal-case pl-3 text-[14px] text-gray-700">
-                  Click <strong className="text-gray-950">&quot;Build 3D Avatar&quot;</strong>. When a backend key is
-                  available, Gemini locates the face and harvests skin/hair/clothing colors. On the static demo, a
-                  client-side sampler provides the same fields offline.
+                  Click <strong className="text-gray-950">&quot;Fit Photo to 3D Face&quot;</strong>. The browser detects facial points and fits the nose, cheeks, lips, and jaw. The model files load from this site; no API key is needed.
                 </p>
               </div>
               <div className="space-y-1">
-                <span className="font-bold text-gray-950 block">3. TEXTURE TUNING</span>
+                <span className="font-bold text-gray-950 block">3. INSPECT THE FIT</span>
                 <p className="normal-case pl-3 text-[14px] text-gray-700">
-                  Use feather edges, crop shift, and crop scale so the portrait blends into the synthetic skin on the
-                  head mesh.
+                  Rotate the preview and inspect its profile. This is an approximation from one photo, with an estimated back of the head. Ears and body use templates; hair is not reconstructed. A clearer front-facing portrait can improve the fit.
                 </p>
               </div>
               <div className="space-y-1">
                 <span className="font-bold text-gray-950 block">4. PARTS, MATERIALS &amp; POSE</span>
                 <p className="normal-case pl-3 text-[14px] text-gray-700">
-                  Equip hairstyles and accessories, tweak transforms, or adjust roughness/metalness for plastic, matte,
+                  Equip accessories, tweak body transforms, or adjust roughness/metalness for plastic, matte,
                   or chrome looks. In-viewer poses rotate mesh groups — great for staging a still before export.
                 </p>
               </div>

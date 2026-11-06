@@ -2,7 +2,14 @@ export type HairStyle = "none" | "short" | "long" | "afro" | "ponytail" | "cap";
 export type BodyType = "normal" | "chibi" | "tall" | "athletic";
 export type HeadShape = "cube" | "rounded-cube" | "organic-smooth";
 
+/** One-photo face fit. Normalized photo coordinates; depth is an estimate. */
+export interface PortraitFace {
+  landmarks: { x: number; y: number; z: number }[];
+  imageAspect: number;
+}
+
 export interface AvatarConfig {
+  portraitFace?: PortraitFace;
   name: string;
   skinColor: string;
   hairColor: string;

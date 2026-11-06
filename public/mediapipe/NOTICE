@@ -1,0 +1,8 @@
+MediaPipe
+Copyright The MediaPipe Authors.
+Licensed under the Apache License, Version 2.0.
+
+This distribution includes unmodified WASM runtime files from
+@mediapipe/tasks-vision 1.2.2, Google's face_landmarker float16/v1 model,
+and the canonical face model topology from the MediaPipe project.
+Source URLs and SHA-256 hashes are listed in sources.json.

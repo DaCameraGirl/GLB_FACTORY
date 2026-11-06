@@ -8,7 +8,7 @@ import {
   Layers,
   Flame,
 } from "lucide-react";
-import { AvatarConfig, DetectionResult, LogEntry, HairStyle } from "./types";
+import { AvatarConfig, LogEntry } from "./types";
 import { StudioMode } from "./types/mutation";
 import ThreeCanvas from "./components/ThreeCanvas";
 import StudioLogs from "./components/StudioLogs";
@@ -22,8 +22,8 @@ import SpecimenVault from "./components/SpecimenVault";
 import Guidebook, { WikiTab } from "./components/Guidebook";
 import ExportPanel from "./components/ExportPanel";
 import MorphOverlay from "./components/MorphOverlay";
-import { prepareFaceTexture } from "./utils/texturePreparer";
-import { estimateFaceBox } from "./utils/faceDetector";
+import { prepareFaceTexture, preparePortraitTexture, samplePortraitSkin } from "./utils/texturePreparer";
+import { detectPortraitFace } from "./utils/portraitFaceDetector";
 import { readImageFile } from "./utils/imageUpload";
 import { playSynthSound } from "./utils/playSynthSound";
 import { PRESET_HEROES, PresetHero } from "./constants/presets";
@@ -171,7 +171,7 @@ export default function App() {
   const [characterName, setCharacterName] = useState("");
   const [sourceImage, setSourceImage] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [mimeType, setMimeType] = useState<string>("image/jpeg");
+  const [fitStatus, setFitStatus] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -276,7 +276,7 @@ export default function App() {
   // Physics bounce timer trigger
   const [bounceTime, setBounceTime] = useState<number>(0);
 
-  // Bounding box returned from Gemini
+  // Detected face bounds in the original photo
   const [faceBox, setFaceBox] = useState<[number, number, number, number] | null>(null);
 
   // Computed face texture canvas
@@ -303,6 +303,21 @@ export default function App() {
   const decodedImageRef = useRef<HTMLImageElement | null>(null);
   const photoRunRef = useRef(0);
   const analysisAbortRef = useRef<AbortController | null>(null);
+  const photoUploadPendingRef = useRef(false);
+
+  const cancelPendingPhotoWork = useCallback(() => {
+    ++photoRunRef.current;
+    analysisAbortRef.current?.abort();
+    analysisAbortRef.current = null;
+    photoUploadPendingRef.current = false;
+    setIsProcessing(false);
+    setFitStatus("");
+  }, []);
+
+  // A deliberate model/mode choice wins over an earlier pending portrait fit.
+  useEffect(() => {
+    if (analysisAbortRef.current) cancelPendingPhotoWork();
+  }, [config.headShape, config.creatureVariant, studioMode, cancelPendingPhotoWork]);
 
   useEffect(() => () => {
     photoRunRef.current++;
@@ -377,7 +392,7 @@ export default function App() {
     }
 
     try {
-      const canvas = prepareFaceTexture(
+      const canvas = config.portraitFace ? preparePortraitTexture(decodedImageRef.current) : prepareFaceTexture(
         decodedImageRef.current,
         faceBox,
         config.skinColor,
@@ -407,6 +422,7 @@ export default function App() {
       updateFaceTexture();
     }
   }, [
+    config.portraitFace,
     config.skinColor,
     config.featherEdges,
     config.featherRadius,
@@ -439,8 +455,12 @@ export default function App() {
   const processFile = async (file: File) => {
     const runId = ++photoRunRef.current;
     analysisAbortRef.current?.abort();
+    analysisAbortRef.current = null;
+    photoUploadPendingRef.current = true;
     decodedImageRef.current = null;
     setUploadError(null);
+    setFitStatus("");
+    setConfig(prev => ({ ...prev, portraitFace: undefined }));
     setSourceImage(null);
     setFaceBox(null);
     setFaceCanvas(null);
@@ -452,7 +472,7 @@ export default function App() {
       const { dataUrl, image } = await readImageFile(file);
       if (runId !== photoRunRef.current) return;
       decodedImageRef.current = image;
-      setMimeType(file.type || dataUrl.slice(5, dataUrl.indexOf(";")));
+      setIsSuccess(false);
       setSourceImage(dataUrl);
       setCurrentStep("texture");
       setConfig((prev) => ({
@@ -464,7 +484,7 @@ export default function App() {
         cropScale: 1.0,
       }));
       addLog(`Loaded image: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`, "success");
-      addLog("Ready. Choose 'Morph Photo → 3D Avatar' for an avatar or 'Sculpt Real 3D' for a photo sculpt.", "info");
+      addLog("Photo ready. Choose Fit Photo to 3D Face to fit its facial features.", "info");
     } catch (err: any) {
       if (runId === photoRunRef.current) {
         const message = err.message || "Could not load this image.";
@@ -472,7 +492,10 @@ export default function App() {
         addLog(message, "error");
       }
     } finally {
-      if (runId === photoRunRef.current) setIsProcessing(false);
+      if (runId === photoRunRef.current) {
+        photoUploadPendingRef.current = false;
+        setIsProcessing(false);
+      }
     }
   };
 
@@ -494,206 +517,56 @@ export default function App() {
     }
   };
 
-  // Helper for static/client-side fallback face and color analysis
-  const analyzeColorsClientSide = (img: HTMLImageElement): { skin_tone: string; hair_color: string; clothing_color: string; gender_style: HairStyle } => {
-    const defaults = {
-      skin_tone: "#e5a65d",
-      hair_color: "#211510",
-      clothing_color: "#1e3a8a",
-      gender_style: "short" as HairStyle,
-    };
-
-    try {
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d", { willReadFrequently: true });
-      if (!ctx) return defaults;
-
-      canvas.width = 100;
-      canvas.height = 100;
-      ctx.drawImage(img, 0, 0, 100, 100);
-
-      const rgbToHex = (r: number, g: number, b: number) => {
-        return (
-          "#" +
-          [r, g, b]
-            .map((x) => {
-              const hex = Math.max(0, Math.min(255, Math.round(x))).toString(16);
-              return hex.length === 1 ? "0" + hex : hex;
-            })
-            .join("")
-        );
-      };
-
-      // Average a block of pixels (more stable than a single sample)
-      const averageRegion = (x0: number, y0: number, w: number, h: number) => {
-        const data = ctx.getImageData(
-          Math.max(0, x0),
-          Math.max(0, y0),
-          Math.min(w, 100 - x0),
-          Math.min(h, 100 - y0)
-        ).data;
-        let r = 0;
-        let g = 0;
-        let b = 0;
-        let n = 0;
-        for (let i = 0; i < data.length; i += 4) {
-          r += data[i];
-          g += data[i + 1];
-          b += data[i + 2];
-          n++;
-        }
-        if (n === 0) return { r: 128, g: 128, b: 128, lum: 128 };
-        r /= n;
-        g /= n;
-        b /= n;
-        return { r, g, b, lum: 0.2126 * r + 0.7152 * g + 0.0722 * b };
-      };
-
-      // Skin: sample cheeks & forehead (avoiding dark eyes/eyebrows/shadows)
-      const candidates = [
-        averageRegion(56, 46, 12, 12), // Right cheek
-        averageRegion(32, 46, 12, 12), // Left cheek
-        averageRegion(42, 28, 16, 10), // Forehead
-        averageRegion(42, 42, 16, 16), // Central face
-      ];
-
-      let skin_tone = defaults.skin_tone;
-      let bestSkinLum = -1;
-      for (const cand of candidates) {
-        if (cand.lum > 35 && cand.r >= cand.g && cand.g > cand.b * 0.6) {
-          if (cand.lum > bestSkinLum) {
-            bestSkinLum = cand.lum;
-            skin_tone = rgbToHex(cand.r, cand.g, cand.b);
-          }
-        }
-      }
-
-      // Hair: upper band
-      const hair = averageRegion(35, 8, 30, 14);
-      // Avoid mistaking bright background for hair
-      const hair_color =
-        hair.lum > 220
-          ? defaults.hair_color
-          : rgbToHex(hair.r, hair.g, hair.b);
-
-      // Clothing: lower torso band — skip near-black / near-white (backdrop / voids)
-      // that otherwise paint the entire mesh as a silhouette.
-      const clothing = averageRegion(30, 78, 40, 16);
-      let clothing_color: string;
-      if (clothing.lum < 18 || clothing.lum > 245) {
-        clothing_color = defaults.clothing_color;
-      } else {
-        clothing_color = rgbToHex(clothing.r, clothing.g, clothing.b);
-      }
-
-      return {
-        skin_tone,
-        hair_color,
-        clothing_color,
-        gender_style: "short",
-      };
-    } catch (e) {
-      console.warn("Could not read image pixels client-side, defaulting to standard colors.", e);
-      return defaults;
-    }
-  };
-
-  // 5. Analyze locally on GitHub Pages; use the optional API elsewhere.
+  // Fit the visible face locally. Never silently replace a failed fit with a photo sticker.
   const handleBuildAvatar = async () => {
     const image = decodedImageRef.current;
-    if (!sourceImage || !image) {
-      addLog("Please upload a readable photo first.", "warning");
-      return;
-    }
-    if (isProcessing) return;
-
+    if (!sourceImage || !image || isProcessing || analysisAbortRef.current) return;
     const runId = ++photoRunRef.current;
+    const controller = new AbortController();
+    analysisAbortRef.current = controller;
     setIsProcessing(true);
     setIsSuccess(false);
+    setUploadError(null);
+    setFitStatus("Preparing face fitting...");
     setCurrentStep("texture");
-
     try {
-      let result: DetectionResult | undefined;
-      const isStaticSite = import.meta.env.VITE_STATIC_MODE === "true" || window.location.hostname.endsWith(".github.io");
-      if (!isStaticSite) {
-        const controller = new AbortController();
-        analysisAbortRef.current = controller;
-        const timeout = window.setTimeout(() => controller.abort(), 15000);
-        try {
-          const response = await fetch("/api/crop-face", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ imageBase64: sourceImage, mimeType }),
-            signal: controller.signal,
-          });
-          if (!response.ok) throw new Error(`Photo analysis returned HTTP ${response.status}.`);
-          const detected: DetectionResult = await response.json();
-          const box = detected.face_box;
-          if (!Array.isArray(box) || box.length !== 4 ||
-              box.some((v) => !Number.isFinite(v) || v < 0 || v > 100) ||
-              box[0] >= box[2] || box[1] >= box[3]) {
-            throw new Error("Photo analysis returned an invalid face region.");
-          }
-          result = detected;
-        } catch (err: any) {
-          if (runId !== photoRunRef.current) return;
-          addLog(`Online analysis unavailable (${err.name === "AbortError" ? "request timed out" : err.message}). Using local photo analysis.`, "info");
-        } finally {
-          window.clearTimeout(timeout);
-          if (analysisAbortRef.current === controller) analysisAbortRef.current = null;
-        }
-      }
-      if (runId !== photoRunRef.current) return;
-
-      if (!result) {
-        addLog("Analyzing your photo in this browser...", "info");
-        const colors = analyzeColorsClientSide(image);
-        const estimatedBox = estimateFaceBox(image);
-        result = {
-          ...colors,
-          face_box: estimatedBox || [20, 20, 80, 80],
-          face_shape: "oval",
-          nose_size: "medium",
-          nose_width: "medium",
-          jaw_width: "medium",
-          chin_shape: "rounded",
-        };
-        addLog(
-          estimatedBox ? "Estimated face region from photo." : "Using a centered crop. Adjust it in Fine-Tune Face Texture if needed.",
-          estimatedBox ? "success" : "info"
-        );
-      }
-
-      const detected = result;
-      const skinColor = detected.skin_tone || config.skinColor;
-      // Prepare the texture before enabling export; a timer cannot guarantee readiness.
-      const texture = prepareFaceTexture(image, detected.face_box, skinColor,
-        config.featherEdges, config.featherRadius, 0, 0, 1);
-      setFaceBox(detected.face_box);
+      const detected = await detectPortraitFace(image, message => {
+        if (runId === photoRunRef.current) setFitStatus(message);
+      });
+      if (runId !== photoRunRef.current || controller.signal.aborted) return;
+      const texture = preparePortraitTexture(image);
+      const skinColor = samplePortraitSkin(texture, detected.landmarks);
+      setFaceBox(detected.faceBox);
       setFaceCanvas(texture);
-      setConfig((prev) => ({
+      setConfig(prev => ({
         ...prev,
+        portraitFace: { landmarks: detected.landmarks, imageAspect: detected.imageAspect },
         creatureVariant: "none",
-        photoMorphProgress: 1.0,
+        headShape: "organic-smooth",
+        photoMorphProgress: 1,
         skinColor,
-        hairColor: detected.hair_color || prev.hairColor,
-        clothingColor: detected.clothing_color || prev.clothingColor,
-        hairStyle: (detected.gender_style as HairStyle) || prev.hairStyle,
-        faceShape: detected.face_shape,
-        noseSize: detected.nose_size,
-        noseWidth: detected.nose_width,
-        jawWidth: detected.jaw_width,
-        chinShape: detected.chin_shape,
+        hairStyle: "none",
+        accessories: [],
+        faceShape: "oval",
+        noseSize: "medium",
+        noseWidth: "medium",
+        jawWidth: "medium",
+        chinShape: "rounded",
         cropX: 0,
         cropY: 0,
-        cropScale: 1.0,
+        cropScale: 1,
+        cameraPreset: "close-up",
       }));
-      setCurrentStep("glb");
-      setIsSuccess(true);
-      addLog("Avatar prepared. Ready to export GLB!", "success");
+      setFitStatus("Preparing fitted preview...");
+      addLog("Fitted 468 facial points into a 3D face. The back of the head is estimated. Hair is not reconstructed; the body is an editable template.", "success");
     } catch (err: any) {
-      if (runId === photoRunRef.current) addLog(`Photo analysis failed: ${err.message}`, "error");
+      if (runId !== photoRunRef.current) return;
+      const message = err.message || "Face fitting failed. Try a clear, front-facing portrait.";
+      setUploadError(message);
+      setFitStatus("");
+      addLog(message, "error");
     } finally {
+      if (analysisAbortRef.current === controller) analysisAbortRef.current = null;
       if (runId === photoRunRef.current) setIsProcessing(false);
     }
   };
@@ -936,6 +809,11 @@ export default function App() {
 
   // Reset configuration to defaults
   const handleResetDefaults = () => {
+    cancelPendingPhotoWork();
+    setUploadError(null);
+    setFaceBox(null);
+    setFaceCanvas(null);
+    setIsSuccess(false);
     if (meltdownTimerRef.current) {
       window.clearInterval(meltdownTimerRef.current);
       meltdownTimerRef.current = null;
@@ -1011,6 +889,10 @@ export default function App() {
 
   // Load preset character template
   const handleLoadPreset = (hero: PresetHero) => {
+    cancelPendingPhotoWork();
+    setUploadError(null);
+    setFaceBox(null);
+    setFaceCanvas(null);
     if (meltdownTimerRef.current) {
       window.clearInterval(meltdownTimerRef.current);
       meltdownTimerRef.current = null;
@@ -1020,6 +902,7 @@ export default function App() {
     setConfig((prev) => ({
       ...prev,
       ...hero.config,
+      portraitFace: undefined,
       name: hero.name,
       isMelting: false,
       meltProgress: 0,
@@ -1035,11 +918,11 @@ export default function App() {
   const guideStages = [
     {
       title: "01 // Portrait Selection & Calibration",
-      description: "Directives on selecting the ideal portrait to generate a high-quality, distortion-free 3D asset.",
+      description: "Choose a portrait for an approximate 3D face fit. A clear front view gives the most useful result.",
       directives: [
         "Use a front-facing, neutral photo with clear, sharp lighting.",
         "Ensure there are no heavy side shadows, face coverings, or steep head tilts.",
-        "Once uploaded, the system automatically analyzes features.",
+        "After uploading, choose Fit Photo to 3D Face. Unseen areas are estimated.",
       ],
       tip: "💡 PRO TIP: Diffused natural lighting works best to prevent harsh nose shadows.",
       actionText: "Open Upload Area",
@@ -1049,17 +932,17 @@ export default function App() {
       }
     },
     {
-      title: "02 // Texture Mapping & Boundary Blending",
-      description: "How to perfectly position and feather the face photo onto the 3D skull mesh.",
+      title: "02 // Inspect the Fitted Face",
+      description: "Check the fitted facial shape from several angles before exporting.",
       directives: [
-        "Enable 'Feather Edges' to smoothly blend photo borders into the skin pigment.",
-        "Adjust 'Shift Horizontal' and 'Shift Vertical' so eyes align with the 3D sockets.",
-        "Tweak 'Crop Scale' to zoom the facial texture map to cover the frontal hemisphere.",
+        "Choose Fit Photo to 3D Face after uploading your portrait.",
+        "Drag the preview to inspect the nose, cheek, and jaw depth.",
+        "The unseen back of the head is estimated. Customize clothing and adjust the template body.",
       ],
-      tip: "💡 PRO TIP: Set feather radius to 85% to achieve a seamless, seam-free scalp texture transition.",
-      actionText: "Align Face Crop",
+      tip: "A clear front-facing photo works best. This is an approximation from one view, not a full scan.",
+      actionText: "Inspect Fitted Face",
       action: () => {
-        const el = document.getElementById("crop-tuning-panel");
+        const el = document.getElementById("fitted-face-panel") || document.getElementById("upload-panel");
         if (el) el.scrollIntoView({ behavior: "smooth" });
       }
     },
@@ -1177,7 +1060,7 @@ export default function App() {
             <span className="text-lime-300">GPU: THREE.JS</span>
           </div>
           <div className="border-l border-[#E4E3E0]/20 pl-4 opacity-75 hidden md:block text-cyan-200/80">
-            ENGINE // GEMINI + CLIENT FALLBACK
+            ENGINE // LOCAL FACE FITTING
           </div>
         </div>
       </header>
@@ -1415,8 +1298,8 @@ export default function App() {
               setConfig={setConfig}
               sourceImage={sourceImage}
               faceBox={faceBox}
-              setFaceBox={setFaceBox}
               uploadError={uploadError}
+              fitStatus={fitStatus}
               imageRef={imageRef}
               isDraggingFile={isDraggingFile}
               handleDragOver={handleDragOver}
@@ -1584,18 +1467,31 @@ export default function App() {
                     onSceneReady={(group) => {
                       const previousAnimal = avatarGroupRef.current?.userData.animalVariant;
                       avatarGroupRef.current = group;
-                      // Animal presets are complete assets without a portrait-processing step.
+                      if (group.userData.portraitFitted && !photoUploadPendingRef.current && !analysisAbortRef.current) {
+                        setUploadError(null);
+                        setIsSuccess(true);
+                        setCurrentStep("glb");
+                        setFitStatus("Face fitted. Rotate the preview to see its depth.");
+                      }
                       if (group.animations.length > 0) {
                         // Only a new species choice cancels pending photo analysis. A rebuild
                         // while decoding another upload must not invalidate that upload.
                         if (previousAnimal !== group.userData.animalVariant && analysisAbortRef.current) {
-                          ++photoRunRef.current;
-                          analysisAbortRef.current.abort();
-                          setIsProcessing(false);
+                          cancelPendingPhotoWork();
                         }
-                        setIsSuccess(true);
-                        setCurrentStep("glb");
+                        if (!photoUploadPendingRef.current && !analysisAbortRef.current) {
+                          setUploadError(null);
+                          setIsSuccess(true);
+                          setCurrentStep("glb");
+                        }
                       }
+                    }}
+                    onSceneError={(error) => {
+                      avatarGroupRef.current = null;
+                      setIsSuccess(false);
+                      setFitStatus("");
+                      setUploadError(`The 3D preview could not be built: ${error.message}`);
+                      addLog(`3D preview failed: ${error.message}`, "error");
                     }}
                   />
                 </div>

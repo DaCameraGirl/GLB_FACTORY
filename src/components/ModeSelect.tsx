@@ -78,7 +78,7 @@ export default function ModeSelect({ onSelect }: ModeSelectProps) {
               </div>
             </div>
             <p className="font-mono text-[10px] text-fuchsia-200/80 uppercase tracking-wider max-w-xs text-right hidden sm:block">
-              Your portrait becomes a poseable mesh.
+              Fit your portrait to a customizable 3D face.
               <br />
               Then the lab makes monsters.
             </p>
@@ -122,7 +122,7 @@ export default function ModeSelect({ onSelect }: ModeSelectProps) {
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-3">
                 <p className="font-mono text-[9px] font-black text-cyan-300 uppercase tracking-widest">01 · Photo in</p>
-                <p className="font-mono text-[10px] text-white/70 normal-case">Face + colors from your portrait</p>
+                <p className="font-mono text-[10px] text-white/70 normal-case">Fit facial shape from your portrait</p>
               </div>
             </div>
             <div className="border border-fuchsia-400/40 bg-black/60 overflow-hidden relative min-h-[140px]">
@@ -167,7 +167,7 @@ export default function ModeSelect({ onSelect }: ModeSelectProps) {
                     Create From Photo
                   </h3>
                   <p className="mt-1 font-mono text-[11px] text-white/70 normal-case max-w-xs leading-relaxed">
-                    Drop a portrait. Face texture + palette land on a 3D body you can customize and export.
+                    Fit a visible face from one portrait, then customize its template body and export.
                   </p>
                   <span className="mt-3 inline-flex items-center gap-1 font-mono text-[11px] font-black uppercase text-cyan-300">
                     Start morph <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

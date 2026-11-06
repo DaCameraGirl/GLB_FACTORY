@@ -137,3 +137,36 @@ export function prepareFaceTexture(
 
   return canvas;
 }
+
+
+/** Keep the original image framing: fitted mesh UVs refer to these exact coordinates. */
+export function preparePortraitTexture(img: HTMLImageElement): HTMLCanvasElement {
+  const width = img.naturalWidth || img.width;
+  const height = img.naturalHeight || img.height;
+  if (!width || !height) throw new Error("The portrait has no readable pixels.");
+  const scale = Math.min(1, 1024 / Math.max(width, height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(width * scale));
+  canvas.height = Math.max(1, Math.round(height * scale));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Your browser could not prepare the portrait texture.");
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  return canvas;
+}
+
+/** Sample the detected cheeks, not fixed locations that may contain the background. */
+export function samplePortraitSkin(canvas: HTMLCanvasElement, landmarks: { x: number; y: number }[]): string {
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return "#c59a84";
+  const colors = [50, 101, 280, 330].map(index => {
+    const point = landmarks[index];
+    const x = Math.max(0, Math.min(canvas.width - 1, Math.round(point.x * canvas.width)));
+    const y = Math.max(0, Math.min(canvas.height - 1, Math.round(point.y * canvas.height)));
+    return Array.from(ctx.getImageData(x, y, Math.min(3, canvas.width - x), Math.min(3, canvas.height - y)).data);
+  });
+  const rgb = [0, 1, 2].map(channel => {
+    const values = colors.flatMap(pixels => pixels.filter((_, index) => index % 4 === channel)).sort((a, b) => a - b);
+    return Math.round(values[Math.floor(values.length / 2)]).toString(16).padStart(2, "0");
+  });
+  return `#${rgb.join("")}`;
+}

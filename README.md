@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/Tailwind_v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" alt="Tailwind v4"/>
 </p>
 
-Upload a portrait — or spin up the Mutation Lab — and export a customizable, poseable **`.glb`** with PBR materials and an organized mesh hierarchy. Blocky, organic, or a full-on creature. GLB_FACTORY is a browser-based procedural avatar studio built from primitive 3D shapes (cylinders, boxes, spheres) in the spirit of Minecraft/Roblox-style voxel characters — no Blender, no manual UV unwrapping, no waiting for a bake.
+Upload a portrait — or spin up the Mutation Lab — and export a customizable, poseable **`.glb`** with PBR materials and an organized mesh hierarchy. Blocky, organic, or a full-on creature. GLB_FACTORY is a browser-based avatar studio with fitted portrait faces, procedural character bodies, and 22 articulated animal models.
 
 **Two connected modes**
 
@@ -36,10 +36,13 @@ Upload a portrait — or spin up the Mutation Lab — and export a customizable,
 
 ---
 
-## 🚀 Dual-Mode Architecture
+## Portrait face fitting
 
-1. **AI-Powered Mode** — When a backend is available (local dev, or a self-hosted deployment with your own `GEMINI_API_KEY`), the app calls the Gemini API to locate the face and extract skin/hair/clothing colors automatically. **This is not active on the live GitHub Pages demo above** — GitHub Pages serves static files only, there's no backend to call.
-2. **Static Fallback Mode (what the live demo actually runs)** — An HTML5 canvas sampler reads the portrait pixel data directly in-browser and estimates the same colors client-side. Zero network requests, zero API key required.
+Upload a clear, front-facing portrait and choose **Fit Photo to 3D Face**. MediaPipe Face Landmarker runs in the browser and supplies normalized 3D landmarks. The first 468 points form a fitted facial surface with the original photo mapped to their UV coordinates. Nose, cheeks, lips, and jaw have real geometric relief. The exporter includes that geometry and texture.
+
+This is an approximate single-image fit, not a scan or a full character reconstruction. Depth and hidden surfaces are estimated; the rear skull is constructed as a closed cap. Ears, clothing, and body remain templates. Hair is not reconstructed by the portrait pipeline. Human walk/dance previews do not export as animation clips. Use several reference views and manual refinement in Blender when a closer likeness is needed.
+
+The fitted workflow runs on GitHub Pages without a backend or API key. Its pinned WASM runtime and model are served from `public/mediapipe/`. The image is processed locally; the upstream MediaPipe runtime includes performance/utilization telemetry. See [model sources, licenses, and privacy notes](public/mediapipe/README.md). A failed/no-face detection shows a visible error and leaves export disabled instead of reporting a completed face.
 
 ---
 
@@ -74,7 +77,7 @@ To activate it on a fork: **Settings → Pages → Build and deployment → Sour
 
 Keep the source set to **GitHub Actions**, not a branch folder: the root `index.html` is Vite source and cannot run directly on Pages. The deployment uses `npm run build:pages` to publish only the browser app and enable local photo analysis without an API server.
 
-Regression checks: `npm run lint`, `npm test`, then `npm run build:pages` and `node scripts/photo-workflow-qa.mjs` (requires the Playwright Chromium browser). The browser check covers portrait upload, character and sculpt GLB downloads, exported skin joints, unreadable-image recovery, and direct selection/export of all 22 animals. `npm test` reloads every animal GLB and checks both clips actually move its parts.
+Regression checks: `npm run lint`, `npm test`, then `npm run build:pages` and `node scripts/photo-workflow-qa.mjs` and `node scripts/portrait-races-qa.mjs` (requires the Playwright Chromium browser). The browser check covers portrait upload, character and sculpt GLB downloads, exported skin joints, unreadable-image recovery, and direct selection/export of all 22 animals. `npm test` reloads every animal GLB and checks both clips actually move its parts.
 
 ---
 
@@ -89,11 +92,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Optional, to enable Gemini-powered face detection locally instead of the client-side fallback — create `.env.local`:
-
-```env
-GEMINI_API_KEY=your_gemini_api_key_here
-```
+Portrait fitting needs no API key. The legacy Express `/api/crop-face` endpoint remains available for existing integrations, but the portrait button uses the local landmark pipeline in both development and production.
 
 ---
 
@@ -103,7 +102,8 @@ GEMINI_API_KEY=your_gemini_api_key_here
 - **React 19 + Vite 6** — SPA runtime & build
 - **Tailwind CSS v4** — utility-first styling
 - **Lucide React** — icons
-- **Express + Google GenAI SDK** — optional backend proxy for Gemini orchestration (self-hosted only, not used by the GitHub Pages demo)
+- **MediaPipe Tasks Vision** — locally processed facial landmarks; pinned model and WASM assets
+- **Express + Google GenAI SDK** — legacy optional backend endpoint (not used by the portrait fitting workflow)
 
 ---
 
